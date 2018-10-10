@@ -1,0 +1,159 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{4DA65FD2-30C0-49E7-9AEE-99BD28734660}</ProjectGuid>
+			<ProjectVersion>12.0</ProjectVersion>
+			<MainSource>ATAC_APP_NFE.dpr</MainSource>
+			<Config Condition="'$(Config)'==''">Debug</Config>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
+			<Cfg_1>true</Cfg_1>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
+			<Cfg_2>true</Cfg_2>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_UnitSearchPath>.\units;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
+			<DCC_DependencyCheckOutputName>ATAC_APP_NFE.exe</DCC_DependencyCheckOutputName>
+			<DCC_K>false</DCC_K>
+			<DCC_F>false</DCC_F>
+			<DCC_ImageBase>00400000</DCC_ImageBase>
+			<DCC_Platform>x86</DCC_Platform>
+			<DCC_N>false</DCC_N>
+			<DCC_S>false</DCC_S>
+			<DCC_E>false</DCC_E>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+			<DCC_DebugInformation>false</DCC_DebugInformation>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+		</PropertyGroup>
+		<ItemGroup>
+			<DelphiCompile Include="ATAC_APP_NFE.dpr">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\units\unotfis00.pas"/>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.NFEStatus.pas">
+				<Form>frm_NFEStatus</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\FDM.NFE.pas">
+				<Form>dm_nfe</Form>
+				<DesignClass>TDataModule</DesignClass>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Justifica.pas">
+				<Form>frm_Justif</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Inutiliza.pas">
+				<Form>frm_Inutiliza</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Princ00.pas">
+				<Form>frm_Princ00</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Config.pas">
+				<Form>frm_Config</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.RelNFRL00.pas">
+				<Form>frm_RelNFRL00</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Ajuda.pas">
+				<Form>frm_Ajuda</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.EnvioLote.pas">
+				<Form>frm_EnvLote</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.ConfigGSerial.pas">
+				<Form>frm_ConfigGSerial</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\units\ucad.empresa.pas"/>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Items.pas">
+				<Form>frm_Items</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\units\ucce.pas"/>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.CCEList.pas">
+				<Form>frm_CCEList</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.CCE.pas">
+				<Form>frm_CCE</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\configuracoes\Form.ParametroList.pas">
+				<Form>frm_ParametroList</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\view\configuracoes\Form.Parametro.pas">
+				<Form>frm_Parametro</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\SisGerCom.D2010\units\uparam.pas"/>
+			<None Include="..\..\..\SisGerCom.D2010\view\nfe\sql\sp\sp_notfis00_add.sql"/>
+			<None Include="..\..\..\SisGerCom.D2010\view\nfe\sql\sp\sp_notfis00_upd.sql"/>
+			<None Include="..\..\..\SisGerCom.D2010\view\nfe\sql\table\notfis00.sql"/>
+			<None Include="..\..\..\SisGerCom.D2010\view\nfe\sql\sp\sp_notfis01_merge.sql"/>
+			<None Include="..\..\..\SisGerCom.D2010\view\configuracoes\sql\sis-configuracoes.sql"/>
+			<BuildConfiguration Include="Base">
+				<Key>Base</Key>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Release">
+				<Key>Cfg_1</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Debug">
+				<Key>Cfg_2</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+		<ProjectExtensions>
+			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Delphi.Personality>
+					<Source>
+						<Source Name="MainSource">ATAC_APP_NFE.dpr</Source>
+					</Source>
+					<Parameters>
+						<Parameters Name="UseLauncher">False</Parameters>
+						<Parameters Name="LoadAllSymbols">True</Parameters>
+						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
+					</Parameters>
+					<VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
+						<VersionInfo Name="AutoIncBuild">True</VersionInfo>
+						<VersionInfo Name="MajorVer">2</VersionInfo>
+						<VersionInfo Name="MinorVer">5</VersionInfo>
+						<VersionInfo Name="Release">1</VersionInfo>
+						<VersionInfo Name="Build">461</VersionInfo>
+						<VersionInfo Name="Debug">False</VersionInfo>
+						<VersionInfo Name="PreRelease">False</VersionInfo>
+						<VersionInfo Name="Special">False</VersionInfo>
+						<VersionInfo Name="Private">False</VersionInfo>
+						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="Locale">1046</VersionInfo>
+						<VersionInfo Name="CodePage">1252</VersionInfo>
+					</VersionInfo>
+					<VersionInfoKeys>
+						<VersionInfoKeys Name="CompanyName">Atac Sistemas Ltda</VersionInfoKeys>
+						<VersionInfoKeys Name="FileDescription">App de gerenciamento da NF-e</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">2.5.1.461</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName">ATAC_APP_NFE</VersionInfoKeys>
+						<VersionInfoKeys Name="LegalCopyright">(C)</VersionInfoKeys>
+						<VersionInfoKeys Name="LegalTrademarks">Todos os direitos reservados</VersionInfoKeys>
+						<VersionInfoKeys Name="OriginalFilename">ATAC_APP_NFE.exe</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductName">ATAC APP NFE 2018</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductVersion">ATAC APP NFE 2018</VersionInfoKeys>
+						<VersionInfoKeys Name="Comments"/>
+					</VersionInfoKeys>
+				</Delphi.Personality>
+			</BorlandProject>
+			<ProjectFileVersion>12</ProjectFileVersion>
+		</ProjectExtensions>
+	</Project>
