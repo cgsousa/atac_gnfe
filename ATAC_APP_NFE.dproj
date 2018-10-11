@@ -20,9 +20,11 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_UnitSearchPath>.\units;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_DcuOutput>.\bin\dcu</DCC_DcuOutput>
+			<DCC_ExeOutput>.\bin</DCC_ExeOutput>
+			<DCC_UnitSearchPath>..\..\lib\units;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
-			<DCC_DependencyCheckOutputName>ATAC_APP_NFE.exe</DCC_DependencyCheckOutputName>
+			<DCC_DependencyCheckOutputName>bin\ATAC_APP_NFE.exe</DCC_DependencyCheckOutputName>
 			<DCC_K>false</DCC_K>
 			<DCC_F>false</DCC_F>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
@@ -44,61 +46,55 @@
 			<DelphiCompile Include="ATAC_APP_NFE.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\units\unotfis00.pas"/>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.NFEStatus.pas">
+			<DCCReference Include="model\unotfis00.pas"/>
+			<DCCReference Include="view\Form.NFEStatus.pas">
 				<Form>frm_NFEStatus</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\FDM.NFE.pas">
+			<DCCReference Include="view\FDM.NFE.pas">
 				<Form>dm_nfe</Form>
 				<DesignClass>TDataModule</DesignClass>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Justifica.pas">
+			<DCCReference Include="view\Form.Justifica.pas">
 				<Form>frm_Justif</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Inutiliza.pas">
+			<DCCReference Include="view\Form.Inutiliza.pas">
 				<Form>frm_Inutiliza</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Princ00.pas">
+			<DCCReference Include="view\Form.Princ00.pas">
 				<Form>frm_Princ00</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Config.pas">
+			<DCCReference Include="view\Form.Config.pas">
 				<Form>frm_Config</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.RelNFRL00.pas">
+			<DCCReference Include="view\Form.RelNFRL00.pas">
 				<Form>frm_RelNFRL00</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Ajuda.pas">
+			<DCCReference Include="view\Form.Ajuda.pas">
 				<Form>frm_Ajuda</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.EnvioLote.pas">
+			<DCCReference Include="view\Form.EnvioLote.pas">
 				<Form>frm_EnvLote</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.ConfigGSerial.pas">
+			<DCCReference Include="view\Form.ConfigGSerial.pas">
 				<Form>frm_ConfigGSerial</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\units\ucad.empresa.pas"/>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.Items.pas">
+			<DCCReference Include="view\Form.Items.pas">
 				<Form>frm_Items</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\units\ucce.pas"/>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.CCEList.pas">
+			<DCCReference Include="model\ucce.pas"/>
+			<DCCReference Include="view\Form.CCEList.pas">
 				<Form>frm_CCEList</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\nfe\Form.CCE.pas">
+			<DCCReference Include="view\Form.CCE.pas">
 				<Form>frm_CCE</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\configuracoes\Form.ParametroList.pas">
+			<DCCReference Include="..\..\lib\view\Form.ParametroList.pas">
 				<Form>frm_ParametroList</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\view\configuracoes\Form.Parametro.pas">
+			<DCCReference Include="..\..\lib\view\Form.Parametro.pas">
 				<Form>frm_Parametro</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\..\SisGerCom.D2010\units\uparam.pas"/>
-			<None Include="..\..\..\SisGerCom.D2010\view\nfe\sql\sp\sp_notfis00_add.sql"/>
-			<None Include="..\..\..\SisGerCom.D2010\view\nfe\sql\sp\sp_notfis00_upd.sql"/>
-			<None Include="..\..\..\SisGerCom.D2010\view\nfe\sql\table\notfis00.sql"/>
-			<None Include="..\..\..\SisGerCom.D2010\view\nfe\sql\sp\sp_notfis01_merge.sql"/>
-			<None Include="..\..\..\SisGerCom.D2010\view\configuracoes\sql\sis-configuracoes.sql"/>
+			<DCCReference Include="..\..\lib\units\uparam.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -131,7 +127,7 @@
 						<VersionInfo Name="MajorVer">2</VersionInfo>
 						<VersionInfo Name="MinorVer">5</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">461</VersionInfo>
+						<VersionInfo Name="Build">462</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -143,7 +139,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Atac Sistemas Ltda</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">App de gerenciamento da NF-e</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">2.5.1.461</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">2.5.1.462</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">ATAC_APP_NFE</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">(C)</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">Todos os direitos reservados</VersionInfoKeys>

@@ -1063,6 +1063,7 @@ begin
     m_NFE.Configuracoes.Geral.SSLXmlSignLib         := TSSLXmlSignLib(m_Ini.ReadInteger( 'Certificado','XmlSignLib' , 0)) ;
     m_NFE.Configuracoes.Geral.ModeloDF              := TpcnModeloDF(m_Ini.ReadInteger( 'Geral','ModeloDF',0));
     m_NFE.Configuracoes.Geral.VersaoDF              := TpcnVersaoDF(m_Ini.ReadInteger( 'Geral','VersaoDF',0)) ;
+    m_NFE.Configuracoes.Geral.VersaoQRCode          := TpcnVersaoQrCode(m_Ini.ReadInteger( 'Geral','VersaoQR',0)) ;
     m_NFE.Configuracoes.Geral.IdCSC      := m_Ini.ReadString('CONFIG', 'CscId', '');
     m_NFE.Configuracoes.Geral.CSC        := m_Ini.ReadString('CONFIG', 'CscNumero', '');
 
