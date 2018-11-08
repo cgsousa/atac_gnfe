@@ -57,6 +57,8 @@ uses
   blcksock,
   unotfis00, ucce;
 
+{$I ACBr.inc}
+
 //type
 //  TNFeStatusServico = class(ACBrNFeWebServices.TNFeStatusServico)
 //  end;
@@ -1060,10 +1062,14 @@ begin
     m_NFE.Configuracoes.Geral.SSLLib                := TSSLLib(m_Ini.ReadInteger( 'Certificado','SSLLib' ,0)) ;
     m_NFE.Configuracoes.Geral.SSLCryptLib           := TSSLCryptLib(m_Ini.ReadInteger( 'Certificado','CryptLib' , 0)) ;
     m_NFE.Configuracoes.Geral.SSLHttpLib            := TSSLHttpLib(m_Ini.ReadInteger( 'Certificado','HttpLib' , 0)) ;
+    {$IfDef DFE_SEM_XMLSEC}
+    m_NFE.Configuracoes.Geral.SSLXmlSignLib         := xsLibXml2 ;
+    {$Else}
     m_NFE.Configuracoes.Geral.SSLXmlSignLib         := TSSLXmlSignLib(m_Ini.ReadInteger( 'Certificado','XmlSignLib' , 0)) ;
+    {$EndIf}
     m_NFE.Configuracoes.Geral.ModeloDF              := TpcnModeloDF(m_Ini.ReadInteger( 'Geral','ModeloDF',0));
     m_NFE.Configuracoes.Geral.VersaoDF              := TpcnVersaoDF(m_Ini.ReadInteger( 'Geral','VersaoDF',0)) ;
-    m_NFE.Configuracoes.Geral.VersaoQRCode          := TpcnVersaoQrCode(m_Ini.ReadInteger( 'Geral','VersaoQR',0)) ;
+    m_NFE.Configuracoes.Geral.VersaoQRCode          := TpcnVersaoQrCode(m_Ini.ReadInteger( 'Geral','VersaoQR',2)) ;
     m_NFE.Configuracoes.Geral.IdCSC      := m_Ini.ReadString('CONFIG', 'CscId', '');
     m_NFE.Configuracoes.Geral.CSC        := m_Ini.ReadString('CONFIG', 'CscNumero', '');
 
@@ -1496,6 +1502,8 @@ begin
             m_df.MostrarStatus  :=True ;
             m_DF.Impressora :=m_Ini.ReadString('DANFE', 'Impressora Padrao NFCE', '');
             m_DF.LarguraBobina :=Trunc((m_Ini.ReadFloat('DANFE', 'Largura Bobina NFCE', 302)*100)/2.54);
+            m_DF.ImprimeEmUmaLinha :=m_Ini.ReadBool('CONFIG', 'ImprimirItem1Linha', False);
+            m_DF.ImprimeDescAcrescItem :=m_Ini.ReadBool('CONFIG', 'ImprimirDescAcresItem', True);
             //m_DF.Impressora :=ptr.PrinterName;
 
             m_NFE.DANFE :=m_DF;
@@ -1600,6 +1608,9 @@ begin
             m_df.MostrarStatus  :=True ;
             m_DF.Impressora :=m_Ini.ReadString('DANFE', 'Impressora Padrao NFCE', '');
             m_DF.LarguraBobina :=Trunc((m_Ini.ReadFloat('DANFE', 'Largura Bobina NFCE', 302)*100)/2.54);
+            m_DF.ImprimeEmUmaLinha :=m_Ini.ReadBool('CONFIG', 'ImprimirItem1Linha', False);
+            m_DF.ImprimeDescAcrescItem :=m_Ini.ReadBool('CONFIG', 'ImprimirDescAcresItem', True);
+
             //m_DF.Impressora :=ptr.PrinterName;
 
             m_NFE.DANFE :=m_DF;
@@ -1698,8 +1709,7 @@ begin
         m_Mail.SetTLS   :=m_Ini.ReadBool(   'Email','SSL'    ,False); // Auto TLS
         m_Mail.ReadingConfirmation :=False; //Pede confirmação de leitura
         m_Mail.UseThread:=False;           //Aguarda Envio do Email(nÃ£o usa thread)
-        m_Mail.FromName :='Atac Sistemas Automação Comercial';
-
+        m_Mail.FromName :=NF.m_emit.xFant;
         //
         // ler msg
         S :=TMemoryStream.Create ;

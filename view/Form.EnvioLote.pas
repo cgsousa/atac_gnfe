@@ -116,12 +116,14 @@ begin
                     N.Checked :=False;
                     Continue ;
                 end ;
-                if rep.AddNotaFiscal(N) = nil then
-                begin
-                    N.Checked :=False ;
-                    Continue ;
-                end ;
             end;
+
+            if rep.AddNotaFiscal(N) = nil then
+            begin
+                N.Checked :=False ;
+                Continue ;
+            end ;
+
             if codLot = 0 then
             begin
                 codlot :=N.m_codseq;
