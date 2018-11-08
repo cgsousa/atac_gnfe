@@ -16,10 +16,7 @@ uses
   Form.Items in 'view\Form.Items.pas' {frm_Items},
   ucce in 'model\ucce.pas',
   Form.CCEList in 'view\Form.CCEList.pas' {frm_CCEList},
-  Form.CCE in 'view\Form.CCE.pas' {frm_CCE},
-  Form.ParametroList in '..\..\lib\view\Form.ParametroList.pas' {frm_ParametroList},
-  Form.Parametro in '..\..\lib\view\Form.Parametro.pas' {frm_Parametro},
-  uparam in '..\..\lib\units\uparam.pas';
+  Form.CCE in 'view\Form.CCE.pas' {frm_CCE};
 
 {$R *.res}
 {$R ATAC_APP_NFE.UAC.res}

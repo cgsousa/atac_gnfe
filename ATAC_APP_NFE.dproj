@@ -22,7 +22,7 @@
 		<PropertyGroup Condition="'$(Base)'!=''">
 			<DCC_DcuOutput>.\bin\dcu</DCC_DcuOutput>
 			<DCC_ExeOutput>.\bin</DCC_ExeOutput>
-			<DCC_UnitSearchPath>..\..\lib\units;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_UnitSearchPath>D:\develop\lib\delphi\sistem.lib\units;D:\develop\lib\delphi\sistem.lib\view;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
 			<DCC_DependencyCheckOutputName>bin\ATAC_APP_NFE.exe</DCC_DependencyCheckOutputName>
 			<DCC_K>false</DCC_K>
@@ -88,13 +88,6 @@
 			<DCCReference Include="view\Form.CCE.pas">
 				<Form>frm_CCE</Form>
 			</DCCReference>
-			<DCCReference Include="..\..\lib\view\Form.ParametroList.pas">
-				<Form>frm_ParametroList</Form>
-			</DCCReference>
-			<DCCReference Include="..\..\lib\view\Form.Parametro.pas">
-				<Form>frm_Parametro</Form>
-			</DCCReference>
-			<DCCReference Include="..\..\lib\units\uparam.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -127,7 +120,7 @@
 						<VersionInfo Name="MajorVer">2</VersionInfo>
 						<VersionInfo Name="MinorVer">5</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">462</VersionInfo>
+						<VersionInfo Name="Build">463</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -139,7 +132,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Atac Sistemas Ltda</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">App de gerenciamento da NF-e</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">2.5.1.462</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">2.5.1.463</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">ATAC_APP_NFE</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">(C)</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">Todos os direitos reservados</VersionInfoKeys>
