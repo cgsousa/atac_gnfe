@@ -1,6 +1,6 @@
 ﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
-			<ProjectGuid>{A5F68739-9E7A-4F77-A8C9-FD86591EF9A1}</ProjectGuid>
+			<ProjectGuid>{AC916275-1900-4DF9-87A0-4FB7575D1169}</ProjectGuid>
 		</PropertyGroup>
 		<ItemGroup>
 			<Projects Include="ATAC_APP_NFE.dproj">

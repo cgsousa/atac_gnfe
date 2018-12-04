@@ -18,6 +18,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+04.12.2018
+[+] Novo parametro [conting_offline] para tratar a contingencia offline
+
 11.07.2018
 [*] A geração em contingencia/offline, agora é manual
     conforme flag notfis00(m_tipemi)
@@ -52,13 +55,16 @@ Símbolo : Significado
 interface
 
 uses SysUtils ,
-  uclass, ulog;
+  uclass, ulog, unotfis00, FDM.NFE;
 
 type
   TMySvcThread = class(TCThreadProcess)
   private
     { Private declarations }
     m_Log: TCLog;
+    m_Rep: Tdm_nfe;
+    procedure runContingOffLine(NF: TCNotFis00) ;
+//    procedure runNormal;
   protected
     procedure Execute; override;
     procedure RunProc; override;
@@ -72,9 +78,9 @@ type
 
 implementation
 
-uses ActiveX, WinInet ,
+uses Windows, ActiveX, WinInet ,
   pcnConversao, ACBr_WinHttp ,
-  uadodb, unotfis00, FDM.NFE;
+  uadodb;
 
 
 { TMySvcThread }
@@ -119,9 +125,28 @@ begin
 
 end;
 
+procedure TMySvcThread.runContingOffLine(NF: TCNotFis00) ;
+begin
+    //
+    // set contingencia
+    NF.setContinge('Falha na comunicação!');
+    NF.Load();
+    if m_Rep.AddNotaFiscal(NF, True) <> nil then
+    begin
+        NF.setXML() ;
+        m_Log.AddPar('NFE gerada em contingência') ;
+    end
+    else begin
+        //
+        // desfaz contingencia
+        NF.setContinge('', True);
+        m_Log.AddPar('Erro ao gerar a NFE em contingência!');
+    end;
+end;
+
 procedure TMySvcThread.RunProc;
 var
-  nfe: Tdm_nfe;
+//  nfe: Tdm_nfe;
 //  N: NotaFiscal ;
   F: TNotFis00Filter;
   L: TCNotFis00Lote;
@@ -130,7 +155,7 @@ var
   chk_status: Boolean ;
   err_db: string;
   //
-  procedure ProcessConting() ;
+  {procedure ProcessConting() ;
   begin
       //
       // set contingencia
@@ -147,7 +172,7 @@ var
           NF.setContinge('', True);
           m_Log.AddPar('Erro ao gerar a NFE em contingência!');
       end;
-  end;
+  end;}
   //
 begin
     //
@@ -170,14 +195,14 @@ begin
         end;
     end;
 
-    nfe :=Tdm_nfe.getInstance ;
-    nfe.setStatusChange(false); //desabilita status de processamento
+    m_Rep :=Tdm_nfe.getInstance ;
+    m_Rep.setStatusChange(false); //desabilita status de processamento
 
     //
     // preenche filtro
     F.Create(0, 0);
     F.status :=sttService ;
-    F.nserie :=nfe.NSerie ;
+    F.nserie :=m_Rep.NSerie ;
 
     //
     // cria o lote
@@ -189,10 +214,10 @@ begin
       begin
           //
           // X notas encontradas
-          if L.Items.Count > 1 then
+          {if L.Items.Count > 1 then
           begin
               m_Log.AddSec('Encontrou %d NFs´s do caixa:%.2d',[L.Items.Count,F.nserie]) ;
-          end;
+          end;}
 
           //
           // loop para processamento
@@ -231,12 +256,20 @@ begin
                   NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt]);
 
               //
-              // se emissao em contingencia/offline
-              if NF.m_tipemi = teContingencia then
+              // check se flag Contingencia/OffLine esta ativa
+              if m_Rep.Parametro.conting_offline.Value then
               begin
                   //
-                  // process contingencia
-                  ProcessConting() ;
+                  // NF não processada, pronta para envio
+                  // e ou com erros geral
+                  if(NF.m_codstt in[0,TCNotFis00.CSTT_DONE_SEND])or
+                    (NF.m_codstt >=999                          )then
+                  begin
+                      m_Log.AddPar(Format('%s: %d',[
+                                  m_Rep.Parametro.conting_offline.Key,
+                                  Ord(m_Rep.Parametro.conting_offline.Value)]));
+                      runContingOffLine(NF) ;
+                  end;
               end
 
               //
@@ -256,7 +289,7 @@ begin
                       //
                       // caso não consiga atualiza a NF
                       // reporta o erro e vai para a proxima NF
-                      if not NF.UpdateNFe(now, Ord(nfe.ProdDescrRdz), Ord(nfe.ProdCodInt), err_db) then
+                      if not NF.UpdateNFe(now, Ord(m_Rep.ProdDescrRdz), Ord(m_Rep.ProdCodInt), err_db) then
                       begin
                           m_Log.AddPar('Erro: '+err_db);
                           Continue ;
@@ -265,9 +298,9 @@ begin
                       //
                       // gera NFE
                       m_Log.AddPar('Gerando NFE ...') ;
-                      if nfe.AddNotaFiscal(NF, True) = nil then
+                      if m_Rep.AddNotaFiscal(NF, True) = nil then
                       begin
-                          m_Log.AddPar('NFE não gerada: ' +nfe.ErrMsg);
+                          m_Log.AddPar('NFE não gerada: ' +m_Rep.ErrMsg);
                           //
                           // força para a proxima nota,
                           // caso não for gerada!
@@ -286,23 +319,23 @@ begin
                   if NF.m_codstt =TCNotFis00.CSTT_DONE_SEND then
                   begin
                       m_Log.AddPar('Enviando lote ...');
-                      if nfe.OnlySend(NF) then
+                      if m_Rep.OnlySend(NF) then
                       begin
                           NF.setStatus();
                           m_Log.AddPar(NF.m_motivo);
                       end
                       else begin
-                          m_Log.AddPar(Format('Envio falhou: %d-%s',[nfe.ErrCod,nfe.ErrMsg]));
+                          m_Log.AddPar(Format('Envio falhou: %d-%s',[m_Rep.ErrCod,m_Rep.ErrMsg]));
                           //
                           // chk erro
                           //
-                          case nfe.ErrCod of
+                          case m_Rep.ErrCod of
                               // http ou interno
                               // Pendente de retorno
                               408,HTTP_STATUS_SERVICE_UNAVAIL,ERROR_WINHTTP_TIMEOUT:
                               begin
                                   NF.m_codstt :=TCNotFis00.CSTT_RET_PENDENTE;
-                                  NF.m_motivo :=Format('[%d]Pendente de retorno!',[nfe.ErrCod]);
+                                  NF.m_motivo :=Format('[%d]Pendente de retorno!',[m_Rep.ErrCod]);
                                   NF.setStatus ;
                                   m_Log.AddPar(NF.m_motivo);
                               end;
@@ -317,11 +350,12 @@ begin
                               ERROR_WINHTTP_NAME_NOT_RESOLVED,
                               ERROR_WINHTTP_CANNOT_CONNECT,
                               ERROR_WINHTTP_CONNECTION_ERROR,
-                              ERROR_INTERNET_CONNECTION_RESET:
+                              ERROR_INTERNET_CONNECTION_RESET,
+                              ERROR_SERVICE_DOES_NOT_EXIST:
                               begin
                                   //
                                   // process contingencia
-                                  ProcessConting() ;
+                                  runContingOffLine(NF) ;
                               end;
 
                               //
@@ -335,7 +369,7 @@ begin
                               ERROR_WINHTTP_CLIENT_CERT_NO_ACCESS_PRIVATE_KEY:
                               begin
                                   NF.m_codstt :=55 ;
-                                  NF.m_motivo :=Format('[%d]%s', [nfe.ErrCod,nfe.ErrMsg]) ;
+                                  NF.m_motivo :=Format('[%d]%s', [m_Rep.ErrCod,m_Rep.ErrMsg]) ;
                                   NF.setStatus ;
                               end;
 
@@ -344,7 +378,7 @@ begin
                           else
                               //
                               // se ocorrer, implementação futura !!!
-                              NF.m_codstt :=nfe.ErrCod ;
+                              NF.m_codstt :=m_Rep.ErrCod ;
                               NF.m_motivo :='Erro interno!' ;
                               NF.setStatus ;
                               //NF.m_codstt :=nfe.ErrCod ;
@@ -364,7 +398,7 @@ begin
                   begin
 
                       m_Log.AddPar('Consulta protocolo ...');
-                      if nfe.OnlyCons(NF) then
+                      if m_Rep.OnlyCons(NF) then
                       begin
                           //
                           // Caso a NF não constar na base [217]
@@ -380,7 +414,7 @@ begin
                           begin
                               m_Log.AddPar('Desfaz contingência...');
                               NF.setContinge('', True);
-                              if nfe.AddNotaFiscal(NF, True) <> nil then
+                              if m_Rep.AddNotaFiscal(NF, True) <> nil then
                               begin
                                   NF.setXML() ;
                               end ;
@@ -400,6 +434,7 @@ begin
     finally
       L.Free ;
       Tdm_nfe.doFreeAndNil;
+      m_Rep :=nil;
       ConnectionADO.Close ;
     end;
 end;

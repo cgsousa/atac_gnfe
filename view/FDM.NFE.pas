@@ -18,6 +18,13 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+
+04.12.2018
+[+] Novo parametro [conting_offline] para tratar a contingencia offline
+
+03.12.2018
+[+] Novo codigo de erro: ERROR_SERVICE_DOES_NOT_EXIST
+
 24.08.2018
 [+] Novo membro de classe (Tdm_nfe.OnlyCCE)
     para chamada da Carta de Correção Eletronica (CC-e)
@@ -47,6 +54,7 @@ interface
 
 uses
   Windows, SysUtils, Classes, Forms, IniFiles,
+  Generics.Collections ,
   //ACBr
   ACBrValidador,
   ACBrNFe, ACBrDANFCeFortesFr, ACBrMail, ACBrPosPrinter,
@@ -62,6 +70,21 @@ uses
 //type
 //  TNFeStatusServico = class(ACBrNFeWebServices.TNFeStatusServico)
 //  end;
+
+type
+  //
+  // params da nfe
+  TRegNFE = record
+  public
+    //
+    // servidor smtp
+    conting_offline: TPair<string, Boolean>;
+    send_sincrono: TPair<string, Boolean>;
+    send_maxnfelot: TPair<string, Int16>;
+    procedure Load() ;
+  end;
+
+
 
 type
   Tdm_nfe = class(TDataModule)
@@ -90,7 +113,7 @@ type
     m_Retorno: TNFeRetRecepcao ;
     m_Inutiliza: TNFeInutilizacao ;
     m_RetEvento: TRetInfEvento ;
-
+    m_reg: TRegNFE ;
   private
 //    m_prmFormaEmissao: TpcnTipoEmissao ;
     m_CodMod, m_NSerie: Word ;
@@ -117,6 +140,8 @@ type
 
     property ErrCod: Integer read m_ErrCod;
     property ErrMsg: string read m_ErrMsg;
+
+    property Parametro: TRegNFE read m_reg;
 
     function AddNotaFiscal(NF: TCNotFis00;
       const Clear: Boolean = false;
@@ -1178,7 +1203,7 @@ begin
     // *********************
     // ler parametros da NFE
     // *********************
-
+    m_reg.Load();
 
 end;
 
@@ -1271,6 +1296,11 @@ begin
             m_ErrMsg := 'O contexto para o certificado de cliente SSL não tem uma chave privada associada a ele. O certificado de cliente pode ter sido importado para o computador sem a chave privada';
           ERROR_WINHTTP_CLIENT_CERT_NO_ACCESS_PRIVATE_KEY:
             m_ErrMsg := 'Falha ao obter a Chave Privada do Certificado para comunicação segura';
+          //
+          // 3.12.2018
+          ERROR_SERVICE_DOES_NOT_EXIST:
+            m_ErrMsg := 'O serviço especificado não existe como um serviço instalado';
+
         end;
     end;
 end;
@@ -1751,5 +1781,78 @@ begin
 
 end;
 
+
+{ TRegNFE }
+
+procedure TRegNFE.Load;
+const
+  CST_CATEGO = 'NFE' ;
+var
+  params: TCParametroList ;
+  p: TCParametro ;
+begin
+
+    params :=TCParametroList.Create ;
+    try
+        //
+        // carrega todos do nfe
+        params.Load('', CST_CATEGO) ;
+
+        //
+        // contigencia off-line
+        //
+        conting_offline.Key :=Format('conting_offline.%s',[Empresa.CNPJ]);
+        p :=params.IndexOf(conting_offline.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(conting_offline.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :='NFE';
+            p.Descricao :='Indicador para ativar/dasativar a contingência off-line';
+            P.Save ;
+        end;
+        conting_offline.Value :=p.ReadBoo() ;
+
+
+        //
+        // send sincrono
+        //
+        send_sincrono.Key :='send_sincrono';
+        p :=params.IndexOf(send_sincrono.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(send_sincrono.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :='NFE';
+            p.Descricao :='Indicador para envio de sincrono';
+            P.Save ;
+        end;
+        send_sincrono.Value :=p.ReadBoo() ;
+
+
+        //
+        // mox nfe lote
+        //
+        send_maxnfelot.Key :='send_maxnfelot';
+        p :=params.IndexOf(send_maxnfelot.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(send_maxnfelot.Key) ;
+            p.ValTyp:=ftSmallint ;
+            P.xValor :='25';
+            P.Catego :='NFE';
+            p.Descricao :='Total maximo de NFE no lote';
+            P.Save ;
+        end;
+        send_maxnfelot.Value :=p.ReadInt() ;
+
+
+    finally
+        params.Free ;
+    end;
+
+end;
 
 end.

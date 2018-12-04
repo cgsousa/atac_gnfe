@@ -20,6 +20,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_DcuOutput>.\bin\dcu</DCC_DcuOutput>
 			<DCC_ExeOutput>.\bin</DCC_ExeOutput>
 			<DCC_UnitSearchPath>D:\develop\lib\delphi\sistem.lib\units;D:\develop\lib\delphi\sistem.lib\view;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_DependencyCheckOutputName>bin\ATAC_SVC_NFE.exe</DCC_DependencyCheckOutputName>
@@ -95,7 +96,7 @@
 						<VersionInfo Name="MajorVer">2</VersionInfo>
 						<VersionInfo Name="MinorVer">5</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">84</VersionInfo>
+						<VersionInfo Name="Build">86</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -107,7 +108,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Atac Sistemas Ltda</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">Serviço de gerenciamento da NF-e</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">2.5.1.84</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">2.5.1.86</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">ATAC_SVC_NFE</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">Todos os Diereitos Reservados</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks"/>
