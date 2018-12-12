@@ -223,6 +223,10 @@ const
   COL_NUM_SER =3;
   COL_NUM_DOC =4;
 
+var
+  rep_nfe: Tdm_nfe ;
+
+
 
 { Tfrm_Princ00 }
 
@@ -297,7 +301,8 @@ begin
         CMsgDlg.Warning('Senha inválida!') ;
         Exit;
     end;
-    //Tfrm_Config.cp_Execute ;
+    //
+    // load parms nfe
     Tfrm_ParametroList.lp_Show('NFE') ;
 end;
 
@@ -789,6 +794,7 @@ begin
                                                   TCExeInfo.getInstance.BuildNumber
                                                  ]);
     AppInstances1.Active :=True;
+    rep_nfe :=Tdm_nfe.getInstance ;
 end;
 
 procedure Tfrm_Princ00.FormDestroy(Sender: TObject);

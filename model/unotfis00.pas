@@ -20,6 +20,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+12.12.2018
+[+] Novo parametro "send_maxnfelot" para definir qtas vai no lote
+
 02.08.2018
 [*] Fixa grupo fatura em dados de cobrança (NT.2016.002_v160)
 
@@ -516,16 +519,15 @@ type
   end;
 
 
-
-
-
 function GTIN_DV(const aCodigo : String ): String ;
 function GTIN_Valida(const aCodigo : String ): Boolean ;
+
 
 implementation
 
 uses StrUtils, Variants, Math ,
-  ACBrUtil;
+  ACBrUtil,
+  uparam;
 
 
 function GTIN_DV(const aCodigo: String ): String ;
@@ -3127,6 +3129,9 @@ var
   N: TCNotFis00;
 var
   fcodseq: TField ;
+var
+  P: TCParametro ;
+  top: Word ;
 
 begin
     //
@@ -3135,10 +3140,21 @@ begin
     lstcod :='';
     //
 
+    //
+    // ler parametro top(n) notas em lote
+    P :=TCParametro.NewParametro('send_maxnfelot', ftSmallint);
+    if not P.Load() then
+        top :=25
+    else
+        top :=P.ReadInt() ;
+
     Q :=TADOQuery.NewADOQuery() ;
     try
         Q.AddCmd('declare @codcxa smallint; set @codcxa =%d             ',[codcxa]);
-        Q.AddCmd('select top 50 nf.* from notfis00 nf                   ');
+
+        Q.AddCmd('select top (%d)                                       ',[top]);
+        Q.AddCmd('  nf.* from notfis00 nf                               ');
+
         Q.AddCmd('where nf0_nserie =@codcxa                             ');
         Q.AddCmd('--//notas nao processadas                             ');
         Q.AddCmd('and nf0_codstt not in(100, 110, 150, 301, 302, 303)   ');

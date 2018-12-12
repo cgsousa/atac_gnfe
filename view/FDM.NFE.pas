@@ -20,7 +20,7 @@ Símbolo : Significado
 
 
 04.12.2018
-[+] Novo parametro [conting_offline] para tratar a contingencia offline
+[+] Novo parametro [conting_offline] para tratar a contingencia offline;
 
 03.12.2018
 [+] Novo codigo de erro: ERROR_SERVICE_DOES_NOT_EXIST
