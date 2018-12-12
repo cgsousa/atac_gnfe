@@ -794,7 +794,6 @@ begin
                                                   TCExeInfo.getInstance.BuildNumber
                                                  ]);
     AppInstances1.Active :=True;
-    rep_nfe :=Tdm_nfe.getInstance ;
 end;
 
 procedure Tfrm_Princ00.FormDestroy(Sender: TObject);
@@ -846,6 +845,8 @@ begin
 
     Empresa :=TCEmpresa.Instance ;
     Empresa.DoLoad(1);
+
+    rep_nfe :=Tdm_nfe.getInstance ;
 
 end;
 
