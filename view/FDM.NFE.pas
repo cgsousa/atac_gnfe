@@ -18,6 +18,8 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+18.12.2018
+[*] Impressão do DANFE agora atende a config. do ini e não o (notfis00.nf0_tipimp)
 
 04.12.2018
 [+] Novo parametro [conting_offline] para tratar a contingencia offline;
@@ -1628,7 +1630,7 @@ begin
 
     if NF.m_codmod <> 55 then
     begin
-        //NF.m_tipimp :=tiMsgEletronica ;
+        NF.m_tipimp :=TpcnTipoImpressao(m_Ini.ReadInteger('DANFE','Tipo', 0));
         if TpcnTipoImpressao(NF.m_tipimp) = tiMsgEletronica then
         begin
             ptr :=RLPrinter ;
