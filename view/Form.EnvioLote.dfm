@@ -2,9 +2,9 @@ object frm_EnvLote: Tfrm_EnvLote
   Left = 0
   Top = 0
   BorderStyle = bsDialog
-  Caption = '.:Envio de lote com varias NFE:.'
+  Caption = '.:Envio autom'#225'tico de lote NFE:.'
   ClientHeight = 572
-  ClientWidth = 634
+  ClientWidth = 794
   Color = clWindow
   Ctl3D = False
   Font.Charset = DEFAULT_CHARSET
@@ -15,14 +15,14 @@ object frm_EnvLote: Tfrm_EnvLote
   OldCreateOrder = False
   OnShow = FormShow
   DesignSize = (
-    634
+    794
     572)
   PixelsPerInch = 96
   TextHeight = 14
   object HTMLabel1: THTMLabel
     Left = 5
     Top = 5
-    Width = 621
+    Width = 781
     Height = 25
     ColorTo = 9240575
     BorderWidth = 1
@@ -39,18 +39,20 @@ object frm_EnvLote: Tfrm_EnvLote
   object pnl_Footer: TJvFooter
     Left = 0
     Top = 532
-    Width = 634
+    Width = 794
     Height = 40
     Align = alBottom
     BevelStyle = bsRaised
     BevelVisible = True
+    ExplicitLeft = 5
+    ExplicitTop = 529
     DesignSize = (
-      634
+      794
       40)
     object html_Status: THTMLabel
-      Left = 5
-      Top = 10
-      Width = 396
+      Left = 218
+      Top = 5
+      Width = 345
       Height = 25
       ColorTo = 11769496
       BorderWidth = 1
@@ -65,7 +67,7 @@ object frm_EnvLote: Tfrm_EnvLote
       Version = '1.9.0.2'
     end
     object btn_OK: TJvFooterBtn
-      Left = 422
+      Left = 582
       Top = 5
       Width = 100
       Height = 30
@@ -77,7 +79,7 @@ object frm_EnvLote: Tfrm_EnvLote
       SpaceInterval = 6
     end
     object btn_Close: TJvFooterBtn
-      Left = 526
+      Left = 686
       Top = 5
       Width = 100
       Height = 30
@@ -88,11 +90,37 @@ object frm_EnvLote: Tfrm_EnvLote
       ButtonIndex = 2
       SpaceInterval = 6
     end
+    object btn_Start: TJvFooterBtn
+      Left = 8
+      Top = 5
+      Width = 100
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Iniciar'
+      TabOrder = 2
+      OnClick = btn_StartClick
+      Alignment = taLeftJustify
+      ButtonIndex = 3
+      SpaceInterval = 6
+    end
+    object btn_Stop: TJvFooterBtn
+      Left = 112
+      Top = 5
+      Width = 100
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Parar'
+      TabOrder = 3
+      OnClick = btn_StopClick
+      Alignment = taLeftJustify
+      ButtonIndex = 4
+      SpaceInterval = 6
+    end
   end
   object vst_Grid1: TVirtualStringTree
     Left = 5
     Top = 36
-    Width = 621
+    Width = 781
     Height = 487
     Alignment = taCenter
     Anchors = [akLeft, akTop, akRight]
@@ -126,12 +154,13 @@ object frm_EnvLote: Tfrm_EnvLote
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnChecked = vst_Grid1Checked
     OnGetText = vst_Grid1GetText
+    ExplicitWidth = 621
     Columns = <
       item
         Color = 15000804
         Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coFixed, coAllowFocus]
         Position = 0
-        Width = 345
+        Width = 315
         WideText = 'Chave'
       end
       item
@@ -162,6 +191,11 @@ object frm_EnvLote: Tfrm_EnvLote
         Position = 4
         Width = 75
         WideText = 'Num.NF'
+      end
+      item
+        Position = 5
+        Width = 200
+        WideText = 'Situa'#231#227'o'
       end>
   end
 end

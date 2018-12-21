@@ -38,7 +38,24 @@ uses
   VirtualTrees, uVSTree,
   //
   FormBase,
-  uTaskDlg, unotfis00 ;
+  unotfis00,
+  uclass, ulog ;
+
+type
+  TSendLoteChange = procedure(Sender: TObject; const StrLog: string) of object;
+  TCSendLote = class(TCThreadProcess)
+  private
+    m_Lote: TCNotFis00Lote ;
+    m_OnStatus: TNotifyEvent;
+    procedure doStatus;
+  protected
+    procedure RunProc; override;
+  public
+    property Lote: TCNotFis00Lote read m_Lote write m_Lote;
+  end;
+
+
+
 
 type
   Tfrm_EnvLote = class(TBaseForm)
@@ -48,17 +65,30 @@ type
     vst_Grid1: TVirtualStringTree;
     html_Status: THTMLabel;
     HTMLabel1: THTMLabel;
+    btn_Start: TJvFooterBtn;
+    btn_Stop: TJvFooterBtn;
     procedure FormShow(Sender: TObject);
     procedure vst_Grid1Checked(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
     procedure btn_OKClick(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
+    procedure btn_StartClick(Sender: TObject);
+    procedure btn_StopClick(Sender: TObject);
   private
     { Private declarations }
     m_oLote: TCNotFis00Lote ;
     procedure m_LoadGrid() ;
     procedure m_UpdateStatus(const aStr: string);
+  private
+    { Thread }
+    m_Send: TCSendLote;
+    procedure OnStart();
+    procedure OnStop();
+
+    //SvcStop: Boolean ;
+    procedure OnINI(Sender: TObject);
+    procedure OnEND(Sender: TObject);
   public
     { Public declarations }
     class function fn_Show(aLote: TCNotFis00Lote): Boolean ;
@@ -70,8 +100,9 @@ implementation
 {$R *.dfm}
 
 uses StrUtils, DateUtils,
-  ACBrUtil, pcnNFe, pcnConversao ,
-  FDM.NFE;
+  uTaskDlg,
+  ACBrUtil, pcnNFe, pcnConversao,
+  FDM.NFE ;
 
 
 { Tfrm_EnvLote }
@@ -254,6 +285,30 @@ begin
         ;
 end;
 
+procedure Tfrm_EnvLote.btn_StartClick(Sender: TObject);
+begin
+    if not Assigned(m_Send) then
+    begin
+        //
+        // start manual
+        OnStart() ;
+    end
+    else
+        CMsgDlg.Warning('A Thread já esta criada!') ;
+end;
+
+procedure Tfrm_EnvLote.btn_StopClick(Sender: TObject);
+begin
+    if Assigned(m_Send) then
+    begin
+        //
+        // stop manual
+        OnStop() ;
+    end
+    else
+        CMsgDlg.Warning('A Thread não criada!') ;
+end;
+
 class function Tfrm_EnvLote.fn_Show(aLote: TCNotFis00Lote): Boolean;
 var
   F: Tfrm_EnvLote ;
@@ -316,6 +371,34 @@ begin
     html_Status.Refresh ;
 end;
 
+procedure Tfrm_EnvLote.OnEND(Sender: TObject);
+begin
+
+end;
+
+procedure Tfrm_EnvLote.OnINI(Sender: TObject);
+begin
+    btn_Start.Enabled :=False;
+    btn_Stop.Enabled  :=True ;
+    btn_OK.Enabled :=False;
+    setStatus('Thread iniciada');
+end;
+
+procedure Tfrm_EnvLote.OnStart;
+begin
+    m_Send :=TCSendLote.Create ;
+    m_Send.OnIniProc :=OnINI;
+    m_Send.OnEndProc :=OnEND;
+    m_Send.Start  ;
+end;
+
+procedure Tfrm_EnvLote.OnStop;
+begin
+    m_Send.Terminate;
+    m_Send.WaitFor;
+    FreeAndNil(m_Send);
+end;
+
 procedure Tfrm_EnvLote.vst_Grid1Checked(Sender: TBaseVirtualTree;
   Node: PVirtualNode);
 var
@@ -335,12 +418,71 @@ begin
     CellText :='';
     N :=m_oLote.Items[Node.Index] ;
     case Column of
-        00: CellText :=N.m_chvnfe;
-        01: CellText :=Format('%.6d',[N.m_codped]) ;
-        02: CellText :=IfThen(N.m_codmod=55,'NFe','NFCe') ;
-        03: CellText :=Format('%.3d',[N.m_nserie]) ;
-        04: CellText :=Format('%.6d',[N.m_numdoc]) ;
+        0: CellText :=N.m_chvnfe;
+        1: CellText :=Format('%.6d',[N.m_codped]) ;
+        2: CellText :=IfThen(N.m_codmod=55,'NFe','NFCe') ;
+        3: CellText :=Format('%.3d',[N.m_nserie]) ;
+        4: CellText :=Format('%.8d',[N.m_numdoc]) ;
+        5: CellText :=Format('%d|%s',[N.m_codstt,N.m_motivo]);
     end;
+end;
+
+{ TCSendLote }
+
+procedure TCSendLote.doStatus;
+begin
+    if Assigned(m_OnStatus) then
+    begin
+        Self.m_OnStatus(Self) ;
+    end;
+end;
+
+procedure TCSendLote.RunProc;
+var
+  rep: Tdm_nfe ;
+  N: TCNotFis00 ;
+begin
+
+    if not Assigned(Lote) then
+    begin
+        Exit ;
+    end;
+
+    rep :=Tdm_nfe.getInstance ;
+    rep.setStatusChange(false); //desabilita status de processamento
+
+    if Lote.Items.Count = 0 then
+    begin
+        Lote.LoadCX(rep.NSerie) ;
+    end;
+
+    for N in Lote.Items do
+    begin
+        if N.m_codstt <>TCNotFis00.CSTT_EMIS_CONTINGE then
+        begin
+            m_UpdateStatus(Format('Atualizando NF:%d',[N.m_numdoc]));
+            if not N.UpdateNFe(now, Ord(rep.ProdDescrRdz), Ord(rep.ProdCodInt), S) then
+            begin
+                m_UpdateStatus(S);
+                N.Checked :=False;
+                Continue ;
+            end ;
+        end;
+
+        if rep.AddNotaFiscal(N) = nil then
+        begin
+            N.Checked :=False ;
+            Continue ;
+        end ;
+
+        if codLot = 0 then
+        begin
+            codlot :=N.m_codseq;
+        end ;
+
+    end;
+
+
 end;
 
 end.
