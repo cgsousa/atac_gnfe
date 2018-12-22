@@ -99,8 +99,8 @@ implementation
 
 {$R *.dfm}
 
-uses StrUtils, DateUtils,
-  uTaskDlg,
+uses StrUtils, DateUtils, DB,
+  uTaskDlg, uparam ,
   ACBrUtil, pcnNFe, pcnConversao,
   FDM.NFE ;
 
@@ -120,6 +120,9 @@ var
   nfe: TNFe;
   codLot,I,dup: Integer;
   S: string;
+var
+  limit: Integer;
+  P: TCParametro ;
 begin
     //
     // limpa repositorio
@@ -129,6 +132,15 @@ begin
     //
     // inicializa num do lote
     codlot :=0;
+    limit :=0;
+
+    //
+    // ler parametro top(n) notas em lote
+    P :=TCParametro.NewParametro('send_maxnfelot', ftSmallint);
+    if not P.Load() then
+        top :=25
+    else
+        top :=P.ReadInt() ;
 
     Screen.Cursor :=crHourGlass;
     try
@@ -159,6 +171,11 @@ begin
             begin
                 codlot :=N.m_codseq;
             end ;
+            limit :=limit +1;
+            if limit > P.ReadInt() then
+            begin
+              Break;
+            end;
         end;
     end;
     finally
@@ -386,7 +403,7 @@ end;
 
 procedure Tfrm_EnvLote.OnStart;
 begin
-    m_Send :=TCSendLote.Create ;
+    m_Send :=TCSendLote.Create(true) ;
     m_Send.OnIniProc :=OnINI;
     m_Send.OnEndProc :=OnEND;
     m_Send.Start  ;
@@ -450,7 +467,7 @@ begin
 
     rep :=Tdm_nfe.getInstance ;
     rep.setStatusChange(false); //desabilita status de processamento
-
+    {
     if Lote.Items.Count = 0 then
     begin
         Lote.LoadCX(rep.NSerie) ;
@@ -481,7 +498,7 @@ begin
         end ;
 
     end;
-
+    }
 
 end;
 

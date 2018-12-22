@@ -20,6 +20,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+22.12.2018
+[*] descontinuado o TCNotFis00.LoadInfCpl para melhor performance
+
 12.12.2018
 [+] Novo parametro "send_maxnfelot" para definir qtas vai no lote
 
@@ -1402,6 +1405,9 @@ begin
     // consumo indevido
     Self.m_consumo :=Q.Field('nf0_consumo').AsInteger;
 
+    // info cmple
+    Self.m_infCpl:=Q.Field('nf0_infcpl').AsString ;
+
     Self.m_oriindpag :=Self.m_indpag;
     Self.m_oritipemi :=Self.m_tipemi;
     Self.m_oricodstt :=Self.m_codstt;
@@ -1427,6 +1433,7 @@ procedure TCNotFis00.LoadInfCpl;
 var
   Q: TADOQuery ;
 begin
+    { DESCONTINUADO !!! VOVIDO PARA AS SP´s NOTFIS00_ADD/UPD
     Q :=TADOQuery.NewADOQuery() ;
     try
         Q.AddCmd('declare @codped int; set @codped =%d  ;                       ',[Self.m_codped]);
@@ -1508,17 +1515,17 @@ begin
         else
             Self.m_infCpl :='';
 
-        {if Self.m_indpag =ipVista then
-        begin
-            Self.m_infCpl :=Self.m_infCpl +';'+ Format('Valor recebido: %12.2m',[
-                Self.m_pag.Items[0].vPag +Self.vTroco
-            ]);
-        end;}
+//        if Self.m_indpag =ipVista then
+//        begin
+//            Self.m_infCpl :=Self.m_infCpl +';'+ Format('Valor recebido: %12.2m',[
+//                Self.m_pag.Items[0].vPag +Self.vTroco
+//            ]);
+//        end;
 
     finally
         Q.Free ;
     end;
-
+    }
 end;
 
 procedure TCNotFis00.LoadItems;
@@ -2932,7 +2939,7 @@ begin
 
     //
     //
-
+    Q.AddCmd('  ,nf0_infcpl                               ');
 
     Q.AddCmd('from notfis00                                ');
 

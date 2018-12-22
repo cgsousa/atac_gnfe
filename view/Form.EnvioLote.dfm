@@ -44,8 +44,6 @@ object frm_EnvLote: Tfrm_EnvLote
     Align = alBottom
     BevelStyle = bsRaised
     BevelVisible = True
-    ExplicitLeft = 5
-    ExplicitTop = 529
     DesignSize = (
       794
       40)
@@ -97,6 +95,7 @@ object frm_EnvLote: Tfrm_EnvLote
       Height = 30
       Anchors = [akLeft, akBottom]
       Caption = 'Iniciar'
+      Enabled = False
       TabOrder = 2
       OnClick = btn_StartClick
       Alignment = taLeftJustify
@@ -110,6 +109,7 @@ object frm_EnvLote: Tfrm_EnvLote
       Height = 30
       Anchors = [akLeft, akBottom]
       Caption = 'Parar'
+      Enabled = False
       TabOrder = 3
       OnClick = btn_StopClick
       Alignment = taLeftJustify
@@ -154,7 +154,6 @@ object frm_EnvLote: Tfrm_EnvLote
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnChecked = vst_Grid1Checked
     OnGetText = vst_Grid1GetText
-    ExplicitWidth = 621
     Columns = <
       item
         Color = 15000804
@@ -193,6 +192,7 @@ object frm_EnvLote: Tfrm_EnvLote
         WideText = 'Num.NF'
       end
       item
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
         Position = 5
         Width = 200
         WideText = 'Situa'#231#227'o'
