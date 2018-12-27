@@ -1228,7 +1228,7 @@ begin
     Q.AddCmd('  fpv.valor as vlrpag,               ');
     Q.AddCmd('  v.troco as vtroco                  ');
     Q.AddCmd('from histvenda v                     ');
-    Q.AddCmd('inner join histformapagamentovenda fpv on fpv.codvenda =v.codvenda            ');
+    Q.AddCmd('inner join histformapagamentovenda fpv on fpv.codvenda =v.codvenda        ');
     Q.AddCmd('inner join formapagamento fp on fpv.codformapagamento=fp.codformapagamento');
     Q.AddCmd('where v.codvenda=@codped             ');
     Q.Open ;
@@ -1433,7 +1433,7 @@ procedure TCNotFis00.LoadInfCpl;
 var
   Q: TADOQuery ;
 begin
-    { DESCONTINUADO !!! VOVIDO PARA AS SP´s NOTFIS00_ADD/UPD
+    { DESCONTINUADO !!! MOVIDO PARA AS SP´s NOTFIS00_ADD/UPD
     Q :=TADOQuery.NewADOQuery() ;
     try
         Q.AddCmd('declare @codped int; set @codped =%d  ;                       ',[Self.m_codped]);
@@ -2967,7 +2967,6 @@ begin
         Q.AddCmd('where nf0_numdoc between @ntfini and @ntffin ');
     end }
 
-
     //
     // busca por
     // periodo / situacao
@@ -2975,7 +2974,7 @@ begin
         // nf0_dtemis
         if afilter.status <> sttService then
         begin
-            Q.AddCmd('where nf0_dtemis between @datini and @datfin ');
+            Q.AddCmd('where nf0_dtemis between @datini and @datfin  ');
             case AFilter.status of
                 sttDoneSend:Q.AddCmd('and nf0_codstt in(0,1)                    ');
                 sttConting: Q.AddCmd('and nf0_codstt =9                         ');
@@ -2994,26 +2993,43 @@ begin
                   Q.AddCmd('and nf0_nserie =@numser                    ');
                 end;
             end;
+            Q.AddCmd('order by nf0_codseq desc                      ');
         end
         // nf0_codstt
         else begin
-            //Q.AddCmd('where nf0_dtemis between @datini and @datfin        ');
             //notas pendentes de envio
-            Q.AddCmd('--//notas nao processadas                           ');
+            {Q.AddCmd('--//notas nao processadas                           ');
             Q.AddCmd('where nf0_codstt not in(100, 110, 150, 301, 302, 303)');
             Q.AddCmd('--//notas nao canceladas                            ');
             Q.AddCmd('and nf0_codstt not in(101, 151, 135, 155, 218)      ');
             Q.AddCmd('--//notas nao inutilizadas                          ');
             Q.AddCmd('and nf0_codstt not in(102, 563)                     ');
+            }
+            Q.AddCmd('where (nf0_codstt =0)   --//status inicial        ');
+            Q.AddCmd('or    (nf0_codstt =1)   --//pronto para envio     ');
+            Q.AddCmd('or    (nf0_codstt =44)  --//pendente de retorno   ');
+            Q.AddCmd('--//Rejeição 204: Duplicidade de NF-e             ');
+            Q.AddCmd('or    (nf0_codstt =204)                           ');
+            Q.AddCmd('--//Rejeição 217: NFe não consta na base de dados ');
+            Q.AddCmd('or    (nf0_codstt =217)                           ');
+            Q.AddCmd('--//Rejeição 539: Duplicidade de NF-e, com diferença na Chave de Acesso');
+            Q.AddCmd('or    (nf0_codstt =539)                           ');
+            Q.AddCmd('--//Rejeição 613: Chave de Acesso difere da existente em BD (WS_CONSULTA)');
+            Q.AddCmd('or    (nf0_codstt =613)                           ');
+            Q.AddCmd('--//Rejeição 704: NFC-E com data-hora de emissão atrasada');
+            Q.AddCmd('or    (nf0_codstt =704)                           ');
+
             //
             // load por ser
             if AFilter.nserie > 0 then
             begin
                 Q.AddCmd('and nf0_nserie =@numser                      ');
             end;
+            //
+            // coloca as notas q foram geradas na frente
+            Q.AddCmd('order by nf0_codstt desc                         ');
         end;
     end;
-    Q.AddCmd('order by nf0_codseq desc                      ');
 
     if not Q.Prepared then
     begin
@@ -3097,7 +3113,7 @@ end;
 
 function TCNotFis00Lote.Load(const AFilter: TNotFis00Filter): Boolean;
 var
-  Q: TADOQuery ;
+  Q,Q2: TADOQuery ;
   N: TCNotFis00;
 var
   fcodseq: TField ;
@@ -3119,6 +3135,11 @@ begin
             begin
                 N :=Self.AddNotFis00(fcodseq.AsInteger) ;
                 N.LoadFromQ(Q, True);
+
+
+
+
+
                 m_vTotalNF :=m_vTotalNF +N.m_icmstot.vNF;
             end ;
 

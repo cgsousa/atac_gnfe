@@ -547,7 +547,7 @@ begin
     begin
         //
         // se confirmou, atualiza grid
-        if Tfrm_EnvLote.fn_Show(m_Lote) then
+        if Tfrm_EnvLote.fn_Show() then
         begin
             LoadGrid ;
         end;
@@ -627,6 +627,7 @@ begin
     else
         C.CheckState :=csUncheckedNormal;
   }
+    btn_Send.Enabled :=chk_EnvLote.Checked ;
 end;
 
 procedure Tfrm_Princ00.DoExecute;
@@ -1126,7 +1127,8 @@ begin
         cancel  :=N.m_codstt in[101, 151, 155];
 
         btn_Send.Enabled := ((not process)and(not cancel) )or
-                            (N.m_codstt in[0,1,9,77,88]   );
+                            (N.m_codstt in[0,1,9,77,88]   )or
+                            chk_EnvLote.Checked ;
         if (not N.m_codstt in[0,1,9,77,88]   ) then
         begin
             btn_Send.Enabled :=True;

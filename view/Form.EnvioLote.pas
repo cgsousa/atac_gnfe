@@ -18,6 +18,10 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+27.12.2018
+[*] O processo de Envio/Consulta agora dentro de uma thread, para envio
+    automatico do lote
+
 01.08.2018
 [*] Consulta protocolo caso o status seja 204 (duplicidade),
     apos envio de lote com varias nota!
@@ -42,16 +46,20 @@ uses
   uclass, ulog ;
 
 type
-  TSendLoteChange = procedure(Sender: TObject; const StrLog: string) of object;
   TCSendLote = class(TCThreadProcess)
   private
+    m_Grid: TVirtualStringTree ;
     m_Lote: TCNotFis00Lote ;
-    m_OnStatus: TNotifyEvent;
-    procedure doStatus;
+    m_OnStatus: TGetStrProc;
+    m_Status: string ;
+    procedure DoStatus;
+    procedure DoLoadGrid;
   protected
     procedure RunProc; override;
+    procedure VisualStatus(const aStr: string);
   public
-    property Lote: TCNotFis00Lote read m_Lote write m_Lote;
+    constructor Create(aGrid: TVirtualStringTree; aLote: TCNotFis00Lote);
+    property OnStatus: TGetStrProc read m_OnStatus write m_OnStatus;
   end;
 
 
@@ -75,6 +83,8 @@ type
     procedure btn_CloseClick(Sender: TObject);
     procedure btn_StartClick(Sender: TObject);
     procedure btn_StopClick(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
     m_oLote: TCNotFis00Lote ;
@@ -83,15 +93,12 @@ type
   private
     { Thread }
     m_Send: TCSendLote;
-    procedure OnStart();
-    procedure OnStop();
-
-    //SvcStop: Boolean ;
     procedure OnINI(Sender: TObject);
     procedure OnEND(Sender: TObject);
+    procedure OnUpdateStatus(const aStr: string);
   public
     { Public declarations }
-    class function fn_Show(aLote: TCNotFis00Lote): Boolean ;
+    class function fn_Show({aLote: TCNotFis00Lote}): Boolean ;
   end;
 
 
@@ -308,36 +315,60 @@ begin
     begin
         //
         // start manual
-        OnStart() ;
+        m_Send :=TCSendLote.Create(vst_Grid1, m_oLote) ;
+        m_Send.OnBeforeExecute :=OnINI;
+        m_Send.OnTerminate :=OnEND;
+        m_Send.OnStatus :=OnUpdateStatus;
+        m_Send.Start  ;
     end
     else
-        CMsgDlg.Warning('A Thread já esta criada!') ;
+        CMsgDlg.Warning('A Tarefa já esta criada!') ;
 end;
 
 procedure Tfrm_EnvLote.btn_StopClick(Sender: TObject);
 begin
     if Assigned(m_Send) then
     begin
-        //
-        // stop manual
-        OnStop() ;
+        if CMsgDlg.Warning('A Tarefa esta em execução! Deseja termina-la?', True) then
+        begin
+            //
+            // stop manual
+            m_Send.Terminate;
+            m_Send.WaitFor;
+            FreeAndNil(m_Send);
+        end;
     end
     else
-        CMsgDlg.Warning('A Thread não criada!') ;
+        CMsgDlg.Warning('A Tarefa não foi criada!') ;
 end;
 
-class function Tfrm_EnvLote.fn_Show(aLote: TCNotFis00Lote): Boolean;
+class function Tfrm_EnvLote.fn_Show({aLote: TCNotFis00Lote}): Boolean;
 var
   F: Tfrm_EnvLote ;
 begin
     F :=Tfrm_EnvLote.Create(Application) ;
     try
-        F.m_oLote :=aLote ;
+        //F.m_oLote :=aLote ;
         F.vst_Grid1.Clear ;
         Result :=F.ShowModal =mrOk ;
     finally
         FreeAndNil(F);
     end;
+end;
+
+procedure Tfrm_EnvLote.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+    if Assigned(m_Send)and(not m_Send.Terminated) then
+    begin
+        CMsgDlg.Warning('A Tarefa esta em execução!');
+        CanClose :=False ;
+    end;
+end;
+
+procedure Tfrm_EnvLote.FormCreate(Sender: TObject);
+begin
+    m_oLote :=TCNotFis00Lote.Create ;
+
 end;
 
 procedure Tfrm_EnvLote.FormShow(Sender: TObject);
@@ -351,6 +382,10 @@ begin
     //
     //
     m_UpdateStatus('Aguardando confirmação!');
+    //
+    // start a thread
+    btn_Start.Click ;
+
 end;
 
 procedure Tfrm_EnvLote.m_LoadGrid;
@@ -390,7 +425,9 @@ end;
 
 procedure Tfrm_EnvLote.OnEND(Sender: TObject);
 begin
-
+    btn_Start.Enabled :=True;
+    btn_Stop.Enabled  :=False;
+    setStatus('Thread terminada');
 end;
 
 procedure Tfrm_EnvLote.OnINI(Sender: TObject);
@@ -401,19 +438,10 @@ begin
     setStatus('Thread iniciada');
 end;
 
-procedure Tfrm_EnvLote.OnStart;
+procedure Tfrm_EnvLote.OnUpdateStatus(const aStr: string);
 begin
-    m_Send :=TCSendLote.Create(true) ;
-    m_Send.OnIniProc :=OnINI;
-    m_Send.OnEndProc :=OnEND;
-    m_Send.Start  ;
-end;
+    setStatus(aStr);
 
-procedure Tfrm_EnvLote.OnStop;
-begin
-    m_Send.Terminate;
-    m_Send.WaitFor;
-    FreeAndNil(m_Send);
 end;
 
 procedure Tfrm_EnvLote.vst_Grid1Checked(Sender: TBaseVirtualTree;
@@ -446,45 +474,86 @@ end;
 
 { TCSendLote }
 
-procedure TCSendLote.doStatus;
+constructor TCSendLote.Create(aGrid: TVirtualStringTree; aLote: TCNotFis00Lote);
+begin
+    m_Grid :=aGrid ;
+    m_Lote :=aLote ;
+    inherited Create(True, False);
+end;
+
+procedure TCSendLote.DoLoadGrid;
+var
+  N: TCNotFis00 ;
+  P: PVirtualNode;
+begin
+    m_Grid.Clear ;
+    for N in m_Lote.Items do
+    begin
+        //
+        // remove NF processada / cancelada
+        if N.CStatProcess or N.CstatCancel then
+        begin
+            Continue ;
+        end;
+
+        P :=m_Grid.AddChild(nil) ;
+        N.Checked :=True ;
+        P.CheckType :=ctCheckBox ;
+        P.CheckState:=csCheckedNormal ;
+    end;
+    m_Grid.IndexItem :=0;
+    //m_Grid.Refresh ;
+end;
+
+procedure TCSendLote.DoStatus;
 begin
     if Assigned(m_OnStatus) then
     begin
-        Self.m_OnStatus(Self) ;
+        OnStatus(m_Status);
     end;
 end;
 
 procedure TCSendLote.RunProc;
 var
   rep: Tdm_nfe ;
-  N: TCNotFis00 ;
+  N: TCNotFis00;
+  nfe: TNFe;
+var
+  S: string ;
+  codlot,dupl,I: Integer;
 begin
 
-    if not Assigned(Lote) then
+    if not Assigned(m_Lote) then
     begin
+        DoTerminate ;
         Exit ;
     end;
 
     rep :=Tdm_nfe.getInstance ;
     rep.setStatusChange(false); //desabilita status de processamento
-    {
-    if Lote.Items.Count = 0 then
+
+    VisualStatus('Carregando notas'#13#10'Aguarde...');
+    if m_Lote.LoadCX(rep.NSerie, S) then
     begin
-        Lote.LoadCX(rep.NSerie) ;
+        Synchronize(DoLoadGrid);
+    end
+    else begin
+        VisualStatus('Nenhuma nota encontrada!');
     end;
 
-    for N in Lote.Items do
+    for N in m_Lote.Items do
     begin
         if N.m_codstt <>TCNotFis00.CSTT_EMIS_CONTINGE then
         begin
-            m_UpdateStatus(Format('Atualizando NF:%d',[N.m_numdoc]));
+            VisualStatus(Format('Atualizando NF:%d',[N.m_numdoc]));
             if not N.UpdateNFe(now, Ord(rep.ProdDescrRdz), Ord(rep.ProdCodInt), S) then
             begin
-                m_UpdateStatus(S);
+                VisualStatus(S);
                 N.Checked :=False;
                 Continue ;
             end ;
         end;
+        VisualStatus('');
 
         if rep.AddNotaFiscal(N) = nil then
         begin
@@ -496,10 +565,133 @@ begin
         begin
             codlot :=N.m_codseq;
         end ;
-
+        if Terminated then Exit;
     end;
-    }
 
+    if rep.m_NFE.NotasFiscais.Count <= 0 then
+    begin
+        Exit;
+    end;
+
+    if rep.m_NFE.NotasFiscais.Count > 50 then
+    begin
+        VisualStatus('Excedeu o limite máximo de 50 NFE´s!');
+        Exit;
+    end;
+
+    dupl :=0;
+
+    VisualStatus('Enviando lote'#13#10'Aguarde...');
+
+    //
+    // envio
+    //
+    if rep.OnlySend(codLot) then
+    begin
+        //
+        // lote processado
+        //
+        if rep.Retorno.NFeRetorno.cStat =TCNotFis00.CSTT_PROCESS then
+        begin
+            //
+            // lopp para reset cada nfe
+            //
+            for I :=0 to rep.m_NFE.NotasFiscais.Count -1 do
+            begin
+                nfe :=rep.m_NFE.NotasFiscais.Items[I].NFe ;
+                N :=m_Lote.IndexOf(OnlyNumber(NFe.infNFe.ID) ) ;
+                if N <> nil then
+                begin
+                    //
+                    // reset checagem para posterior
+                    // processamento(protocolo)
+                    N.Checked :=False ;
+
+                    //
+                    // atualiza status
+                    VisualStatus(Format('Atualizando NFE:%s',[N.m_chvnfe]));
+                    N.m_codstt :=nfe.procNFe.cStat ;
+                    N.m_motivo :=nfe.procNFe.xMotivo;
+                    N.m_verapp :=nfe.procNFe.verAplic;
+                    N.m_dhreceb:=nfe.procNFe.dhRecbto;
+                    N.m_numreci:=rep.Retorno.NFeRetorno.nRec ;
+                    N.m_numprot:=nfe.procNFe.nProt ;
+                    N.m_digval :=nfe.procNFe.digVal;
+                    N.setStatus ;
+
+                    //
+                    // se duplicidade
+                    if(N.m_codstt =TCNotFis00.CSTT_DUPL)or
+                      (N.m_codstt =TCNotFis00.CSTT_DUPL_DIF_CHV)then
+                    begin
+                        N.Checked :=True ;
+                        Inc(dupl) ;
+                    end;
+
+                end;
+                if Terminated then Exit;
+            end;
+        end ;
+        VisualStatus(Format('%d|%s',[rep.Retorno.NFeRetorno.cStat,rep.Retorno.NFeRetorno.xMotivo]));
+
+        //
+        // check NF com duplicidade
+        // para consulta de protocolo
+        if dupl > 0 then
+        begin
+            VisualStatus(Format('%d nota(s) com duplicidade!',[dupl]));
+
+            for N in m_Lote.Items do
+            begin
+                if N.Checked then
+                begin
+                    VisualStatus(Format('Consultando protocolo (NFE:%s)',[N.m_chvnfe]));
+                    //
+                    // Rejeição 204: duplicidade de chave
+                    if rep.OnlyCons(N) then
+                    begin
+                        //
+                        // status 100: autorizado o uso
+                        if N.m_codstt =TCNotFis00.CSTT_AUTORIZADO_USO then
+                            N.setStatus()
+                        else begin
+                            //
+                            // Rejeição 613:
+                            // Chave de Acesso difere da existente em BD (WS_CONSULTA)
+                            // reset. contingencia
+                            if(N.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
+                              ((N.m_tipemi =teContingencia)or(N.m_tipemi =teOffLine))then
+                            begin
+                                VisualStatus(Format('Desfazendo contingência (NFE:%s)',[N.m_chvnfe]));
+                                N.setContinge('', True);
+                                N.Load() ;
+                                if rep.AddNotaFiscal(N, True) <> nil then
+                                begin
+                                    N.setXML() ;
+                                    //
+                                    //
+                                    VisualStatus(Format('Consultando protocolo (NFE:%s)',[N.m_chvnfe]));
+                                    if rep.OnlyCons(N) then
+                                    begin
+                                        N.setStatus();
+                                    end ;
+                                end ;
+                            end;
+                        end;
+                    end;
+                end;
+                if Terminated then Exit;
+            end;
+        end;
+    end
+    else
+        VisualStatus(rep.ErrMsg) ;
+end;
+
+procedure TCSendLote.VisualStatus(const aStr: string);
+begin
+    m_Status :=aStr ;
+    Synchronize(DoStatus);
 end;
 
 end.

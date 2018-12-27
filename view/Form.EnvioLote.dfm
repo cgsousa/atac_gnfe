@@ -13,6 +13,8 @@ object frm_EnvLote: Tfrm_EnvLote
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
   OnShow = FormShow
   DesignSize = (
     794
@@ -62,6 +64,7 @@ object frm_EnvLote: Tfrm_EnvLote
           ' <b>TOTAL</b> label</P>')
       ParentColor = False
       Transparent = False
+      Visible = False
       Version = '1.9.0.2'
     end
     object btn_OK: TJvFooterBtn
@@ -192,7 +195,6 @@ object frm_EnvLote: Tfrm_EnvLote
         WideText = 'Num.NF'
       end
       item
-        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coAllowFocus]
         Position = 5
         Width = 200
         WideText = 'Situa'#231#227'o'

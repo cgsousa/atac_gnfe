@@ -15,7 +15,7 @@ uses
   AdvGlowButton,
   JvComponentBase, JvTrayIcon, ExtCtrls, JvAppInst,
   FormBase ,
-  Thread.NFE ;
+  Thread.NFE, FDM.NFE, AdvOfficeButtons  ;
 
 type
   //TUpdateStatus = (usStarting,)
@@ -27,15 +27,18 @@ type
     Timer1: TTimer;
     AppInstances1: TJvAppInstances;
     pnl_Status: TPanel;
+    chk_Conting: TAdvOfficeCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure btn_StartClick(Sender: TObject);
     procedure btn_StopClick(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure Timer1Timer(Sender: TObject);
+    procedure chk_ContingClick(Sender: TObject);
   private
     { Private declarations }
     m_MySvc: TMySvcThread;
+    m_reg: TRegNFE ;
     procedure m_Start();
     procedure m_Stop();
 
@@ -44,6 +47,8 @@ type
     procedure OnINI(Sender: TObject);
     procedure OnEND(Sender: TObject);
     procedure OnLOG(Sender: TObject; const StrLog: string);
+
+    procedure setConting(const aValue: Boolean) ;
   protected
     procedure Loaded; override;
 
@@ -57,7 +62,7 @@ implementation
 {$R *.dfm}
 
 uses DateUtils,
-  uTaskDlg, ulog ;
+  uTaskDlg, ulog, uadodb;
 
 
 { Tfrm_Princ01 }
@@ -119,6 +124,35 @@ begin
         CMsgDlg.Warning('A Thread não criada!') ;
 end;
 
+procedure Tfrm_ViewSvc.chk_ContingClick(Sender: TObject);
+var
+  msg: string ;
+begin
+    if chk_Conting.Checked then
+    begin
+        msg:='';
+        msg:='ATENÇÃO !!!'#13#10;
+        msg:=msg +'Ativando a contigência Offline, as notas geradas ficam indisponível para consulta no site da SEFAZ!'#13#10;
+        msg:=msg +'Portanto, as mesmas devem ser transmitidas seguinte a legislação!';
+        if CMsgDlg.Warning(msg, True) then
+        begin
+            if CMsgDlg.Confirm('Deseja mesmo ativar a contingência offline?') then
+            begin
+                m_reg.conting_offline.Value :=True ;
+                m_reg.Save ;
+            end;
+        end;
+    end
+    else begin
+        if CMsgDlg.Confirm('Deseja desativar a contingência offline?') then
+        begin
+            m_reg.conting_offline.Value :=False ;
+            m_reg.Save ;
+        end;
+    end;
+    setConting(m_reg.conting_offline.Value);
+end;
+
 procedure Tfrm_ViewSvc.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
     if Assigned(m_MySvc) then
@@ -144,6 +178,26 @@ begin
                                                   TCExeInfo.getInstance.ReleaseNumber,
                                                   TCExeInfo.getInstance.BuildNumber
                                                  ]);
+
+    ConnectionADO :=NewADOConnFromIniFile(
+        ExtractFilePath(ParamStr(0)) +'Configuracoes.ini'
+                                ) ;
+    try
+        ConnectionADO.Connected :=True ;
+        Empresa :=TCEmpresa.Instance ;
+        Empresa.DoLoad(1);
+        m_reg.Load ;
+        setConting(m_reg.conting_offline.Value);
+        btn_Start.Enabled :=True ;
+        chk_Conting.Enabled :=True;
+    except
+        on E:Exception do
+        begin
+            Caption :=Format('Erro de banco: %s',[E.Message]);
+            btn_Start.Enabled :=False;
+            chk_Conting.Enabled :=False;
+        end;
+    end;
 end;
 
 procedure Tfrm_ViewSvc.Loaded;
@@ -157,8 +211,8 @@ end;
 procedure Tfrm_ViewSvc.m_Start;
 begin
     m_MySvc :=TMySvcThread.Create ;
-    m_MySvc.OnIniProc :=OnINI;
-    m_MySvc.OnEndProc :=OnEND;
+    m_MySvc.OnBeforeExecute :=OnINI;
+    m_MySvc.OnTerminate :=OnEND;
     //m_MySvc.Resume  ;
     m_MySvc.Start  ;
 end;
@@ -176,6 +230,7 @@ begin
     btn_Stop.Enabled  :=False;
     pnl_Status.Caption :='Serviço Parado!';
     pnl_Status.Font.Color :=clRed ;
+    chk_Conting.Enabled :=True;
 end;
 
 procedure Tfrm_ViewSvc.OnINI(Sender: TObject);
@@ -184,11 +239,27 @@ begin
     btn_Stop.Enabled  :=True ;
     pnl_Status.Caption :='Serviço em Operação';
     pnl_Status.Font.Color :=clGreen ;
+    chk_Conting.Enabled :=False;
 end;
 
 procedure Tfrm_ViewSvc.OnLOG(Sender: TObject; const StrLog: string);
 begin
 
+end;
+
+procedure Tfrm_ViewSvc.setConting(const aValue: Boolean);
+begin
+    if aValue then
+    begin
+        chk_Conting.Checked :=True ;
+        chk_Conting.Caption :='Contingência Offline ativada!';
+        chk_Conting.Font.Color :=clRed ;
+    end
+    else begin
+        chk_Conting.Checked :=False ;
+        chk_Conting.Caption :='Contingência Offline desativada!';
+        chk_Conting.Font.Color :=clWindowText ;
+    end;
 end;
 
 procedure Tfrm_ViewSvc.Timer1Timer(Sender: TObject);

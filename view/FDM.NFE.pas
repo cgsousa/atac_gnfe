@@ -84,6 +84,7 @@ type
     send_sincrono: TPair<string, Boolean>;
     send_maxnfelot: TPair<string, Int16>;
     procedure Load() ;
+    procedure Save() ;
   end;
 
 
@@ -1079,6 +1080,7 @@ begin
         m_NFE.Configuracoes.Certificados.ArquivoPFX :='';
         m_NFE.Configuracoes.Certificados.Senha :='';
     end;
+    m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
 
     //config.geral
     m_NFE.Configuracoes.Geral.AtualizarXMLCancelado := m_Ini.ReadBool(   'Geral','AtualizarXML',True) ;
@@ -1855,6 +1857,18 @@ begin
         params.Free ;
     end;
 
+end;
+
+procedure TRegNFE.Save() ;
+var
+  p: TCParametro ;
+begin
+    p :=TCParametro.NewParametro(conting_offline.Key, ftUnknown) ;
+    if p.Load() then
+    begin
+        p.xValor :=IntToStr(Ord(conting_offline.Value)) ;
+        p.Save ;
+    end;
 end;
 
 end.

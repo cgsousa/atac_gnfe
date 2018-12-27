@@ -4,7 +4,7 @@ object frm_ViewSvc: Tfrm_ViewSvc
   BorderIcons = [biMinimize, biMaximize]
   BorderWidth = 5
   Caption = 'Atac Servi'#231'o NFE'
-  ClientHeight = 185
+  ClientHeight = 232
   ClientWidth = 224
   Color = clWindow
   Ctl3D = False
@@ -19,7 +19,7 @@ object frm_ViewSvc: Tfrm_ViewSvc
   OnCreate = FormCreate
   DesignSize = (
     224
-    185)
+    232)
   PixelsPerInch = 96
   TextHeight = 14
   object btn_Start: TAdvGlowButton
@@ -117,7 +117,7 @@ object frm_ViewSvc: Tfrm_ViewSvc
   end
   object pnl_Status: TPanel
     Left = 0
-    Top = 160
+    Top = 207
     Width = 224
     Height = 25
     Align = alBottom
@@ -132,6 +132,25 @@ object frm_ViewSvc: Tfrm_ViewSvc
     ParentBackground = False
     ParentFont = False
     TabOrder = 3
+  end
+  object chk_Conting: TAdvOfficeCheckBox
+    Left = 0
+    Top = 177
+    Width = 224
+    Height = 30
+    Align = alBottom
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 4
+    OnClick = chk_ContingClick
+    Alignment = taLeftJustify
+    Caption = 'Conting'#234'ncia Offline desativada!'
+    ReturnIsTab = False
+    Version = '1.3.7.0'
   end
   object TrayIcon1: TJvTrayIcon
     IconIndex = 0
