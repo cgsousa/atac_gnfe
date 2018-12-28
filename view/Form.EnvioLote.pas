@@ -84,7 +84,6 @@ type
     procedure btn_StartClick(Sender: TObject);
     procedure btn_StopClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
     m_oLote: TCNotFis00Lote ;
@@ -93,12 +92,13 @@ type
   private
     { Thread }
     m_Send: TCSendLote;
+    procedure DoStop ;
     procedure OnINI(Sender: TObject);
     procedure OnEND(Sender: TObject);
     procedure OnUpdateStatus(const aStr: string);
   public
     { Public declarations }
-    class function fn_Show({aLote: TCNotFis00Lote}): Boolean ;
+    class function fn_Show(aLote: TCNotFis00Lote): Boolean ;
   end;
 
 
@@ -311,44 +311,50 @@ end;
 
 procedure Tfrm_EnvLote.btn_StartClick(Sender: TObject);
 begin
-    if not Assigned(m_Send) then
+    if Assigned(m_Send) then
     begin
-        //
-        // start manual
-        m_Send :=TCSendLote.Create(vst_Grid1, m_oLote) ;
-        m_Send.OnBeforeExecute :=OnINI;
-        m_Send.OnTerminate :=OnEND;
-        m_Send.OnStatus :=OnUpdateStatus;
-        m_Send.Start  ;
-    end
-    else
-        CMsgDlg.Warning('A Tarefa já esta criada!') ;
+        //CMsgDlg.Warning('A Tarefa já esta criada!')
+        DoStop;
+    end ;
+    //
+    // start manual
+    m_Send :=TCSendLote.Create(vst_Grid1, m_oLote) ;
+    m_Send.OnBeforeExecute :=OnINI;
+    m_Send.OnTerminate :=OnEND;
+    m_Send.OnStatus :=OnUpdateStatus;
+    m_Send.Start  ;
 end;
 
 procedure Tfrm_EnvLote.btn_StopClick(Sender: TObject);
 begin
     if Assigned(m_Send) then
     begin
-        if CMsgDlg.Warning('A Tarefa esta em execução! Deseja termina-la?', True) then
+        if(not m_Send.Terminated)and CMsgDlg.Warning('A Tarefa esta em execução! Deseja termina-la?',True) then
         begin
             //
             // stop manual
-            m_Send.Terminate;
-            m_Send.WaitFor;
-            FreeAndNil(m_Send);
+            DoStop ;
         end;
-    end
-    else
-        CMsgDlg.Warning('A Tarefa não foi criada!') ;
+    end ;
 end;
 
-class function Tfrm_EnvLote.fn_Show({aLote: TCNotFis00Lote}): Boolean;
+procedure Tfrm_EnvLote.DoStop;
+begin
+    m_Send.Terminate;
+    m_Send.WaitFor;
+    FreeAndNil(m_Send);
+end;
+
+class function Tfrm_EnvLote.fn_Show(aLote: TCNotFis00Lote): Boolean;
 var
   F: Tfrm_EnvLote ;
 begin
     F :=Tfrm_EnvLote.Create(Application) ;
     try
-        //F.m_oLote :=aLote ;
+        if Assigned(aLote) then
+            F.m_oLote :=aLote
+        else
+            F.m_oLote :=TCNotFis00Lote.Create ;
         F.vst_Grid1.Clear ;
         Result :=F.ShowModal =mrOk ;
     finally
@@ -358,17 +364,16 @@ end;
 
 procedure Tfrm_EnvLote.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
-    if Assigned(m_Send)and(not m_Send.Terminated) then
+    if Assigned(m_Send) then
     begin
-        CMsgDlg.Warning('A Tarefa esta em execução!');
-        CanClose :=False ;
+        if not m_Send.Terminated then
+        begin
+            CMsgDlg.Warning('A Tarefa esta em execução!');
+            CanClose :=False ;
+        end
+        else
+            DoStop ;
     end;
-end;
-
-procedure Tfrm_EnvLote.FormCreate(Sender: TObject);
-begin
-    m_oLote :=TCNotFis00Lote.Create ;
-
 end;
 
 procedure Tfrm_EnvLote.FormShow(Sender: TObject);
@@ -428,6 +433,7 @@ begin
     btn_Start.Enabled :=True;
     btn_Stop.Enabled  :=False;
     setStatus('Thread terminada');
+    //DoStop ;
 end;
 
 procedure Tfrm_EnvLote.OnINI(Sender: TObject);
@@ -477,7 +483,7 @@ end;
 constructor TCSendLote.Create(aGrid: TVirtualStringTree; aLote: TCNotFis00Lote);
 begin
     m_Grid :=aGrid ;
-    m_Lote :=aLote ;
+    m_Lote :=aLote;
     inherited Create(True, False);
 end;
 
@@ -525,20 +531,22 @@ begin
 
     if not Assigned(m_Lote) then
     begin
-        DoTerminate ;
+        Self.Terminate ;
         Exit ;
     end;
 
     rep :=Tdm_nfe.getInstance ;
     rep.setStatusChange(false); //desabilita status de processamento
 
-    VisualStatus('Carregando notas'#13#10'Aguarde...');
+    VisualStatus('Carregando notas fiscais'#13#10'Aguarde...');
     if m_Lote.LoadCX(rep.NSerie, S) then
     begin
         Synchronize(DoLoadGrid);
     end
     else begin
-        VisualStatus('Nenhuma nota encontrada!');
+        VisualStatus('Nenhuma NF encontrada!');
+        Self.Terminate ;
+        Exit ;
     end;
 
     for N in m_Lote.Items do

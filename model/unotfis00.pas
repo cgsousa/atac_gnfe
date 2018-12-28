@@ -2941,7 +2941,7 @@ begin
     //
     Q.AddCmd('  ,nf0_infcpl                               ');
 
-    Q.AddCmd('from notfis00                                ');
+    Q.AddCmd('from notfis00                               ');
 
     //
     // busca por
@@ -3018,6 +3018,7 @@ begin
             Q.AddCmd('or    (nf0_codstt =613)                           ');
             Q.AddCmd('--//Rejeição 704: NFC-E com data-hora de emissão atrasada');
             Q.AddCmd('or    (nf0_codstt =704)                           ');
+            Q.AddCmd('or    (nf0_codstt =999)  --//erro geral sefaz     ');
 
             //
             // load por ser
@@ -3180,16 +3181,16 @@ begin
     try
         Q.AddCmd('declare @codcxa smallint; set @codcxa =%d             ',[codcxa]);
 
-        Q.AddCmd('select top (%d)                                       ',[top]);
+        Q.AddCmd('select top %d                                         ',[top]);
         Q.AddCmd('  nf.* from notfis00 nf                               ');
 
-        Q.AddCmd('where nf0_nserie =@codcxa                             ');
         Q.AddCmd('--//notas nao processadas                             ');
-        Q.AddCmd('and nf0_codstt not in(100, 110, 150, 301, 302, 303)   ');
+        Q.AddCmd('where nf0_codstt not in(100, 110, 150, 301, 302, 303) ');
         Q.AddCmd('--//notas nao canceladas                              ');
         Q.AddCmd('and nf0_codstt not in(101, 151, 135, 155, 218)        ');
         Q.AddCmd('--//notas nao inutilizadas                            ');
         Q.AddCmd('and nf0_codstt not in(102, 563)                       ');
+        Q.AddCmd('and nf0_nserie =@codcxa                               ');
         Q.Open ;
 
         fcodseq :=Q.Field('nf0_codseq') ;
@@ -3202,7 +3203,7 @@ begin
             if N = nil then
             begin
                 N :=Self.AddNotFis00(fcodseq.AsInteger) ;
-                N.LoadFromQ(Q);
+                N.LoadFromQ(Q, True);
             end ;
 
             lstcod :=lstcod +Format('"%d",',[N.m_codped]);

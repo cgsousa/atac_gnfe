@@ -14,7 +14,6 @@ object frm_EnvLote: Tfrm_EnvLote
   Font.Style = []
   OldCreateOrder = False
   OnCloseQuery = FormCloseQuery
-  OnCreate = FormCreate
   OnShow = FormShow
   DesignSize = (
     794
@@ -126,7 +125,7 @@ object frm_EnvLote: Tfrm_EnvLote
     Width = 781
     Height = 487
     Alignment = taCenter
-    Anchors = [akLeft, akTop, akRight]
+    Anchors = [akLeft, akTop, akRight, akBottom]
     BevelInner = bvNone
     BevelKind = bkTile
     BorderStyle = bsNone
