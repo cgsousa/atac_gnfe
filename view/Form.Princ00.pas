@@ -547,7 +547,7 @@ begin
     begin
         //
         // se confirmou, atualiza grid
-        if Tfrm_EnvLote.fn_Show(nil) then
+        if Tfrm_EnvLote.fn_Show(m_Lote) then
         begin
             LoadGrid ;
         end;

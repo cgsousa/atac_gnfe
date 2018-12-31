@@ -43,7 +43,7 @@ uses
   //
   FormBase,
   unotfis00,
-  uclass, ulog ;
+  uclass, ulog, ComCtrls, AdvPageControl, JvRichEdit ;
 
 type
   TCSendLote = class(TCThreadProcess)
@@ -70,11 +70,15 @@ type
     pnl_Footer: TJvFooter;
     btn_OK: TJvFooterBtn;
     btn_Close: TJvFooterBtn;
-    vst_Grid1: TVirtualStringTree;
     html_Status: THTMLabel;
     HTMLabel1: THTMLabel;
     btn_Start: TJvFooterBtn;
     btn_Stop: TJvFooterBtn;
+    pag_Control1: TAdvPageControl;
+    tab_Grid1: TAdvTabSheet;
+    LOG: TAdvTabSheet;
+    vst_Grid1: TVirtualStringTree;
+    txt_Log: TJvRichEdit;
     procedure FormShow(Sender: TObject);
     procedure vst_Grid1Checked(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -378,8 +382,8 @@ end;
 
 procedure Tfrm_EnvLote.FormShow(Sender: TObject);
 begin
-    m_LoadGrid() ;
-    ActiveControl :=vst_Grid1 ;
+    {m_LoadGrid() ;
+    ActiveControl :=vst_Grid1;
     HTMLabel1.HTMLText.Clear ;
     HTMLabel1.HTMLText.Add(
       Format('<P><b>ATENÇÃO!</b> Verifique na listagem abaixo, as <b>%d</b> NFE´s que serão enviadas de uma so vez</P>',[vst_Grid1.RootNodeCount])
@@ -387,6 +391,8 @@ begin
     //
     //
     m_UpdateStatus('Aguardando confirmação!');
+    }
+    pag_Control1.ActivePageIndex :=0;
     //
     // start a thread
     btn_Start.Click ;
@@ -441,13 +447,15 @@ begin
     btn_Start.Enabled :=False;
     btn_Stop.Enabled  :=True ;
     btn_OK.Enabled :=False;
+    pag_Control1.ActivePageIndex :=1;
+    txt_Log.Clear ;
     setStatus('Thread iniciada');
 end;
 
 procedure Tfrm_EnvLote.OnUpdateStatus(const aStr: string);
 begin
     setStatus(aStr);
-
+    txt_Log.AddFormatText(aStr)  ;
 end;
 
 procedure Tfrm_EnvLote.vst_Grid1Checked(Sender: TBaseVirtualTree;
