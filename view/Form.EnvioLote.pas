@@ -32,18 +32,19 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, Mask, ExtCtrls,
+  Dialogs, StdCtrls, Mask, ExtCtrls, ComCtrls,
 
   //JEDI
   JvExStdCtrls, JvExExtCtrls, JvExtComponent, JvCtrls, JvButton, JvFooter,
+  JvRichEdit ,
   //TMS
-  AdvPanel, HTMLabel ,
+  AdvPanel, AdvPageControl,
   //
   VirtualTrees, uVSTree,
   //
   FormBase,
   unotfis00,
-  uclass, ulog, ComCtrls, AdvPageControl, JvRichEdit ;
+  uclass, ulog, GradientLabel;
 
 type
   TCSendLote = class(TCThreadProcess)
@@ -70,17 +71,15 @@ type
     pnl_Footer: TJvFooter;
     btn_OK: TJvFooterBtn;
     btn_Close: TJvFooterBtn;
-    html_Status: THTMLabel;
-    HTMLabel1: THTMLabel;
     btn_Start: TJvFooterBtn;
     btn_Stop: TJvFooterBtn;
     pag_Control1: TAdvPageControl;
     tab_Grid1: TAdvTabSheet;
-    LOG: TAdvTabSheet;
+    tab_LOG: TAdvTabSheet;
     vst_Grid1: TVirtualStringTree;
     txt_Log: TJvRichEdit;
+    lbl_MaxLot: TGradientLabel;
     procedure FormShow(Sender: TObject);
-    procedure vst_Grid1Checked(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
     procedure btn_OKClick(Sender: TObject);
@@ -88,9 +87,12 @@ type
     procedure btn_StartClick(Sender: TObject);
     procedure btn_StopClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure vst_Grid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
   private
     { Private declarations }
     m_oLote: TCNotFis00Lote ;
+    m_maxnfelot: Int32 ;
+    m_maxnfelotcfg: Int32 ;
     procedure m_LoadGrid() ;
     procedure m_UpdateStatus(const aStr: string);
   private
@@ -102,6 +104,7 @@ type
     procedure OnUpdateStatus(const aStr: string);
   public
     { Public declarations }
+    procedure DoResetForm; override ;
     class function fn_Show(aLote: TCNotFis00Lote): Boolean ;
   end;
 
@@ -342,6 +345,27 @@ begin
     end ;
 end;
 
+procedure Tfrm_EnvLote.DoResetForm;
+var
+  P: TCParametro ;
+begin
+    vst_Grid1.Clear ;
+
+    //
+    // inicializa limite
+    P :=TCParametro.NewParametro('send_maxnfelot', ftSmallint);
+    if not P.Load() then
+    begin
+        m_maxnfelotcfg :=25 ;
+    end
+    else begin
+        m_maxnfelotcfg :=P.ReadInt() ;
+    end;
+    m_maxnfelot :=50 ;
+
+    m_oLote.Filter.setLimLot(m_maxnfelotcfg) ;
+end;
+
 procedure Tfrm_EnvLote.DoStop;
 begin
     m_Send.Terminate;
@@ -359,7 +383,7 @@ begin
             F.m_oLote :=aLote
         else
             F.m_oLote :=TCNotFis00Lote.Create ;
-        F.vst_Grid1.Clear ;
+        F.DoResetForm;
         Result :=F.ShowModal =mrOk ;
     finally
         FreeAndNil(F);
@@ -429,17 +453,17 @@ var
   N: TCNotFis00 ;
   P: string;
 begin
-    html_Status.HTMLText.Clear;
-    html_Status.HTMLText.Add(Format('<P align="left"><B>%s</B></P>',[aStr]));
-    html_Status.Refresh ;
+//    html_Status.HTMLText.Clear;
+//    html_Status.HTMLText.Add(Format('<P align="left"><B>%s</B></P>',[aStr]));
+//    html_Status.Refresh ;
 end;
 
 procedure Tfrm_EnvLote.OnEND(Sender: TObject);
 begin
     btn_Start.Enabled :=True;
     btn_Stop.Enabled  :=False;
-    setStatus('Thread terminada');
-    //DoStop ;
+    //setStatus('Thread terminada');
+    OnUpdateStatus('Tarefa terminada.');
 end;
 
 procedure Tfrm_EnvLote.OnINI(Sender: TObject);
@@ -449,24 +473,53 @@ begin
     btn_OK.Enabled :=False;
     pag_Control1.ActivePageIndex :=1;
     txt_Log.Clear ;
-    setStatus('Thread iniciada');
+    //setStatus('Thread iniciada');
+    OnUpdateStatus('Tarefa iniciada');
 end;
 
 procedure Tfrm_EnvLote.OnUpdateStatus(const aStr: string);
-begin
-    setStatus(aStr);
-    txt_Log.AddFormatText(aStr)  ;
-end;
-
-procedure Tfrm_EnvLote.vst_Grid1Checked(Sender: TBaseVirtualTree;
-  Node: PVirtualNode);
 var
-  N: TCNotFis00 ;
+  clr: TColor ;
+  txt: string;
 begin
-    N :=m_oLote.Items[Node.Index] ;
-    N.Checked :=Node.CheckState =csCheckedNormal;
+    //setStatus(aStr);
+{
+    if Pos('Erro', StrLog) > 0 then
+    begin
+        mmo_Log.AddFormatText(StrLog, [fsBold,fsItalic], 'Arial', clRed) ;
+        mmo_Log.AddFormatText(#13#10, []) ;
+    end
+    else
+        mmo_Log.Lines.Add(StrLog);
+//    mmo_Log.ScrollBy();
+    mmo_Log.SelLength := 0;
+    mmo_Log.SelStart:=mmo_Log.GetTextLen; //mmo_Log.Perform(EM_LINEINDEX, mmo_Log.Lines.Count -1, 0);
+    mmo_Log.Perform( EM_SCROLLCARET, 0, 0 ); //::garantir a exibição é correto
+}
+    if Pos('Erro', aStr) > 0 then
+        clr :=clRed
+    else
+        clr :=clWindowText;
+
+    if Pos('ini', aStr) > 0 then
+        txt :=FormatDateTime('HH:NN:SS|"Tarefa iniciada"', Now)
+    else begin
+        if Pos('term', aStr) > 0 then
+            txt :=FormatDateTime('HH:NN:SS|"Tarefa terminada"', Now)
+        else
+            txt :=#9 +aStr ;
+    end;
+    txt_Log.AddFormatText(txt, [], 'Trebuchet MS', clr);
+    txt_Log.AddFormatText(#13#10, []) ;
+    txt_Log.Perform(EM_SCROLLCARET, 0, 0); //::garantir a exibição é correto
 end;
 
+procedure Tfrm_EnvLote.vst_Grid1Change(Sender: TBaseVirtualTree;
+  Node: PVirtualNode);
+begin
+    lbl_MaxLot.Caption :=Format('NFE: %d/%d, parâmetro NFE/lote: %d, maximo NFE/lote: %d',[
+      Node.Index +1, m_oLote.Items.Count, m_maxnfelotcfg, m_maxnfelot]) ;
+end;
 
 procedure Tfrm_EnvLote.vst_Grid1GetText(Sender: TBaseVirtualTree;
   Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
@@ -509,9 +562,10 @@ begin
         begin
             Continue ;
         end;
-
-        P :=m_Grid.AddChild(nil) ;
         N.Checked :=True ;
+        //
+        //
+        P :=m_Grid.AddChild(nil) ;
         P.CheckType :=ctCheckBox ;
         P.CheckState:=csCheckedNormal ;
     end;
@@ -546,8 +600,8 @@ begin
     rep :=Tdm_nfe.getInstance ;
     rep.setStatusChange(false); //desabilita status de processamento
 
-    VisualStatus('Carregando notas fiscais'#13#10'Aguarde...');
-    if m_Lote.LoadCX(rep.NSerie, S) then
+    VisualStatus('Carregando notas fiscais...');
+    if m_Lote.Load(m_Lote.Filter) then
     begin
         Synchronize(DoLoadGrid);
     end
@@ -556,12 +610,13 @@ begin
         Self.Terminate ;
         Exit ;
     end;
+    VisualStatus(Format('%d nota(s) fiscai(s) encontrada(s)!',[m_Lote.Items.Count]));
 
     for N in m_Lote.Items do
     begin
         if N.m_codstt <>TCNotFis00.CSTT_EMIS_CONTINGE then
         begin
-            VisualStatus(Format('Atualizando NF:%d',[N.m_numdoc]));
+            VisualStatus(Format('Atualizando NF:%d [Modelo:%d, Serie:%d]',[N.m_numdoc,N.m_codmod,N.m_nserie]));
             if not N.UpdateNFe(now, Ord(rep.ProdDescrRdz), Ord(rep.ProdCodInt), S) then
             begin
                 VisualStatus(S);
@@ -569,7 +624,6 @@ begin
                 Continue ;
             end ;
         end;
-        VisualStatus('');
 
         if rep.AddNotaFiscal(N) = nil then
         begin
@@ -586,18 +640,21 @@ begin
 
     if rep.m_NFE.NotasFiscais.Count <= 0 then
     begin
+        VisualStatus('Nenhuma NFE adicionada ao Lote!');
+        Self.Terminate ;
         Exit;
     end;
 
     if rep.m_NFE.NotasFiscais.Count > 50 then
     begin
         VisualStatus('Excedeu o limite máximo de 50 NFE´s!');
+        Self.Terminate ;
         Exit;
     end;
 
     dupl :=0;
 
-    VisualStatus('Enviando lote'#13#10'Aguarde...');
+    VisualStatus('Enviando lote...');
 
     //
     // envio
@@ -633,6 +690,7 @@ begin
                     N.m_numreci:=rep.Retorno.NFeRetorno.nRec ;
                     N.m_numprot:=nfe.procNFe.nProt ;
                     N.m_digval :=nfe.procNFe.digVal;
+                    VisualStatus(Format('%d|%s',[N.m_codstt,N.m_motivo]));
                     N.setStatus ;
 
                     //

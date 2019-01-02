@@ -133,14 +133,16 @@ type
   TNotFis00InfoDest =(idEmail, idNone);
 
   //TNotFis00FilterRelTyp =(rtResumo, rtDetalhe);
+  //PNotFis00Filter = ^TNotFis00Filter;
   TNotFis00Filter = record
   public
     codini,codfin: Int32;
     pedini,pedfin: Int32;
     datini,datfin: TDateTime;
     status: (sttDoneSend, sttConting, sttProcess, sttCancel, sttError, sttService, sttNone);
-    codmod,nserie: Word;
+    codmod,nserie,limlot: Word;
     chvnfe: Boolean ;
+    procedure setLimLot(const Value: Word) ;
     constructor Create(const codseq, codped: Integer);
   end;
 
@@ -472,7 +474,7 @@ type
     property Items: TList<TCNotFis00> read m_oItems ;
     property CodSeq: Int32 read m_CodSeq;
     property vTotalNF: Currency read m_vTotalNF;
-    property Filter: TNotFis00Filter read m_Filter; // write m_Filter;
+    property Filter: TNotFis00Filter read m_Filter ;
     constructor Create;
     destructor Destroy; override ;
     function AddNotFis00(const codseq: Int32): TCNotFis00;
@@ -794,8 +796,15 @@ begin
     Self.codmod :=0;
     Self.nserie :=0;
     Self.chvnfe :=True;
+    Self.limlot :=0;
 end;
 
+
+procedure TNotFis00Filter.setLimLot(const Value: Word);
+begin
+    Self.limlot :=Value ;
+
+end;
 
 { TCNotFis00 }
 
@@ -2832,6 +2841,9 @@ begin
     Q.AddCmd('declare @codmod smallint; set @codmod =%d     ',[afilter.codmod]);
     Q.AddCmd('declare @numser smallint; set @numser =%d     ',[afilter.nserie]);
 
+    if afilter.limlot > 0 then
+    Q.AddCmd('select top %d                                 ',[afilter.limlot])
+    else
     Q.AddCmd('select                                        ');
 
     //ident
@@ -3122,10 +3134,15 @@ begin
     //
     m_oItems.Clear ;
     //
-    m_Filter :=afilter ;
+    //
+    if SizeOf(afilter)>0 then
+    begin
+        m_Filter :=afilter;
+    end;
+
     //
     m_vTotalNF :=0;
-    Q :=TCNotFis00Lote.CLoad(AFilter) ;
+    Q :=TCNotFis00Lote.CLoad(m_Filter) ;
     try
         fcodseq :=Q.Field('nf0_codseq') ;
         Result  :=not Q.IsEmpty ;
@@ -3136,10 +3153,6 @@ begin
             begin
                 N :=Self.AddNotFis00(fcodseq.AsInteger) ;
                 N.LoadFromQ(Q, True);
-
-
-
-
 
                 m_vTotalNF :=m_vTotalNF +N.m_icmstot.vNF;
             end ;

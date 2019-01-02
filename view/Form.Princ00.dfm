@@ -271,6 +271,8 @@ object frm_Princ00: Tfrm_Princ00
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
+    ExplicitLeft = 5
+    ExplicitTop = 535
     DesignSize = (
       1018
       40)

@@ -3,7 +3,7 @@ object frm_EnvLote: Tfrm_EnvLote
   Top = 0
   BorderStyle = bsDialog
   Caption = '.:Envio autom'#225'tico de lote NFE:.'
-  ClientHeight = 577
+  ClientHeight = 594
   ClientWidth = 794
   Color = clWindow
   Ctl3D = False
@@ -17,54 +17,24 @@ object frm_EnvLote: Tfrm_EnvLote
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 14
-  object HTMLabel1: THTMLabel
-    Left = 0
-    Top = 0
-    Width = 794
-    Height = 22
-    Align = alTop
-    ColorTo = 9240575
-    BorderWidth = 1
-    BorderStyle = bsSingle
-    Color = clInfoBk
-    HTMLText.Strings = (
-      
-        '<P align="left"><b>ATEN'#199#195'O!</b> Verifique na listagem abaixo as ' +
-        'NFE que ser'#227'o enviadas em um '#250'nico lote (M'#225'ximo de 50 notas)</P>')
-    ParentColor = False
-    Transparent = False
-    Version = '1.9.0.2'
-  end
   object pnl_Footer: TJvFooter
     Left = 0
-    Top = 537
+    Top = 554
     Width = 794
     Height = 40
     Align = alBottom
     BevelStyle = bsRaised
     BevelVisible = True
-    ExplicitTop = 532
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Trebuchet MS'
+    Font.Style = []
+    ParentFont = False
+    ExplicitTop = 537
     DesignSize = (
       794
       40)
-    object html_Status: THTMLabel
-      Left = 218
-      Top = 5
-      Width = 345
-      Height = 25
-      ColorTo = 11769496
-      BorderWidth = 1
-      BorderStyle = bsSingle
-      Color = 15524577
-      HTMLText.Strings = (
-        
-          '<P align="left">TMS <b>STATUS</b> label</P> <P align="right">TMS' +
-          ' <b>TOTAL</b> label</P>')
-      ParentColor = False
-      Transparent = False
-      Visible = False
-      Version = '1.9.0.2'
-    end
     object btn_OK: TJvFooterBtn
       Left = 582
       Top = 5
@@ -74,7 +44,7 @@ object frm_EnvLote: Tfrm_EnvLote
       Caption = 'Confirmar'
       TabOrder = 0
       OnClick = btn_OKClick
-      ButtonIndex = 1
+      ButtonIndex = 0
       SpaceInterval = 6
     end
     object btn_Close: TJvFooterBtn
@@ -86,7 +56,7 @@ object frm_EnvLote: Tfrm_EnvLote
       Caption = 'Fechar'
       TabOrder = 1
       OnClick = btn_CloseClick
-      ButtonIndex = 2
+      ButtonIndex = 1
       SpaceInterval = 6
     end
     object btn_Start: TJvFooterBtn
@@ -100,7 +70,7 @@ object frm_EnvLote: Tfrm_EnvLote
       TabOrder = 2
       OnClick = btn_StartClick
       Alignment = taLeftJustify
-      ButtonIndex = 3
+      ButtonIndex = 2
       SpaceInterval = 6
     end
     object btn_Stop: TJvFooterBtn
@@ -114,15 +84,15 @@ object frm_EnvLote: Tfrm_EnvLote
       TabOrder = 3
       OnClick = btn_StopClick
       Alignment = taLeftJustify
-      ButtonIndex = 4
+      ButtonIndex = 3
       SpaceInterval = 6
     end
   end
   object pag_Control1: TAdvPageControl
     Left = 0
-    Top = 22
+    Top = 0
     Width = 794
-    Height = 515
+    Height = 554
     ActivePage = tab_Grid1
     ActiveFont.Charset = DEFAULT_CHARSET
     ActiveFont.Color = clWindowText
@@ -143,15 +113,41 @@ object frm_EnvLote: Tfrm_EnvLote
       ColorTo = clNone
       TabColor = clBtnFace
       TabColorTo = clNone
-      ExplicitLeft = -83
-      ExplicitTop = -15
-      ExplicitWidth = 281
-      ExplicitHeight = 164
+      ExplicitLeft = 8
+      ExplicitTop = 23
+      ExplicitHeight = 508
+      object lbl_MaxLot: TGradientLabel
+        Left = 0
+        Top = 508
+        Width = 786
+        Height = 17
+        Align = alBottom
+        AutoSize = False
+        Caption = 'Nenhum'
+        Color = clInfoBk
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = 'Trebuchet MS'
+        Font.Style = []
+        ParentColor = False
+        ParentFont = False
+        ColorTo = clWindow
+        EllipsType = etNone
+        GradientType = gtFullHorizontal
+        GradientDirection = gdLeftToRight
+        Indent = 0
+        Orientation = goHorizontal
+        TransparentText = False
+        VAlignment = vaCenter
+        Version = '1.2.0.0'
+        ExplicitTop = 506
+      end
       object vst_Grid1: TVirtualStringTree
         Left = 0
         Top = 0
         Width = 786
-        Height = 486
+        Height = 508
         Align = alClient
         Alignment = taCenter
         BevelInner = bvNone
@@ -182,9 +178,9 @@ object frm_EnvLote: Tfrm_EnvLote
         TreeOptions.MiscOptions = [toAcceptOLEDrop, toCheckSupport, toInitOnSave, toToggleOnDblClick, toWheelPanning]
         TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
         TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
-        OnChecked = vst_Grid1Checked
+        OnChange = vst_Grid1Change
         OnGetText = vst_Grid1GetText
-        ExplicitTop = -2
+        ExplicitTop = -6
         Columns = <
           item
             Color = 15000804
@@ -229,19 +225,18 @@ object frm_EnvLote: Tfrm_EnvLote
           end>
       end
     end
-    object LOG: TAdvTabSheet
+    object tab_LOG: TAdvTabSheet
       Caption = 'LOG'
       Color = clWindow
       ColorTo = clNone
       TabColor = clBtnFace
       TabColorTo = clNone
-      ExplicitLeft = 8
-      ExplicitTop = 23
+      ExplicitHeight = 508
       object txt_Log: TJvRichEdit
         Left = 0
         Top = 0
         Width = 786
-        Height = 486
+        Height = 525
         Align = alClient
         Flat = True
         Font.Charset = ANSI_CHARSET
@@ -254,6 +249,7 @@ object frm_EnvLote: Tfrm_EnvLote
         ScrollBars = ssVertical
         TabOrder = 0
         WordWrap = False
+        ExplicitTop = -2
       end
     end
   end
