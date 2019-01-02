@@ -24,7 +24,7 @@ object frm_Princ00: Tfrm_Princ00
   TextHeight = 14
   object html_Status: THTMLabel
     Left = 5
-    Top = 494
+    Top = 492
     Width = 1005
     Height = 35
     ColorTo = 11769496
@@ -271,8 +271,6 @@ object frm_Princ00: Tfrm_Princ00
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitLeft = 5
-    ExplicitTop = 535
     DesignSize = (
       1018
       40)
@@ -600,7 +598,7 @@ object frm_Princ00: Tfrm_Princ00
     end
     object btn_Exec: TJvImgBtn
       Left = 179
-      Top = 447
+      Top = 450
       Width = 100
       Height = 30
       Anchors = [akRight, akBottom]
