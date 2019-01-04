@@ -31,7 +31,6 @@ object frm_EnvLote: Tfrm_EnvLote
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitTop = 537
     DesignSize = (
       794
       40)
@@ -93,7 +92,7 @@ object frm_EnvLote: Tfrm_EnvLote
     Top = 0
     Width = 794
     Height = 554
-    ActivePage = tab_Grid1
+    ActivePage = tab_LOG
     ActiveFont.Charset = DEFAULT_CHARSET
     ActiveFont.Color = clWindowText
     ActiveFont.Height = -11
@@ -111,11 +110,9 @@ object frm_EnvLote: Tfrm_EnvLote
       Caption = 'Notas fiscais'
       Color = clWindow
       ColorTo = clNone
+      TabVisible = False
       TabColor = clBtnFace
       TabColorTo = clNone
-      ExplicitLeft = 8
-      ExplicitTop = 23
-      ExplicitHeight = 508
       object lbl_MaxLot: TGradientLabel
         Left = 0
         Top = 508
@@ -180,7 +177,6 @@ object frm_EnvLote: Tfrm_EnvLote
         TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
         OnChange = vst_Grid1Change
         OnGetText = vst_Grid1GetText
-        ExplicitTop = -6
         Columns = <
           item
             Color = 15000804
@@ -231,13 +227,13 @@ object frm_EnvLote: Tfrm_EnvLote
       ColorTo = clNone
       TabColor = clBtnFace
       TabColorTo = clNone
-      ExplicitHeight = 508
       object txt_Log: TJvRichEdit
         Left = 0
         Top = 0
         Width = 786
-        Height = 525
-        Align = alClient
+        Height = 65
+        Align = alTop
+        ClipboardCommands = [caCopy, caClear]
         Flat = True
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
@@ -248,8 +244,26 @@ object frm_EnvLote: Tfrm_EnvLote
         ReadOnly = True
         ScrollBars = ssVertical
         TabOrder = 0
+        Visible = False
         WordWrap = False
-        ExplicitTop = -2
+      end
+      object txt_RichLOG: TRichEdit
+        Left = 0
+        Top = 65
+        Width = 786
+        Height = 460
+        Align = alClient
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = 'Trebuchet MS'
+        Font.Style = []
+        Lines.Strings = (
+          'txt_RichLOG')
+        ParentFont = False
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 1
       end
     end
   end

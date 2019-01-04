@@ -24,7 +24,7 @@ object frm_Princ00: Tfrm_Princ00
   TextHeight = 14
   object html_Status: THTMLabel
     Left = 5
-    Top = 492
+    Top = 491
     Width = 1005
     Height = 35
     ColorTo = 11769496
@@ -590,14 +590,14 @@ object frm_Princ00: Tfrm_Princ00
         'Conting'#234'ncia;'
         'Processadas;'
         'Canceladas;'
+        'Inutilizadas;'
         'Erros;'
-        'Reservado;'
         'Todos.')
       ButtonVertAlign = tlCenter
       Ellipsis = False
     end
     object btn_Exec: TJvImgBtn
-      Left = 179
+      Left = 188
       Top = 450
       Width = 100
       Height = 30

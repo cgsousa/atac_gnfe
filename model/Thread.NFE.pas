@@ -72,7 +72,7 @@ type
     property Log: TCLog read m_Log;
     constructor Create;
     destructor Destroy; override;
-    function getTerminated: Boolean ;
+    //function getTerminated: Boolean ;
   end;
 
 
@@ -117,12 +117,6 @@ begin
     end
     else
         inherited Execute;
-end;
-
-function TMySvcThread.getTerminated: Boolean;
-begin
-    Result :=Self.Terminated ;
-
 end;
 
 procedure TMySvcThread.runContingOffLine(NF: TCNotFis00) ;
@@ -212,7 +206,9 @@ begin
     //
     // preenche filtro
     F.Create(0, 0);
-    F.status :=sttService ;
+    F.filTyp :=ftService ;
+    //F.status :=sttService ;
+    //F.codmod :=m_Rep.CodMod ;
     F.nserie :=m_Rep.NSerie ;
 
     //

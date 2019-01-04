@@ -418,7 +418,17 @@ begin
         m_Filter.datini :=edt_DatIni.Date ;
         m_Filter.datfin :=edt_DatFin.Date ;
 
-        case rgx_Status.ItemIndex of
+        m_Filter.status :=TNotFis00Status(rgx_Status.ItemIndex) ;
+        if m_Filter.status =sttNone then
+        begin
+            if edt_DatIni.Date > edt_DatFin.Date then
+            begin
+                CMsgDlg.Info('Data inicial maior que data final!') ;
+                edt_DatIni.SetFocus;
+                exit;
+            end;
+        end;
+        {case rgx_Status.ItemIndex of
             0: m_Filter.status :=sttDoneSend;
             1: m_Filter.status :=sttConting ;
             2: m_Filter.status :=sttProcess ;
@@ -432,7 +442,7 @@ begin
                 edt_DatIni.SetFocus;
                 exit;
             end;
-        end;
+        end;}
 
         case cbx_Modelo.ItemIndex of
             0: m_Filter.codmod :=55 ;
@@ -441,11 +451,7 @@ begin
             m_Filter.codmod :=0;
             m_Filter.nserie :=0;
         end;
-
-        if m_Filter.codmod > 0 then
-        begin
-            m_Filter.nserie :=edt_NSerie.IntValue ;
-        end;
+        m_Filter.nserie :=edt_NSerie.IntValue ;
 
     end;
 
@@ -456,7 +462,7 @@ begin
         m_Filter.codmod :=0;
     end;}
 
-    m_Filter.chvnfe :=chk_ChvNFe.Checked ;
+//    m_Filter.chvnfe :=chk_ChvNFe.Checked ;
 
     if LoadGrid then
     begin
@@ -547,7 +553,7 @@ begin
     begin
         //
         // se confirmou, atualiza grid
-        if Tfrm_EnvLote.fn_Show(m_Lote) then
+        if Tfrm_EnvLote.fn_Show(m_Filter) then
         begin
             LoadGrid ;
         end;
@@ -636,7 +642,7 @@ procedure Tfrm_Princ00.DoExecute;
 begin
     m_Log.AddSec('%s.DoExec',[Self.ClassName]) ;
     m_Service :=True ;
-    m_Filter.status:=sttService;
+    //m_Filter.status:=sttService;
     Tdm_nfe.getInstance.setStatusChange(false);
     DoRun() ;
 end;
@@ -701,7 +707,7 @@ end;
 
 procedure Tfrm_Princ00.DoStart;
 begin
-    m_Filter.status :=sttService;
+    //m_Filter.status :=sttService;
     Tdm_nfe.getInstance.setStatusChange(false);
 
     m_Log :=TCLog.Create('', True);

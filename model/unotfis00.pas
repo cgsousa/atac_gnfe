@@ -127,22 +127,23 @@ type
   end;
 
   TNotFis00TipPes =(tpFis, tpJur, tpRud);
-//  TNotFis00Status = (nfsDoneSend, nfsProcess, nfsConting, nfsError, nfsService, nfsNone) ;
-//  TNotFis00StatusSet = set of TNotFis00Status;
+  TNotFis00Status = (sttDoneSend, sttConting, sttProcess, sttCancel, sttInut, sttError, sttNone);
+  TNotFis00StatusSet = set of TNotFis00Status;
 
   TNotFis00InfoDest =(idEmail, idNone);
 
-  //TNotFis00FilterRelTyp =(rtResumo, rtDetalhe);
+  TNotFis00FilterTyp =(ftNormal, ftService, ftFech);
   //PNotFis00Filter = ^TNotFis00Filter;
   TNotFis00Filter = record
   public
+    filTyp: TNotFis00FilterTyp ;
     codini,codfin: Int32;
     pedini,pedfin: Int32;
     datini,datfin: TDateTime;
-    status: (sttDoneSend, sttConting, sttProcess, sttCancel, sttError, sttService, sttNone);
+    //status: (sttDoneSend, sttConting, sttProcess, sttCancel, sttError, sttService, sttNone);
+    status: TNotFis00Status;
     codmod,nserie,limlot: Word;
-    chvnfe: Boolean ;
-    procedure setLimLot(const Value: Word) ;
+    sttSet: TNotFis00StatusSet;
     constructor Create(const codseq, codped: Integer);
   end;
 
@@ -197,6 +198,11 @@ type
     //
     // consumo indevido
     const QTD_MAX_CONSUMO =10 ;
+
+    //
+    // qtd max de nfe por lote (assincrono)
+    QTD_MAX_NFE_IN_LOTE =50 ;
+
   public
     m_codseq: Int32 ;
     m_codemp: Int32 ;
@@ -474,7 +480,7 @@ type
     property Items: TList<TCNotFis00> read m_oItems ;
     property CodSeq: Int32 read m_CodSeq;
     property vTotalNF: Currency read m_vTotalNF;
-    property Filter: TNotFis00Filter read m_Filter ;
+    property Filter: TNotFis00Filter read m_Filter write m_Filter;
     constructor Create;
     destructor Destroy; override ;
     function AddNotFis00(const codseq: Int32): TCNotFis00;
@@ -526,6 +532,8 @@ type
 
 function GTIN_DV(const aCodigo : String ): String ;
 function GTIN_Valida(const aCodigo : String ): Boolean ;
+
+
 
 
 implementation
@@ -786,6 +794,7 @@ end;
 
 constructor TNotFis00Filter.Create(const codseq, codped: Integer);
 begin
+    Self.filTyp :=ftNormal ;
     Self.codini :=codseq;
     Self.codfin :=codseq;
     Self.pedini :=codped;
@@ -795,15 +804,7 @@ begin
     Self.status :=sttNone ;
     Self.codmod :=0;
     Self.nserie :=0;
-    Self.chvnfe :=True;
     Self.limlot :=0;
-end;
-
-
-procedure TNotFis00Filter.setLimLot(const Value: Word);
-begin
-    Self.limlot :=Value ;
-
 end;
 
 { TCNotFis00 }
@@ -2832,12 +2833,8 @@ begin
     Q.AddCmd('declare @seqfin int; set @seqfin =%d          ',[afilter.codfin]);
     Q.AddCmd('declare @pedini int; set @pedini =%d          ',[afilter.pedini]);
     Q.AddCmd('declare @pedfin int; set @pedfin =%d          ',[afilter.pedfin]);
-//    Q.AddCmd('declare @ntfini int; set @ntfini =%d          ',[afilter.ntfini]);
-//    Q.AddCmd('declare @ntffin int; set @ntffin =%d          ',[afilter.ntffin]);
-
     Q.AddCmd('declare @datini smalldatetime; set @datini =? ');
     Q.AddCmd('declare @datfin smalldatetime; set @datfin =? ');
-
     Q.AddCmd('declare @codmod smallint; set @codmod =%d     ',[afilter.codmod]);
     Q.AddCmd('declare @numser smallint; set @numser =%d     ',[afilter.nserie]);
 
@@ -2983,28 +2980,35 @@ begin
     // busca por
     // periodo / situacao
     else begin
-        // nf0_dtemis
-        if afilter.status <> sttService then
+        //
+        // filtro normal
+        if afilter.filTyp = ftNormal then
         begin
-            Q.AddCmd('where nf0_dtemis between @datini and @datfin  ');
+            //
+            // nf0_codmod, nf0_nserie
+            if AFilter.nserie > 0 then
+            begin
+                if AFilter.codmod > 0 then
+                    Q.AddCmd('where nf0_codmod =@codmod                      ')
+                else
+                    Q.AddCmd('where nf0_codmod in(55,65)                     ');
+                Q.AddCmd('and nf0_nserie =@numser                            ');
+            end
+            //
+            // nf0_dtemis
+            else
+                Q.AddCmd('where nf0_dtemis between @datini and @datfin       ');
+            //
+            // situação
             case AFilter.status of
                 sttDoneSend:Q.AddCmd('and nf0_codstt in(0,1)                    ');
                 sttConting: Q.AddCmd('and nf0_codstt =9                         ');
                 sttProcess: Q.AddCmd('and nf0_codstt in(100,110,150,301,302,303)');
                 sttCancel:  Q.AddCmd('and nf0_codstt in(101,135,151,155,218)    ');
+                sttInut:    Q.AddCmd('and nf0_codstt in(102, 563)               ');
                 sttError:   Q.AddCmd('and nf0_codstt not in(0,1,9,100,101,102,110,135,150,151,155,301,302,303)');
             end;
 
-            //
-            // load por mod
-            if AFilter.codmod > 0 then
-            begin
-                Q.AddCmd('and nf0_codmod =@codmod                      ');
-                if AFilter.nserie > 0 then
-                begin
-                  Q.AddCmd('and nf0_nserie =@numser                    ');
-                end;
-            end;
             Q.AddCmd('order by nf0_codseq desc                      ');
         end
         // nf0_codstt
@@ -3017,27 +3021,34 @@ begin
             Q.AddCmd('--//notas nao inutilizadas                          ');
             Q.AddCmd('and nf0_codstt not in(102, 563)                     ');
             }
-            Q.AddCmd('where (nf0_codstt =0)   --//status inicial        ');
-            Q.AddCmd('or    (nf0_codstt =1)   --//pronto para envio     ');
-            Q.AddCmd('or    (nf0_codstt =44)  --//pendente de retorno   ');
-            Q.AddCmd('--//Rejeição 204: Duplicidade de NF-e             ');
-            Q.AddCmd('or    (nf0_codstt =204)                           ');
-            Q.AddCmd('--//Rejeição 217: NFe não consta na base de dados ');
-            Q.AddCmd('or    (nf0_codstt =217)                           ');
+            if afilter.codmod > 0 then
+            Q.AddCmd('where nf0_codmod =@codmod                        ')
+            else
+            Q.AddCmd('where nf0_codmod in(55,65)                       ');
+            Q.AddCmd('and   nf0_nserie =@numser                        ');
+            Q.AddCmd('and ( (nf0_codstt =0)   --//status inicial       ');
+            Q.AddCmd('or    (nf0_codstt =1)   --//pronto para envio    ');
+            if sttConting in afilter.sttSet then
+            Q.AddCmd('or    (nf0_codstt =9)   --//contingencia         ');
+            Q.AddCmd('or    (nf0_codstt =44)  --//pendente de retorno  ');
+            Q.AddCmd('--//Rejeição 204: Duplicidade de NF-e            ');
+            Q.AddCmd('or    (nf0_codstt =204)                          ');
+            Q.AddCmd('--//Rejeição 217: NFe não consta na base de dados');
+            Q.AddCmd('or    (nf0_codstt =217)                          ');
             Q.AddCmd('--//Rejeição 539: Duplicidade de NF-e, com diferença na Chave de Acesso');
-            Q.AddCmd('or    (nf0_codstt =539)                           ');
+            Q.AddCmd('or    (nf0_codstt =539)                          ');
             Q.AddCmd('--//Rejeição 613: Chave de Acesso difere da existente em BD (WS_CONSULTA)');
-            Q.AddCmd('or    (nf0_codstt =613)                           ');
+            Q.AddCmd('or    (nf0_codstt =613)                          ');
             Q.AddCmd('--//Rejeição 704: NFC-E com data-hora de emissão atrasada');
-            Q.AddCmd('or    (nf0_codstt =704)                           ');
-            Q.AddCmd('or    (nf0_codstt =999)  --//erro geral sefaz     ');
+            Q.AddCmd('or    (nf0_codstt =704)                          ');
+            Q.AddCmd('or    (nf0_codstt =999))  --//erro geral sefaz   ');
 
             //
             // load por ser
-            if AFilter.nserie > 0 then
-            begin
-                Q.AddCmd('and nf0_nserie =@numser                      ');
-            end;
+//            if AFilter.nserie > 0 then
+//            begin
+//                Q.AddCmd('and nf0_nserie =@numser                      ');
+//            end;
             //
             // coloca as notas q foram geradas na frente
             Q.AddCmd('order by nf0_codstt desc                         ');
@@ -3055,7 +3066,7 @@ begin
         Q.AddParamDatetime('@datfin', afilter.datfin, True);
     end
     else begin
-        if afilter.status = sttService then
+        if afilter.filTyp = ftService then
         begin
             dt_sys :=Trunc(TADOQuery.getDateTime );
             Q.AddParamDatetime('@datini', dt_sys);
@@ -3067,7 +3078,7 @@ begin
         end;
     end;
 
-    //Q.SaveToFile(Format('%s.Load.sql-txt',[Self.ClassName]));
+//    Q.SaveToFile(Format('%s.Load.sql-txt',[Self.ClassName]));
     Q.Open ;
     //
     Result :=Q;
@@ -3135,10 +3146,10 @@ begin
     m_oItems.Clear ;
     //
     //
-    if SizeOf(afilter)>0 then
-    begin
+//    if SizeOf(afilter)>0 then
+//    begin
         m_Filter :=afilter;
-    end;
+//    end;
 
     //
     m_vTotalNF :=0;

@@ -50,17 +50,14 @@ type
   TCSendLote = class(TCThreadProcess)
   private
     m_Grid: TVirtualStringTree ;
+    m_Filter: TNotFis00Filter ;
     m_Lote: TCNotFis00Lote ;
-    m_OnStatus: TGetStrProc;
-    m_Status: string ;
-    procedure DoStatus;
     procedure DoLoadGrid;
   protected
     procedure RunProc; override;
-    procedure VisualStatus(const aStr: string);
   public
-    constructor Create(aGrid: TVirtualStringTree; aLote: TCNotFis00Lote);
-    property OnStatus: TGetStrProc read m_OnStatus write m_OnStatus;
+    constructor Create(aGrid: TVirtualStringTree; aLote: TCNotFis00Lote;
+      const aFilter: TNotFis00Filter);
   end;
 
 
@@ -79,6 +76,7 @@ type
     vst_Grid1: TVirtualStringTree;
     txt_Log: TJvRichEdit;
     lbl_MaxLot: TGradientLabel;
+    txt_RichLOG: TRichEdit;
     procedure FormShow(Sender: TObject);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
@@ -90,9 +88,8 @@ type
     procedure vst_Grid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
   private
     { Private declarations }
+    m_Filter: TNotFis00Filter;
     m_oLote: TCNotFis00Lote ;
-    m_maxnfelot: Int32 ;
-    m_maxnfelotcfg: Int32 ;
     procedure m_LoadGrid() ;
     procedure m_UpdateStatus(const aStr: string);
   private
@@ -105,7 +102,8 @@ type
   public
     { Public declarations }
     procedure DoResetForm; override ;
-    class function fn_Show(aLote: TCNotFis00Lote): Boolean ;
+    //class function fn_Show(aLote: TCNotFis00Lote): Boolean ;
+    class function fn_Show(const aFilter: TNotFis00Filter): Boolean ;
   end;
 
 
@@ -325,10 +323,10 @@ begin
     end ;
     //
     // start manual
-    m_Send :=TCSendLote.Create(vst_Grid1, m_oLote) ;
+    m_Send :=TCSendLote.Create(vst_Grid1, m_oLote, m_Filter) ;
     m_Send.OnBeforeExecute :=OnINI;
     m_Send.OnTerminate :=OnEND;
-    m_Send.OnStatus :=OnUpdateStatus;
+    m_Send.OnStrProc :=OnUpdateStatus;
     m_Send.Start  ;
 end;
 
@@ -350,20 +348,22 @@ var
   P: TCParametro ;
 begin
     vst_Grid1.Clear ;
+    txt_Log.Clear ;
+    txt_RichLOG.Clear ;
 
     //
     // inicializa limite
     P :=TCParametro.NewParametro('send_maxnfelot', ftSmallint);
     if not P.Load() then
     begin
-        m_maxnfelotcfg :=25 ;
+        m_Filter.limlot :=25 ;
     end
     else begin
-        m_maxnfelotcfg :=P.ReadInt() ;
+        m_Filter.limlot :=P.ReadInt() ;
     end;
-    m_maxnfelot :=50 ;
-
-    m_oLote.Filter.setLimLot(m_maxnfelotcfg) ;
+    m_Filter.filTyp :=ftFech ;
+    m_Filter.codmod :=55 ;
+    m_Filter.sttSet :=[sttConting] ;
 end;
 
 procedure Tfrm_EnvLote.DoStop;
@@ -373,16 +373,14 @@ begin
     FreeAndNil(m_Send);
 end;
 
-class function Tfrm_EnvLote.fn_Show(aLote: TCNotFis00Lote): Boolean;
+class function Tfrm_EnvLote.fn_Show(const aFilter: TNotFis00Filter): Boolean ;
 var
   F: Tfrm_EnvLote ;
 begin
     F :=Tfrm_EnvLote.Create(Application) ;
     try
-        if Assigned(aLote) then
-            F.m_oLote :=aLote
-        else
-            F.m_oLote :=TCNotFis00Lote.Create ;
+        F.m_Filter :=aFilter ;
+        F.m_oLote :=TCNotFis00Lote.Create ;
         F.DoResetForm;
         Result :=F.ShowModal =mrOk ;
     finally
@@ -394,13 +392,12 @@ procedure Tfrm_EnvLote.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
     if Assigned(m_Send) then
     begin
-        if not m_Send.Terminated then
-        begin
+        if m_Send.Terminated then
+            DoStop
+        else begin
             CMsgDlg.Warning('A Tarefa esta em execução!');
             CanClose :=False ;
-        end
-        else
-            DoStop ;
+        end;
     end;
 end;
 
@@ -428,7 +425,6 @@ var
   N: TCNotFis00 ;
   P: PVirtualNode;
 begin
-
     for N in m_oLote.Items do
     begin
         //
@@ -483,6 +479,8 @@ var
   txt: string;
 begin
     //setStatus(aStr);
+    vst_Grid1.Refresh ;
+
 {
     if Pos('Erro', StrLog) > 0 then
     begin
@@ -496,11 +494,6 @@ begin
     mmo_Log.SelStart:=mmo_Log.GetTextLen; //mmo_Log.Perform(EM_LINEINDEX, mmo_Log.Lines.Count -1, 0);
     mmo_Log.Perform( EM_SCROLLCARET, 0, 0 ); //::garantir a exibição é correto
 }
-    if Pos('Erro', aStr) > 0 then
-        clr :=clRed
-    else
-        clr :=clWindowText;
-
     if Pos('ini', aStr) > 0 then
         txt :=FormatDateTime('HH:NN:SS|"Tarefa iniciada"', Now)
     else begin
@@ -509,16 +502,34 @@ begin
         else
             txt :=#9 +aStr ;
     end;
-    txt_Log.AddFormatText(txt, [], 'Trebuchet MS', clr);
-    txt_Log.AddFormatText(#13#10, []) ;
+
+    if Pos('Erro', txt) > 0 then
+        txt_Log.AddFormatText('', [], 'Trebuchet MS', clRed)
+    else
+        txt_Log.AddFormatText('', [], 'Trebuchet MS', clWindowText);
+    txt_Log.Lines.Add(txt);
     txt_Log.Perform(EM_SCROLLCARET, 0, 0); //::garantir a exibição é correto
+
+    {if txt_RichLOG.Lines.Count =0 then
+    begin
+        txt_RichLOG.SelAttributes.Name :='Trebuchet MS';
+        txt_RichLOG.SelAttributes.Size :=9;
+    end;
+    txt_RichLOG.SelAttributes.Color :=clr;}
+    txt_RichLOG.Lines.Add(txt) ;
+    txt_RichLOG.SelLength := 0;
+    txt_RichLOG.SelStart:=txt_RichLOG.GetTextLen;
+    txt_RichLOG.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure Tfrm_EnvLote.vst_Grid1Change(Sender: TBaseVirtualTree;
   Node: PVirtualNode);
 begin
-    lbl_MaxLot.Caption :=Format('NFE: %d/%d, parâmetro NFE/lote: %d, maximo NFE/lote: %d',[
-      Node.Index +1, m_oLote.Items.Count, m_maxnfelotcfg, m_maxnfelot]) ;
+    if Assigned(Node) then
+        lbl_MaxLot.Caption :=Format('NFE: %d/%d, parâmetro NFE/lote: %d, maximo NFE/lote: %d',[
+              Node.Index +1, m_oLote.Items.Count, m_Filter.limlot, TCNotFis00.QTD_MAX_NFE_IN_LOTE])
+    else
+        lbl_MaxLot.Caption :='Nenhum';
 end;
 
 procedure Tfrm_EnvLote.vst_Grid1GetText(Sender: TBaseVirtualTree;
@@ -527,6 +538,8 @@ procedure Tfrm_EnvLote.vst_Grid1GetText(Sender: TBaseVirtualTree;
 var
   N: TCNotFis00 ;
 begin
+  if Assigned(Node) then
+  begin
     CellText :='';
     N :=m_oLote.Items[Node.Index] ;
     case Column of
@@ -537,14 +550,17 @@ begin
         4: CellText :=Format('%.8d',[N.m_numdoc]) ;
         5: CellText :=Format('%d|%s',[N.m_codstt,N.m_motivo]);
     end;
+  end;
 end;
 
 { TCSendLote }
 
-constructor TCSendLote.Create(aGrid: TVirtualStringTree; aLote: TCNotFis00Lote);
+constructor TCSendLote.Create(aGrid: TVirtualStringTree; aLote: TCNotFis00Lote;
+  const aFilter: TNotFis00Filter);
 begin
     m_Grid :=aGrid ;
     m_Lote :=aLote;
+    m_Filter :=aFilter ;
     inherited Create(True, False);
 end;
 
@@ -573,14 +589,6 @@ begin
     //m_Grid.Refresh ;
 end;
 
-procedure TCSendLote.DoStatus;
-begin
-    if Assigned(m_OnStatus) then
-    begin
-        OnStatus(m_Status);
-    end;
-end;
-
 procedure TCSendLote.RunProc;
 var
   rep: Tdm_nfe ;
@@ -590,44 +598,88 @@ var
   S: string ;
   codlot,dupl,I: Integer;
 begin
-
-    if not Assigned(m_Lote) then
-    begin
-        Self.Terminate ;
-        Exit ;
-    end;
+//    if not Assigned(m_Lote) then
+//    begin
+//        Self.Terminate ;
+//        Exit ;
+//    end;
 
     rep :=Tdm_nfe.getInstance ;
     rep.setStatusChange(false); //desabilita status de processamento
+    rep.m_NFE.NotasFiscais.Clear; //reset
 
-    VisualStatus('Carregando notas fiscais...');
-    if m_Lote.Load(m_Lote.Filter) then
+    //
+    // RESET MOD
+    if m_Filter.codmod < 65 then
+        m_Filter.codmod :=55
+    else
+        m_Filter.codmod :=65;
+
+    CallOnStrProc('Carregando notas fiscais (Mod:%d)',[m_Filter.codmod]);
+    if m_Lote.Load(m_Filter) then
     begin
         Synchronize(DoLoadGrid);
     end
     else begin
-        VisualStatus('Nenhuma NF encontrada!');
-        Self.Terminate ;
-        Exit ;
+        CallOnStrProc('Nenhuma NF encontrada!');
+        if m_Filter.codmod = 65 then
+        begin
+            Self.Terminate ;
+        end;
+        m_Filter.codmod :=65;
+        Exit;
     end;
-    VisualStatus(Format('%d nota(s) fiscai(s) encontrada(s)!',[m_Lote.Items.Count]));
+    CallOnStrProc('%d nota(s) fiscai(s) encontrada(s)!',[m_Lote.Items.Count]);
+
+    //
+    // inicializa num do lote
+    codlot :=0;
 
     for N in m_Lote.Items do
     begin
+        //
+        // força proxima NF
+        //
+
+        //
+        // se processada ou cancelada
+        if N.CStatProcess or N.CstatCancel then
+        begin
+            Continue ;
+        end;
+
+        //
+        // process...
+        CallOnStrProc('Adicionando NFE: %d [Mod:%d Ser:%.3d], Status: %d',[
+            N.m_numdoc,N.m_codmod,N.m_nserie,N.m_codstt]);
+
+        //
+        // se consumo indevido atingiu o limite
+        if N.m_consumo >=TCNotFis00.QTD_MAX_CONSUMO then
+        begin
+            CallOnStrProc('NFE não pode ser adcionada! [QTD_MAX_CONSUMO >= %d]',[N.m_consumo]);
+            Continue ;
+        end;
+
         if N.m_codstt <>TCNotFis00.CSTT_EMIS_CONTINGE then
         begin
-            VisualStatus(Format('Atualizando NF:%d [Modelo:%d, Serie:%d]',[N.m_numdoc,N.m_codmod,N.m_nserie]));
+            CallOnStrProc('Atualizando...');
             if not N.UpdateNFe(now, Ord(rep.ProdDescrRdz), Ord(rep.ProdCodInt), S) then
             begin
-                VisualStatus(S);
+                CallOnStrProc(S);
                 N.Checked :=False;
                 Continue ;
             end ;
         end;
 
+        CallOnStrProc('Gerando...');
         if rep.AddNotaFiscal(N) = nil then
         begin
             N.Checked :=False ;
+            CallOnStrProc('NFE não gerada: %s',[rep.ErrMsg]);
+            //
+            // caso não for gerada!
+            // força para a proxima nota
             Continue ;
         end ;
 
@@ -638,23 +690,23 @@ begin
         if Terminated then Exit;
     end;
 
-    if rep.m_NFE.NotasFiscais.Count <= 0 then
+    if (codlot = 0)or(rep.m_NFE.NotasFiscais.Count =0) then
     begin
-        VisualStatus('Nenhuma NFE adicionada ao Lote!');
+        CallOnStrProc('Nenhuma NFE adicionada ao Lote!');
         Self.Terminate ;
         Exit;
     end;
 
     if rep.m_NFE.NotasFiscais.Count > 50 then
     begin
-        VisualStatus('Excedeu o limite máximo de 50 NFE´s!');
+        CallOnStrProc('Excedeu o limite máximo de 50 NFE´s!');
         Self.Terminate ;
         Exit;
     end;
 
     dupl :=0;
 
-    VisualStatus('Enviando lote...');
+    CallOnStrProc('Enviando lote:%d ...',[codlot]);
 
     //
     // envio
@@ -682,7 +734,7 @@ begin
 
                     //
                     // atualiza status
-                    VisualStatus(Format('Atualizando NFE:%s',[N.m_chvnfe]));
+                    CallOnStrProc('Atualizando NFE:%s',[N.m_chvnfe]);
                     N.m_codstt :=nfe.procNFe.cStat ;
                     N.m_motivo :=nfe.procNFe.xMotivo;
                     N.m_verapp :=nfe.procNFe.verAplic;
@@ -690,7 +742,7 @@ begin
                     N.m_numreci:=rep.Retorno.NFeRetorno.nRec ;
                     N.m_numprot:=nfe.procNFe.nProt ;
                     N.m_digval :=nfe.procNFe.digVal;
-                    VisualStatus(Format('%d|%s',[N.m_codstt,N.m_motivo]));
+                    CallOnStrProc('%d|%s',[N.m_codstt,N.m_motivo]);
                     N.setStatus ;
 
                     //
@@ -706,20 +758,20 @@ begin
                 if Terminated then Exit;
             end;
         end ;
-        VisualStatus(Format('%d|%s',[rep.Retorno.NFeRetorno.cStat,rep.Retorno.NFeRetorno.xMotivo]));
+        CallOnStrProc('%d|%s',[rep.Retorno.NFeRetorno.cStat,rep.Retorno.NFeRetorno.xMotivo]);
 
         //
         // check NF com duplicidade
         // para consulta de protocolo
         if dupl > 0 then
         begin
-            VisualStatus(Format('%d nota(s) com duplicidade!',[dupl]));
+            CallOnStrProc('%d nota(s) com duplicidade!',[dupl]);
 
             for N in m_Lote.Items do
             begin
                 if N.Checked then
                 begin
-                    VisualStatus(Format('Consultando protocolo (NFE:%s)',[N.m_chvnfe]));
+                    CallOnStrProc('Consultando protocolo (NFE:%s)',[N.m_chvnfe]);
                     //
                     // Rejeição 204: duplicidade de chave
                     if rep.OnlyCons(N) then
@@ -736,7 +788,7 @@ begin
                             if(N.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
                               ((N.m_tipemi =teContingencia)or(N.m_tipemi =teOffLine))then
                             begin
-                                VisualStatus(Format('Desfazendo contingência (NFE:%s)',[N.m_chvnfe]));
+                                CallOnStrProc('Desfazendo contingência (NFE:%s)',[N.m_chvnfe]);
                                 N.setContinge('', True);
                                 N.Load() ;
                                 if rep.AddNotaFiscal(N, True) <> nil then
@@ -744,7 +796,7 @@ begin
                                     N.setXML() ;
                                     //
                                     //
-                                    VisualStatus(Format('Consultando protocolo (NFE:%s)',[N.m_chvnfe]));
+                                    CallOnStrProc('Consultando protocolo (NFE:%s)',[N.m_chvnfe]);
                                     if rep.OnlyCons(N) then
                                     begin
                                         N.setStatus();
@@ -759,13 +811,8 @@ begin
         end;
     end
     else
-        VisualStatus(rep.ErrMsg) ;
+        CallOnStrProc(rep.ErrMsg) ;
 end;
 
-procedure TCSendLote.VisualStatus(const aStr: string);
-begin
-    m_Status :=aStr ;
-    Synchronize(DoStatus);
-end;
 
 end.
