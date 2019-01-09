@@ -18,6 +18,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+09.01.2019
+[+] Condição de checagem da data de vencimento do certificado
+
 04.12.2018
 [+] Novo parametro [conting_offline] para tratar a contingencia offline
 
@@ -173,9 +176,8 @@ var
   L: TCNotFis00Lote;
   NF: TCNotFis00;
 var
-  chk_status: Boolean ;
   err_db: string;
-  dt_serv: TDateTime;
+  days_use: Word;
 begin
     //
     // m_Log.AddSec('%s.RunProc',[Self.ClassName]);
@@ -189,9 +191,6 @@ begin
             Empresa.DoLoad(1);
             m_Log.AddSec('Emitente: %s-%s',[Empresa.CNPJ,Empresa.RzSoci]);
         end;
-        //
-        // ler data/hora do servidor
-        dt_serv :=TADOQuery.getDateTime ;
     except
         on E:Exception do
         begin
@@ -202,6 +201,16 @@ begin
 
     m_Rep :=Tdm_nfe.getInstance ;
     m_Rep.setStatusChange(false); //desabilita status de processamento
+
+    //
+    // check validade do certificado
+    m_Rep.m_NFE.SSL.CarregarCertificadoSeNecessario ;
+    if DaysBetween(Empresa.DateServ, m_Rep.m_NFE.SSL.CertDataVenc) <= 0 then
+    begin
+        m_Log.AddSec('Certificado vinculado ao CNPJ:%s já vencido.',[Empresa.CNPJ]);
+        Self.Terminate ;
+        Exit;
+    end;
 
     //
     // preenche filtro

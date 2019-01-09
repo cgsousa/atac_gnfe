@@ -165,8 +165,10 @@ type
 
     function InutNum(const cnpj, just: String;
       ano, codmod, nserie, numini, numfin: Integer): Boolean;
+
   public
     { somente chamadas dos serviços, sem checa status }
+    function OnlyStatusSvc(): Boolean;
     function OnlySend(NF: TCNotFis00): Boolean; overload ;
     function OnlySend(const aNumLot: Integer): Boolean; overload ;
     function OnlyCons(NF: TCNotFis00): Boolean;
@@ -183,7 +185,7 @@ implementation
 
 {$R *.dfm}
 
-uses StrUtils, TypInfo, WinInet, DB,
+uses StrUtils, DateUtils, TypInfo, WinInet, DB,
   uadodb, uparam ,
   ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp ,
   pcnConversaoNFe, pcnEnvEventoNFe ,
@@ -1055,6 +1057,7 @@ begin
 
 end;
 
+
 procedure Tdm_nfe.LoadConfig;
 begin
 
@@ -1428,6 +1431,9 @@ begin
     //
     // gera, assina e valida XML
     //
+    m_NFE.Configuracoes.Certificados.VerificarValidade :=True ;
+    try
+
     N :=AddNotaFiscal(NF, True) ;
     if N <> nil then
     begin
@@ -1492,6 +1498,9 @@ begin
             NF.m_digval :=N.NFe.procNFe.digVal;
         end;
     end ;
+    finally
+      m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
+    end;
 end;
 
 function Tdm_nfe.OnlySend(const aNumLot: Integer): Boolean;
@@ -1503,6 +1512,8 @@ var
   chv: string;
 begin
     Self.m_ErrCod :=0;
+    m_NFE.Configuracoes.Certificados.VerificarValidade :=True ;
+    try
     Result :=m_NFE.Enviar(aNumLot, False, False, True);
     Result :=Result and(Self.m_ErrCod =0);
     if Result then
@@ -1511,6 +1522,19 @@ begin
     end
     else begin
         m_ErrMsg :='Erro ao enviar o lote!' ;
+    end;
+    finally
+      m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
+    end;
+end;
+
+function Tdm_nfe.OnlyStatusSvc(): Boolean;
+begin
+    m_NFE.Configuracoes.Certificados.VerificarValidade :=True;
+    try
+        Result :=StatusServico.Executar ;
+    finally
+        m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
     end;
 end;
 

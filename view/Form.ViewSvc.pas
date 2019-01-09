@@ -6,6 +6,28 @@
 * Data: 26.03.2018
 *}
 unit Form.ViewSvc;
+{*
+******************************************************************************
+|* PROPÓSITO: Registro de Alterações
+******************************************************************************
+
+Símbolo : Significado
+
+[+]     : Novo recurso
+[*]     : Recurso modificado/melhorado
+[-]     : Correção de Bug (assim esperamos)
+
+09.01.2019
+[+] Novo timer <tm_Alert> que ativa o alerta conforme data de vencimento do
+    certificado
+
+04.12.2018
+[+] Novo butão <chk_Conting> para ativar/desativar o parametro [conting_offline]
+
+26.03.2018
+[+] Versão inicial
+
+*}
 
 interface
 
@@ -15,43 +37,46 @@ uses
   AdvGlowButton,
   JvComponentBase, JvTrayIcon, ExtCtrls, JvAppInst,
   FormBase ,
-  Thread.NFE, FDM.NFE, AdvOfficeButtons  ;
+  Thread.NFE, FDM.NFE, AdvOfficeButtons;
 
 type
-  //TUpdateStatus = (usStarting,)
   Tfrm_ViewSvc = class(TBaseForm)
     btn_Start: TAdvGlowButton;
     btn_Stop: TAdvGlowButton;
     btn_Close: TAdvGlowButton;
     TrayIcon1: TJvTrayIcon;
-    Timer1: TTimer;
+    tm_MLog: TTimer;
     AppInstances1: TJvAppInstances;
     pnl_Status: TPanel;
     chk_Conting: TAdvOfficeCheckBox;
+    tm_Alert: TTimer;
+    Image1: TImage;
     procedure FormCreate(Sender: TObject);
     procedure btn_StartClick(Sender: TObject);
     procedure btn_StopClick(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    procedure Timer1Timer(Sender: TObject);
+    procedure tm_MLogTimer(Sender: TObject);
     procedure chk_ContingClick(Sender: TObject);
+    procedure tm_AlertTimer(Sender: TObject);
   private
     { Private declarations }
     m_MySvc: TMySvcThread;
     m_reg: TRegNFE ;
-    procedure m_Start();
-    procedure m_Stop();
+    m_rep: Tdm_nfe ;
+    m_CertifDaysUse: Word ;
+    procedure doStart();
+    procedure doStop();
 
     //SvcStop: Boolean ;
     procedure UpdateStatus(const AStr: string);
     procedure OnINI(Sender: TObject);
     procedure OnEND(Sender: TObject);
-    procedure OnLOG(Sender: TObject; const StrLog: string);
 
     procedure setConting(const aValue: Boolean) ;
   protected
     procedure Loaded; override;
-
+    procedure doShowAlert(const aDays: Word; const aMsg: string);
   public
     { Public declarations }
   end;
@@ -62,7 +87,8 @@ implementation
 {$R *.dfm}
 
 uses DateUtils,
-  uTaskDlg, ulog, uadodb;
+  uTaskDlg, ulog, uadodb,
+  JvBaseDlg, JvDesktopAlert ;
 
 
 { Tfrm_Princ01 }
@@ -76,52 +102,34 @@ end;
 procedure Tfrm_ViewSvc.btn_StartClick(Sender: TObject);
 begin
     //
-    if not Assigned(m_MySvc) then
+    if Assigned(m_MySvc) then
     begin
-        {m_MySvc :=TMySvcThread.Create ;
-        m_MySvc.Resume  ;
-        btn_Start.Enabled :=False;
-        btn_Stop.Enabled  :=True ;
-        UpdateStatus('Serviço em Operação', '008000');}
-
-        //
-        // start manual
-        m_Start() ;
-
-        //
-        // ativa temporizador, p/ chk recursos aberto
-        Timer1.Enabled :=true ;
-    end
-    else
-        CMsgDlg.Warning('A Thread já esta criada!') ;
+        doStop ;
+    end ;
+    //
+    // start manual
+    doStart ;
+    //
+    // ativa temporizador, p/ chk recursos aberto
+    tm_MLog.Enabled :=true ;
 end;
 
 procedure Tfrm_ViewSvc.btn_StopClick(Sender: TObject);
 begin
     if Assigned(m_MySvc) then
     begin
-        {UpdateStatus('Parando Serviço, Aguarde...', 'FF0000');
-        try
-            m_MySvc.Terminate;
-            m_MySvc.WaitFor;
-            FreeAndNil(m_MySvc);
-        finally
-            btn_Start.Enabled :=True ;
-            btn_Stop.Enabled  :=False;
-            UpdateStatus('Serviço Parado!', 'FF0000');
-        end;}
-
-        //
-        // stop manual
-        m_Stop() ;
-
+        if not m_MySvc.Terminated then
+        begin
+            //
+            // stop manual
+            UpdateStatus('Parando Serviço, Aguarde...');
+            DoStop ;
+        end;
         //
         // conf. tempo para 4s
-        Timer1.Enabled :=False;
-        Timer1.Interval:=4000 ; //(6 *SecsPerHour) *MSecsPerSec ;
-    end
-    else
-        CMsgDlg.Warning('A Thread não criada!') ;
+        tm_MLog.Enabled :=False;
+        tm_MLog.Interval:=4000 ; //(6 *SecsPerHour) *MSecsPerSec ;
+    end ;
 end;
 
 procedure Tfrm_ViewSvc.chk_ContingClick(Sender: TObject);
@@ -151,6 +159,84 @@ begin
         end;
     end;
     setConting(m_reg.conting_offline.Value);
+end;
+
+procedure Tfrm_ViewSvc.doShowAlert(const aDays: Word; const aMsg: string);
+var
+  DA: TJvDesktopAlert ;
+begin
+    //
+    //
+    DA :=TJvDesktopAlert.Create(Self);
+    DA.AutoFree :=True;
+    DA.Font.Size:=12;
+    DA.Colors.CaptionFrom :=clActiveCaption;
+    DA.Colors.CaptionTo :=clInactiveCaption;
+    DA.Colors.WindowFrom :=clInfoBk ;
+    if aDays > 3 then
+    begin
+        DA.Colors.WindowTo :=clYellow ;
+    end
+    else begin
+        DA.Colors.WindowTo :=clRed ;
+    end;
+//    DA.Images :=ImageList1;
+    DA.Image :=Image1.Picture;
+//    DA.OnMessageClick := DoMessageClick;
+//    DA.OnShow := DoAlertShow;
+//    DA.OnClose := DoAlertClose;
+    DA.Options := []; //FOptions;
+    DA.Location.AlwaysResetPosition := false;
+    DA.Location.Position :=dapBottomRight; // TJvDesktopAlertPosition(cbLocation.ItemIndex);
+    DA.Location.Width :=380 ;
+    DA.Location.Height:=240;
+    if DA.Location.Position = dapCustom then
+    begin
+      DA.Location.Left := Random(Screen.Width - 200);
+      DA.Location.Top :=  Random(Screen.Height - 100);
+    end;
+    DA.AlertStyle :=asFade; // TJvAlertStyle(cmbStyle.ItemIndex);
+    DA.StyleHandler.StartInterval :=25;
+    DA.StyleHandler.StartSteps :=10;
+    DA.StyleHandler.DisplayDuration  :=1400;
+    DA.StyleHandler.EndInterval :=50;
+    DA.StyleHandler.EndSteps :=10;
+    {if chkClickable.Checked then
+      Include(FOptions,daoCanClick);
+    if chkMovable.Checked then
+      Include(FOptions, daoCanMove);
+    if chkClose.Checked then
+      Include(FOptions, daoCanClose);
+    DA.Options := FOptions;
+    if chkShowDropDown.Checked then
+      DA.DropDownMenu := PopupMenu1;
+    for j := 0 to udButtons.Position-1 do
+    begin
+      with DA.Buttons.Add do
+      begin
+        ImageIndex := Random(ImageList1.Count);
+        Tag := j;
+        OnClick := DoButtonClick;
+      end;
+    end;}
+    DA.HeaderText :='** Serviço de alerta da Atac Sistemas, informa **';
+    DA.MessageText :=aMsg;
+    DA.Execute;
+end;
+
+procedure Tfrm_ViewSvc.doStart;
+begin
+    m_MySvc :=TMySvcThread.Create ;
+    m_MySvc.OnBeforeExecute :=OnINI;
+    m_MySvc.OnTerminate :=OnEND;
+    m_MySvc.Start  ;
+end;
+
+procedure Tfrm_ViewSvc.doStop;
+begin
+    m_MySvc.Terminate;
+    m_MySvc.WaitFor;
+    FreeAndNil(m_MySvc);
 end;
 
 procedure Tfrm_ViewSvc.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -184,12 +270,25 @@ begin
                                 ) ;
     try
         ConnectionADO.Connected :=True ;
+        //
+        // carga filial
         Empresa :=TCEmpresa.Instance ;
         Empresa.DoLoad(1);
+
+        //
+        // carga params da NFE
         m_reg.Load ;
         setConting(m_reg.conting_offline.Value);
+
+        //
+        // carga conteiner do ACBr
+        m_rep :=Tdm_nfe.getInstance;
+        m_rep.m_NFE.SSL.CarregarCertificado;
+        m_CertifDaysUse :=DaysBetween(Empresa.DateServ, m_rep.m_NFE.SSL.CertDataVenc) ;
+
         btn_Start.Enabled :=True ;
         chk_Conting.Enabled :=True;
+        tm_Alert.Enabled :=true ;
     except
         on E:Exception do
         begin
@@ -205,23 +304,7 @@ begin
     inherited;
     AppInstances1.Active :=True;
     TrayIcon1.Active :=True;
-    Timer1.Enabled :=True;
-end;
-
-procedure Tfrm_ViewSvc.m_Start;
-begin
-    m_MySvc :=TMySvcThread.Create ;
-    m_MySvc.OnBeforeExecute :=OnINI;
-    m_MySvc.OnTerminate :=OnEND;
-    //m_MySvc.Resume  ;
-    m_MySvc.Start  ;
-end;
-
-procedure Tfrm_ViewSvc.m_Stop;
-begin
-    m_MySvc.Terminate;
-    m_MySvc.WaitFor;
-    FreeAndNil(m_MySvc);
+    tm_MLog.Enabled :=True;
 end;
 
 procedure Tfrm_ViewSvc.OnEND(Sender: TObject);
@@ -242,11 +325,6 @@ begin
     chk_Conting.Enabled :=False;
 end;
 
-procedure Tfrm_ViewSvc.OnLOG(Sender: TObject; const StrLog: string);
-begin
-
-end;
-
 procedure Tfrm_ViewSvc.setConting(const aValue: Boolean);
 begin
     if aValue then
@@ -262,7 +340,7 @@ begin
     end;
 end;
 
-procedure Tfrm_ViewSvc.Timer1Timer(Sender: TObject);
+procedure Tfrm_ViewSvc.tm_MLogTimer(Sender: TObject);
 var
   H, M, S, MS: Word ;
 begin
@@ -276,7 +354,7 @@ begin
         begin
             //
             // stop auto, para fechar recursos
-            m_Stop() ;
+            doStop() ;
         end;
     end
     //
@@ -284,8 +362,42 @@ begin
     else begin
         //
         // start auto, apos 24h (00:00 da manhã)
-        m_Start();
+        doStart();
     end;
+end;
+
+procedure Tfrm_ViewSvc.tm_AlertTimer(Sender: TObject);
+var
+  msg: string;
+begin
+    if m_CertifDaysUse <=7 then
+    begin
+        //
+        // format msg padrão
+        msg :=Format('Faltam %d (dias) para vercer o Certificado vinculado ao CNPJ:%s!',[m_CertifDaysUse,Empresa.CNPJ]);
+
+        //
+        // certificado já venceu
+        if m_CertifDaysUse <= 0 then
+        begin
+            msg :=Format('O Certificado vinculado ao CNPJ:%s, já venceu! Providênciar outro do tipo A1 (preferencial).',[Empresa.CNPJ]);
+            doStop ;
+        end
+
+        //
+        // certificado vence hj
+        else if m_CertifDaysUse = 1 then
+            msg :=Format('Hoje vence o Certificado vinculado ao CNPJ:%s! E não será mais possível emissão de novas NFE.',[Empresa.CNPJ]);
+
+        doShowAlert(m_CertifDaysUse, msg) ;
+        //
+        // reconfigura o time de alert
+        tm_Alert.Enabled :=False ;
+        tm_Alert.Interval:=MSecsPerDay div HoursPerDay;
+        tm_Alert.Enabled :=True ;
+    end
+    else
+        tm_Alert.Enabled :=False ;
 end;
 
 procedure Tfrm_ViewSvc.UpdateStatus(const AStr: string);

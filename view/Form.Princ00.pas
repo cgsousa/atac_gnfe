@@ -81,6 +81,13 @@ type
   end;
 
 
+{type
+  TCCertifAlert =class(TCThreadProcess)
+  private
+  protected
+    procedure RunProc; override;
+  public
+  end;}
 
 type
   Tfrm_Princ00 = class(TBaseForm)
@@ -358,7 +365,7 @@ begin
     begin
         DoUpdateStatus('Aguarde...');
         nfe :=Tdm_nfe.getInstance ;
-        if nfe.StatusServico.Executar then
+        if nfe.OnlyStatusSvc() then
         begin
             CMsgDlg.Info(nfe.StatusServico.Msg) ;
         end
@@ -853,7 +860,8 @@ begin
     Empresa :=TCEmpresa.Instance ;
     Empresa.DoLoad(1);
 
-    rep_nfe :=Tdm_nfe.getInstance ;
+    rep_nfe :=Tdm_nfe.getInstance;
+
 
 end;
 
