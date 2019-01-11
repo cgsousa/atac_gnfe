@@ -64,7 +64,7 @@ type
     m_MySvc: TMySvcThread;
     m_reg: TRegNFE ;
     m_rep: Tdm_nfe ;
-    m_CertifDaysUse: Word ;
+    m_CertifDaysUse: SmallInt;
     procedure doStart();
     procedure doStop();
 
@@ -76,7 +76,7 @@ type
     procedure setConting(const aValue: Boolean) ;
   protected
     procedure Loaded; override;
-    procedure doShowAlert(const aDays: Word; const aMsg: string);
+    procedure doShowAlert(const aDays: SmallInt);
   public
     { Public declarations }
   end;
@@ -161,10 +161,24 @@ begin
     setConting(m_reg.conting_offline.Value);
 end;
 
-procedure Tfrm_ViewSvc.doShowAlert(const aDays: Word; const aMsg: string);
+procedure Tfrm_ViewSvc.doShowAlert(const aDays: SmallInt);
 var
+  msg: string;
   DA: TJvDesktopAlert ;
 begin
+    //
+    // format msg padrão
+    msg :=Format('Faltam %d (dias) para vercer o Certificado vinculado ao CNPJ:%s!',[m_CertifDaysUse,Empresa.CNPJ]);
+
+    //
+    // certificado já venceu
+    if m_CertifDaysUse <= 0 then
+        msg :=Format('O Certificado vinculado ao CNPJ:%s, já venceu! Providênciar outro do tipo A1 (preferencial).',[Empresa.CNPJ])
+    //
+    // certificado vence hj
+    else if m_CertifDaysUse = 1 then
+        msg :=Format('Hoje vence o Certificado vinculado ao CNPJ:%s! E não será mais possível emissão de novas NFE.',[Empresa.CNPJ]);
+
     //
     //
     DA :=TJvDesktopAlert.Create(Self);
@@ -220,7 +234,7 @@ begin
       end;
     end;}
     DA.HeaderText :='** Serviço de alerta da Atac Sistemas, informa **';
-    DA.MessageText :=aMsg;
+    DA.MessageText :=msg;
     DA.Execute;
 end;
 
@@ -283,8 +297,7 @@ begin
         //
         // carga conteiner do ACBr
         m_rep :=Tdm_nfe.getInstance;
-        m_rep.m_NFE.SSL.CarregarCertificado;
-        m_CertifDaysUse :=DaysBetween(Empresa.DateServ, m_rep.m_NFE.SSL.CertDataVenc) ;
+        m_CertifDaysUse :=m_rep.getDaysUseCertif;
 
         btn_Start.Enabled :=True ;
         chk_Conting.Enabled :=True;
@@ -323,6 +336,8 @@ begin
     pnl_Status.Caption :='Serviço em Operação';
     pnl_Status.Font.Color :=clGreen ;
     chk_Conting.Enabled :=False;
+    if m_CertifDaysUse <= 0 then
+      doShowAlert(m_CertifDaysUse);
 end;
 
 procedure Tfrm_ViewSvc.setConting(const aValue: Boolean);
@@ -367,29 +382,18 @@ begin
 end;
 
 procedure Tfrm_ViewSvc.tm_AlertTimer(Sender: TObject);
-var
-  msg: string;
 begin
     if m_CertifDaysUse <=7 then
     begin
         //
-        // format msg padrão
-        msg :=Format('Faltam %d (dias) para vercer o Certificado vinculado ao CNPJ:%s!',[m_CertifDaysUse,Empresa.CNPJ]);
-
-        //
         // certificado já venceu
         if m_CertifDaysUse <= 0 then
-        begin
-            msg :=Format('O Certificado vinculado ao CNPJ:%s, já venceu! Providênciar outro do tipo A1 (preferencial).',[Empresa.CNPJ]);
-            doStop ;
-        end
+            doStop;
 
         //
-        // certificado vence hj
-        else if m_CertifDaysUse = 1 then
-            msg :=Format('Hoje vence o Certificado vinculado ao CNPJ:%s! E não será mais possível emissão de novas NFE.',[Empresa.CNPJ]);
+        // mostra alert
+        doShowAlert(m_CertifDaysUse) ;
 
-        doShowAlert(m_CertifDaysUse, msg) ;
         //
         // reconfigura o time de alert
         tm_Alert.Enabled :=False ;

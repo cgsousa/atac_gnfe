@@ -205,7 +205,7 @@ begin
     //
     // check validade do certificado
     m_Rep.m_NFE.SSL.CarregarCertificadoSeNecessario ;
-    if DaysBetween(Empresa.DateServ, m_Rep.m_NFE.SSL.CertDataVenc) <= 0 then
+    if m_Rep.getDaysUseCertif <= 0 then
     begin
         m_Log.AddSec('Certificado vinculado ao CNPJ:%s já vencido.',[Empresa.CNPJ]);
         Self.Terminate ;

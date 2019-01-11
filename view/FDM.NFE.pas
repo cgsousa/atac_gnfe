@@ -166,6 +166,8 @@ type
     function InutNum(const cnpj, just: String;
       ano, codmod, nserie, numini, numfin: Integer): Boolean;
 
+    function getDaysUseCertif: Smallint ;
+
   public
     { somente chamadas dos serviços, sem checa status }
     function OnlyStatusSvc(): Boolean;
@@ -994,6 +996,15 @@ begin
     begin
         FreeAndNil(_Instance);
     end;
+end;
+
+function Tdm_nfe.getDaysUseCertif: Smallint;
+begin
+    m_NFE.SSL.CarregarCertificadoSeNecessario;
+    if Empresa.DateServ > m_NFE.SSL.CertDataVenc then
+        Result :=-DaysBetween(Empresa.DateServ, m_NFE.SSL.CertDataVenc)
+    else
+        Result :=DaysBetween(Empresa.DateServ, m_NFE.SSL.CertDataVenc);
 end;
 
 class function Tdm_nfe.getInstance: Tdm_nfe;
