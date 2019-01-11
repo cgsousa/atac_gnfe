@@ -54,7 +54,8 @@ uses
   VirtualTrees, uVSTree,
   //
   FormBase,
-  uclass, ulog, uTaskDlg, unotfis00, ActnList, AdvMenus, Menus;
+  uclass, ulog, uTaskDlg, unotfis00, ActnList, AdvMenus, Menus,
+  AdvOfficeStatusBar;
 
 
 
@@ -131,6 +132,7 @@ type
     AdvMenuStyler1: TAdvMenuStyler;
     mnu_CancNFE: TMenuItem;
     mnu_CCE: TMenuItem;
+    AdvOfficeStatusBar1: TAdvOfficeStatusBar;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);

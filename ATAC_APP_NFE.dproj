@@ -88,6 +88,10 @@
 			<DCCReference Include="view\Form.CCE.pas">
 				<Form>frm_CCE</Form>
 			</DCCReference>
+			<DCCReference Include="conteiners\fdm.Styles.pas">
+				<Form>dm_Styles</Form>
+				<DesignClass>TDataModule</DesignClass>
+			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

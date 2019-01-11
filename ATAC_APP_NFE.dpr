@@ -16,7 +16,8 @@ uses
   Form.Items in 'view\Form.Items.pas' {frm_Items},
   ucce in 'model\ucce.pas',
   Form.CCEList in 'view\Form.CCEList.pas' {frm_CCEList},
-  Form.CCE in 'view\Form.CCE.pas' {frm_CCE};
+  Form.CCE in 'view\Form.CCE.pas' {frm_CCE},
+  fdm.Styles in 'conteiners\fdm.Styles.pas' {dm_Styles: TDataModule};
 
 {$R *.res}
 {$R ATAC_APP_NFE.UAC.res}
@@ -26,5 +27,6 @@ begin
   Application.MainFormOnTaskbar := True;
   Application.Title := 'Atac Gerenciador da NFE';
   Application.CreateForm(Tfrm_Princ00, frm_Princ00);
+  Application.CreateForm(Tdm_Styles, dm_Styles);
   Application.Run ;
 end.

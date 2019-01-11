@@ -259,7 +259,7 @@ object frm_Princ00: Tfrm_Princ00
   end
   object pnl_Footer: TJvFooter
     Left = 0
-    Top = 532
+    Top = 513
     Width = 1018
     Height = 40
     Align = alBottom
@@ -271,6 +271,7 @@ object frm_Princ00: Tfrm_Princ00
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
+    ExplicitTop = 532
     DesignSize = (
       1018
       40)
@@ -797,6 +798,195 @@ object frm_Princ00: Tfrm_Princ00
         Version = '3.3.2.0'
       end
     end
+  end
+  object AdvOfficeStatusBar1: TAdvOfficeStatusBar
+    Left = 0
+    Top = 553
+    Width = 1018
+    Height = 19
+    AnchorHint = False
+    Panels = <
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 'Ctrl+F1=Configura'#231#245'es'
+        TimeFormat = 'hh:mm:ss'
+        Width = 135
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 'F2=Filtro/Busca'
+        TimeFormat = 'hh:mm:ss'
+        Width = 115
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 'F3=Novo'
+        TimeFormat = 'hh:mm:ss'
+        Width = 75
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 'F4=Alterar'
+        TimeFormat = 'hh:mm:ss'
+        Width = 75
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 'F6=Gravar'
+        TimeFormat = 'hh:mm:ss'
+        Width = 75
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 'F7=Deletar'
+        TimeFormat = 'hh:mm:ss'
+        Width = 75
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 10
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Style = psProgress
+        Text = 'Status'
+        TimeFormat = 'hh:mm:ss'
+        Width = 0
+      end>
+    ShowSplitter = True
+    SimplePanel = False
+    Styler = dm_Styles.AdvOfficeStatusBarOfficeStyler1
+    Version = '1.5.2.2'
+    ExplicitTop = 554
   end
   object AppInstances1: TJvAppInstances
     Active = False
