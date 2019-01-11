@@ -20,11 +20,11 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_DcuOutput>.\bin\dcu</DCC_DcuOutput>
-			<DCC_ExeOutput>.\bin</DCC_ExeOutput>
+			<DCC_DcuOutput>..\bin\dcu\</DCC_DcuOutput>
+			<DCC_ExeOutput>..\bin\</DCC_ExeOutput>
 			<DCC_UnitSearchPath>D:\develop\lib\delphi\sistem.lib\units;D:\develop\lib\delphi\sistem.lib\view;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
-			<DCC_DependencyCheckOutputName>bin\ATAC_APP_NFE.exe</DCC_DependencyCheckOutputName>
+			<DCC_DependencyCheckOutputName>..\bin\ATAC_APP_NFE.exe</DCC_DependencyCheckOutputName>
 			<DCC_K>false</DCC_K>
 			<DCC_F>false</DCC_F>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
@@ -120,7 +120,7 @@
 						<VersionInfo Name="MajorVer">2</VersionInfo>
 						<VersionInfo Name="MinorVer">5</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">492</VersionInfo>
+						<VersionInfo Name="Build">493</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -132,7 +132,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Atac Sistemas Ltda</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">App de gerenciamento da NF-e</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">2.5.1.492</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">2.5.1.493</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">ATAC_APP_NFE</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">(C)</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">Todos os direitos reservados</VersionInfoKeys>
