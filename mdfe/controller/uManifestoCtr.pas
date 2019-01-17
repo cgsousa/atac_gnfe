@@ -18,13 +18,11 @@ type
   IManifestoCtr = Interface(IController)
     ['{F67F82CA-8A93-43DD-B0DB-2CF63B556131}']
     function getModel: IManifestoDF;
-    function getView: IView;
     procedure setModel(Value: IManifestoDF);
+    function getView: IView;
     procedure setView(Value: IView);
     property Model: IManifestoDF read getModel write setModel;
     property View: IView read getView write setView;
-    function getModelList: IDataList<IManifestoDF>;
-    property ModelList: IDataList<IManifestoDF> read getModelList ;
 
     procedure ExecView;
 
@@ -34,21 +32,20 @@ type
     function Merge(): TModelUpdateKind;
   end;
 
-  TCManifestoCtr = class(TInterfacedObject, IManifestoCtr)
+  TCManifestoCtr = class(TInterfacedObject, IManifestoCtr, IManifestoDFList)
   private
-    m_ModelList: IDataList<IManifestoDF>;
+    m_ModelList: TCManifestoDFList ;
     m_Model: IManifestoDF;
     m_View: IView;
     function getModel: IManifestoDF;
     procedure setModel(Value: IManifestoDF);
     function getView: IView;
     procedure setView(Value: IView);
-    function getModelList: IDataList<IManifestoDF>;
   protected
   public
     property Model: IManifestoDF read getModel write setModel;
     property View: IView read getView write setView;
-    property ModelList: IDataList<IManifestoDF> read getModelList ;
+    property ModelList: TCManifestoDFList read m_ModelList implements IManifestoDFList;
 
     constructor Create() ;
     procedure Inicialize;
@@ -189,6 +186,7 @@ end;
 
 constructor TCManifestoCtr.Create;
 begin
+    m_ModelList :=TCManifestoDFList.Create(Self) ;
     {//
     // Instancia o model
     m_Model :=TCManifestoDF.Create;
@@ -216,12 +214,6 @@ function TCManifestoCtr.getModel: IManifestoDF;
 begin
     Result :=m_Model
     ;
-end;
-
-function TCManifestoCtr.getModelList: IDataList<IManifestoDF>;
-begin
-    Result :=m_ModelList ;
-
 end;
 
 function TCManifestoCtr.getView: IView;

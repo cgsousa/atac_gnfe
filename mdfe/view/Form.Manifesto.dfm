@@ -126,87 +126,11 @@ object frm_Manifesto: Tfrm_Manifesto
     Styler = dm_Styles.AdvOfficeStatusBarOfficeStyler1
     Version = '1.5.2.2'
   end
-  object AdvDockPanel1: TAdvDockPanel
+  object pag_Control00: TAdvPageControl
     Left = 0
     Top = 0
     Width = 794
-    Height = 44
-    MinimumSize = 3
-    LockHeight = False
-    Persistence.Location = plRegistry
-    Persistence.Enabled = False
-    ToolBarStyler = dm_Styles.AdvToolBarOfficeStyler1
-    UseRunTimeHeight = False
-    Version = '6.0.2.1'
-    object AdvToolBar1: TAdvToolBar
-      Left = 3
-      Top = 1
-      Width = 98
-      Height = 29
-      AllowFloating = False
-      Caption = 'Untitled'
-      CaptionFont.Charset = DEFAULT_CHARSET
-      CaptionFont.Color = clWindowText
-      CaptionFont.Height = -11
-      CaptionFont.Name = 'Tahoma'
-      CaptionFont.Style = []
-      CompactImageIndex = -1
-      TextAutoOptionMenu = 'Add or Remove Buttons'
-      TextOptionMenu = 'Options'
-      ToolBarStyler = dm_Styles.AdvToolBarOfficeStyler1
-      ParentOptionPicture = True
-      ToolBarIndex = -1
-      object btn_Filter: TAdvGlowButton
-        Left = 9
-        Top = 2
-        Width = 75
-        Height = 25
-        Caption = 'Filtro'
-        FocusType = ftHot
-        NotesFont.Charset = DEFAULT_CHARSET
-        NotesFont.Color = clWindowText
-        NotesFont.Height = -11
-        NotesFont.Name = 'Tahoma'
-        NotesFont.Style = []
-        TabOrder = 0
-        OnClick = btn_FilterClick
-        Appearance.BorderColor = 14727579
-        Appearance.BorderColorHot = 10079963
-        Appearance.BorderColorDown = 4548219
-        Appearance.BorderColorChecked = clBlack
-        Appearance.Color = 15653832
-        Appearance.ColorTo = 16178633
-        Appearance.ColorChecked = 11918331
-        Appearance.ColorCheckedTo = 7915518
-        Appearance.ColorDisabled = 15921906
-        Appearance.ColorDisabledTo = 15921906
-        Appearance.ColorDown = 7778289
-        Appearance.ColorDownTo = 4296947
-        Appearance.ColorHot = 15465983
-        Appearance.ColorHotTo = 11332863
-        Appearance.ColorMirror = 15586496
-        Appearance.ColorMirrorTo = 16245200
-        Appearance.ColorMirrorHot = 5888767
-        Appearance.ColorMirrorHotTo = 10807807
-        Appearance.ColorMirrorDown = 946929
-        Appearance.ColorMirrorDownTo = 5021693
-        Appearance.ColorMirrorChecked = 10480637
-        Appearance.ColorMirrorCheckedTo = 5682430
-        Appearance.ColorMirrorDisabled = 11974326
-        Appearance.ColorMirrorDisabledTo = 15921906
-        Appearance.GradientHot = ggVertical
-        Appearance.GradientMirrorHot = ggVertical
-        Appearance.GradientDown = ggVertical
-        Appearance.GradientMirrorDown = ggVertical
-        Appearance.GradientChecked = ggVertical
-      end
-    end
-  end
-  object pag_Control00: TAdvPageControl
-    Left = 0
-    Top = 44
-    Width = 794
-    Height = 549
+    Height = 553
     ActivePage = tab_Manifesto
     ActiveFont.Charset = DEFAULT_CHARSET
     ActiveFont.Color = clWindowText
@@ -224,24 +148,22 @@ object frm_Manifesto: Tfrm_Manifesto
     Version = '2.0.0.4'
     PersistPagesState.Location = plRegistry
     PersistPagesState.Enabled = False
-    TabOrder = 2
+    TabOrder = 1
     TabWidth = 250
     OnChange = pag_Control00Change
+    ExplicitTop = -1
     object tab_Browse: TAdvTabSheet
       Caption = 'Busca de NFE para vincular ao Manifesto'
       Color = clWindow
       ColorTo = clNone
       TabColor = clInactiveCaption
       TabColorTo = clNone
-      DesignSize = (
-        786
-        520)
       object vst_GridNFE: TVirtualStringTree
-        Left = 0
+        Left = 241
         Top = 0
-        Width = 680
-        Height = 520
-        Align = alLeft
+        Width = 545
+        Height = 524
+        Align = alClient
         Alignment = taCenter
         BevelInner = bvNone
         BevelKind = bkTile
@@ -333,9 +255,10 @@ object frm_Manifesto: Tfrm_Manifesto
       end
       object pnl_Filter: TAdvPanel
         Left = 0
-        Top = 295
-        Width = 337
-        Height = 225
+        Top = 0
+        Width = 241
+        Height = 524
+        Align = alLeft
         BevelOuter = bvNone
         BevelWidth = 0
         BorderStyle = bsSingle
@@ -384,34 +307,21 @@ object frm_Manifesto: Tfrm_Manifesto
         StatusBar.ColorTo = 11119017
         StatusBar.GradientDirection = gdVertical
         DesignSize = (
-          335
-          223)
+          239
+          522)
         FullHeight = 485
         object gbx_DtEmis: TAdvGroupBox
           Left = 5
-          Top = 118
-          Width = 325
-          Height = 50
+          Top = 123
+          Width = 229
+          Height = 105
           RoundEdges = True
           Align = alTop
           Caption = ' Data de emiss'#227'o '
-          TabOrder = 2
-          object Label1: TLabel
-            Left = 13
-            Top = 20
-            Width = 155
-            Height = 14
-            Caption = 'De:                            At'#233':'
-            Font.Charset = DEFAULT_CHARSET
-            Font.Color = clWindowText
-            Font.Height = -12
-            Font.Name = 'Tahoma'
-            Font.Style = []
-            ParentFont = False
-          end
+          TabOrder = 1
           object edt_DatIni: TJvDateEdit
-            Left = 35
-            Top = 20
+            Left = 81
+            Top = 32
             Width = 100
             Height = 22
             ShowNullDate = False
@@ -419,8 +329,8 @@ object frm_Manifesto: Tfrm_Manifesto
             DisabledColor = clSilver
           end
           object edt_DatFin: TJvDateEdit
-            Left = 174
-            Top = 20
+            Left = 81
+            Top = 68
             Width = 100
             Height = 22
             ShowNullDate = False
@@ -429,34 +339,35 @@ object frm_Manifesto: Tfrm_Manifesto
           end
         end
         object btn_Find: TJvImgBtn
-          Left = 222
-          Top = 177
+          Left = 128
+          Top = 477
           Width = 100
           Height = 30
           Anchors = [akRight, akBottom]
           Caption = 'Buscar'
-          TabOrder = 3
+          TabOrder = 2
           OnClick = btn_FindClick
         end
         object gbx_CodPed: TAdvGroupBox
           Left = 5
-          Top = 68
-          Width = 325
-          Height = 50
+          Top = 18
+          Width = 229
+          Height = 105
           RoundEdges = True
           Align = alTop
           Caption = ' N'#250'mero do Pedido (Venda) '
-          TabOrder = 1
+          TabOrder = 0
           object edt_PedIni: TAdvEdit
-            Left = 35
-            Top = 20
-            Width = 100
+            Left = 81
+            Top = 31
+            Width = 121
             Height = 22
             EditAlign = eaCenter
             EditType = etNumeric
             EmptyTextStyle = []
             LabelCaption = 'De:'
-            LabelMargin = 3
+            LabelPosition = lpTopLeft
+            LabelMargin = 1
             LabelTransparent = True
             LabelFont.Charset = DEFAULT_CHARSET
             LabelFont.Color = clWindowText
@@ -476,15 +387,16 @@ object frm_Manifesto: Tfrm_Manifesto
             Version = '3.3.2.0'
           end
           object edt_PedFin: TAdvEdit
-            Left = 174
-            Top = 20
-            Width = 100
+            Left = 81
+            Top = 71
+            Width = 121
             Height = 22
             EditAlign = eaCenter
             EditType = etNumeric
             EmptyTextStyle = []
             LabelCaption = 'At'#233':'
-            LabelMargin = 3
+            LabelPosition = lpTopLeft
+            LabelMargin = 1
             LabelTransparent = True
             LabelFont.Charset = DEFAULT_CHARSET
             LabelFont.Color = clWindowText
@@ -504,34 +416,6 @@ object frm_Manifesto: Tfrm_Manifesto
             Version = '3.3.2.0'
           end
         end
-        object AdvGroupBox1: TAdvGroupBox
-          Left = 5
-          Top = 18
-          Width = 325
-          Height = 50
-          RoundEdges = True
-          Align = alTop
-          Caption = ' Chave da NFe '
-          TabOrder = 0
-          object edt_Chave: TMaskEdit
-            Left = 10
-            Top = 20
-            Width = 304
-            Height = 22
-            AutoSize = False
-            TabOrder = 0
-          end
-        end
-      end
-      object btn_AddNFE: TJvImgBtn
-        Left = 686
-        Top = 0
-        Width = 100
-        Height = 30
-        Anchors = [akTop, akRight]
-        Caption = 'Vincular NFe(s)'
-        TabOrder = 2
-        OnClick = btn_AddNFEClick
       end
     end
     object tab_Manifesto: TAdvTabSheet
@@ -640,61 +524,13 @@ object frm_Manifesto: Tfrm_Manifesto
           Visible = True
           Version = '3.3.2.0'
         end
-        object edt_mdfUFCarga: TAdvEdit
-          Left = 719
-          Top = 16
-          Width = 50
-          Height = 20
-          EditAlign = eaCenter
-          EmptyTextStyle = []
-          LabelCaption = 'UF de carga:'
-          LabelFont.Charset = DEFAULT_CHARSET
-          LabelFont.Color = clWindowText
-          LabelFont.Height = -11
-          LabelFont.Name = 'Tahoma'
-          LabelFont.Style = []
-          Lookup.Font.Charset = DEFAULT_CHARSET
-          Lookup.Font.Color = clWindowText
-          Lookup.Font.Height = -11
-          Lookup.Font.Name = 'Arial'
-          Lookup.Font.Style = []
-          Lookup.Separator = ';'
-          Color = clWindow
-          TabOrder = 4
-          Visible = True
-          Version = '3.3.2.0'
-        end
-        object edt_mdfUFDescarga: TAdvEdit
-          Left = 719
-          Top = 40
-          Width = 50
-          Height = 20
-          EditAlign = eaCenter
-          EmptyTextStyle = []
-          LabelCaption = 'UF de descarga:'
-          LabelFont.Charset = DEFAULT_CHARSET
-          LabelFont.Color = clWindowText
-          LabelFont.Height = -11
-          LabelFont.Name = 'Tahoma'
-          LabelFont.Style = []
-          Lookup.Font.Charset = DEFAULT_CHARSET
-          Lookup.Font.Color = clWindowText
-          Lookup.Font.Height = -11
-          Lookup.Font.Name = 'Arial'
-          Lookup.Font.Style = []
-          Lookup.Separator = ';'
-          Color = clWindow
-          TabOrder = 5
-          Visible = True
-          Version = '3.3.2.0'
-        end
       end
       object pag_Control01: TAdvPageControl
         Left = 0
         Top = 75
         Width = 786
-        Height = 445
-        ActivePage = tab_Rodo
+        Height = 449
+        ActivePage = tab_Mun
         ActiveFont.Charset = DEFAULT_CHARSET
         ActiveFont.Color = clWindowText
         ActiveFont.Height = -11
@@ -719,14 +555,11 @@ object frm_Manifesto: Tfrm_Manifesto
           ColorTo = clNone
           TabColor = clInactiveCaption
           TabColorTo = clNone
-          DesignSize = (
-            778
-            416)
           object vst_GridMun: TVirtualStringTree
             Left = 0
             Top = 0
             Width = 646
-            Height = 416
+            Height = 420
             Align = alLeft
             Alignment = taCenter
             BevelInner = bvNone
@@ -759,6 +592,7 @@ object frm_Manifesto: Tfrm_Manifesto
             TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
             OnChange = vst_GridMunChange
             OnGetText = vst_GridMunGetText
+            ExplicitTop = 2
             Columns = <
               item
                 Color = clWindow
@@ -793,33 +627,6 @@ object frm_Manifesto: Tfrm_Manifesto
                 WideText = 'Peso Bruto'
               end>
           end
-          object btn_MunRemove: TJvImgBtn
-            Left = 652
-            Top = 0
-            Width = 100
-            Height = 40
-            Anchors = [akTop, akRight]
-            Caption = 'Remover Munic'#237'pio'
-            TabOrder = 1
-          end
-          object btn_MunFindNFE: TJvImgBtn
-            Left = 652
-            Top = 345
-            Width = 100
-            Height = 30
-            Anchors = [akTop, akRight]
-            Caption = 'Buscar NFe'
-            TabOrder = 2
-          end
-          object btn_MunRemoveNFE: TJvImgBtn
-            Left = 652
-            Top = 381
-            Width = 100
-            Height = 30
-            Anchors = [akTop, akRight]
-            Caption = 'Remover Vinculo'
-            TabOrder = 3
-          end
         end
         object tab_Rodo: TAdvTabSheet
           Caption = 'Ve'#237'culo /Condutores'
@@ -827,14 +634,11 @@ object frm_Manifesto: Tfrm_Manifesto
           ColorTo = clNone
           TabColor = clInactiveCaption
           TabColorTo = clNone
-          ExplicitLeft = 8
-          ExplicitTop = 27
           object edt_VeiCod: TAdvEditBtn
             Left = 121
             Top = 0
             Width = 200
             Height = 20
-            EditType = etValidChars
             EmptyText = 'Digite um c'#243'digo/placa aqui'
             EmptyTextStyle = []
             Flat = False
@@ -871,16 +675,18 @@ object frm_Manifesto: Tfrm_Manifesto
           end
           object gbx_Condutor: TAdvGroupBox
             Left = 0
-            Top = 144
+            Top = 148
             Width = 778
             Height = 272
             BorderStyle = bsNone
+            CheckBox.Checked = True
+            CheckBox.State = cbChecked
+            RoundEdges = True
             Align = alBottom
             Caption = ' Informa'#231#245'es do(s) Condutor(s) do ve'#237'culo '
             TabOrder = 1
-            ExplicitTop = 146
             object vst_GridCondutor: TVirtualStringTree
-              Left = 0
+              Left = 3
               Top = 25
               Width = 449
               Height = 244
@@ -913,6 +719,7 @@ object frm_Manifesto: Tfrm_Manifesto
               TreeOptions.MiscOptions = [toAcceptOLEDrop, toInitOnSave, toToggleOnDblClick, toWheelPanning]
               TreeOptions.PaintOptions = [toHotTrack, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowTreeLines, toShowVertGridLines, toUseBlendedImages]
               TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
+              OnGetText = vst_GridCondutorGetText
               Columns = <
                 item
                   Color = clWindow
@@ -944,12 +751,16 @@ object frm_Manifesto: Tfrm_Manifesto
               LabelFont.Height = -11
               LabelFont.Name = 'Tahoma'
               LabelFont.Style = []
+              Lookup.DisplayCount = 8
               Lookup.Font.Charset = DEFAULT_CHARSET
               Lookup.Font.Color = clWindowText
               Lookup.Font.Height = -11
               Lookup.Font.Name = 'Arial'
               Lookup.Font.Style = []
+              Lookup.History = True
               Lookup.Separator = ';'
+              Lookup.SearchValue = True
+              Lookup.ShowValue = True
               Color = clWindow
               Ctl3D = False
               Font.Charset = DEFAULT_CHARSET
@@ -967,10 +778,99 @@ object frm_Manifesto: Tfrm_Manifesto
               ButtonWidth = 25
               Etched = False
               ButtonCaption = 'F2'
+              OnClickBtn = edt_CdtCodClickBtn
             end
           end
         end
       end
+    end
+  end
+  object pnl_Footer: TJvFooter
+    Left = 0
+    Top = 553
+    Width = 794
+    Height = 40
+    Align = alBottom
+    BevelStyle = bsRaised
+    BevelVisible = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Trebuchet MS'
+    Font.Style = []
+    ParentFont = False
+    ExplicitTop = 551
+    DesignSize = (
+      794
+      40)
+    object btn_Filter: TJvFooterBtn
+      Left = 8
+      Top = 5
+      Width = 90
+      Height = 30
+      Hint = 'Mostra/Esconde o Filtro'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Filtro'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 1
+      OnClick = btn_FilterClick
+      Alignment = taLeftJustify
+      ButtonIndex = 0
+      SpaceInterval = 6
+    end
+    object btn_Close: TJvFooterBtn
+      Left = 696
+      Top = 5
+      Width = 90
+      Height = 30
+      Anchors = [akRight, akBottom]
+      Caption = 'Fechar'
+      TabOrder = 0
+      ButtonIndex = 1
+      SpaceInterval = 6
+    end
+    object btn_Vincula: TJvFooterBtn
+      Left = 102
+      Top = 5
+      Width = 90
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Vincular'
+      ParentShowHint = False
+      ShowHint = False
+      TabOrder = 3
+      OnClick = btn_VinculaClick
+      Alignment = taLeftJustify
+      ButtonIndex = 2
+      SpaceInterval = 6
+    end
+    object btn_Remove: TJvFooterBtn
+      Left = 198
+      Top = 5
+      Width = 90
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Remover'
+      ParentShowHint = False
+      ShowHint = False
+      TabOrder = 2
+      Alignment = taLeftJustify
+      ButtonIndex = 3
+      SpaceInterval = 6
+    end
+    object btn_Save: TJvFooterBtn
+      Left = 294
+      Top = 5
+      Width = 90
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Gravar'
+      TabOrder = 4
+      OnClick = btn_SaveClick
+      Alignment = taLeftJustify
+      ButtonIndex = 4
+      SpaceInterval = 6
     end
   end
 end

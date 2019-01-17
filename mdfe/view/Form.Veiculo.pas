@@ -41,6 +41,7 @@ type
     procedure edt_CodigoClickBtn(Sender: TObject);
     procedure btn_EditClick(Sender: TObject);
     procedure btn_CancelClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     { Private declarations }
     //m_Model: IVeiculo ;
@@ -217,6 +218,12 @@ begin
           lbl_State.Caption :='Novo';
       end;
     end;
+end;
+
+procedure Tfrm_Veiculo.FormShow(Sender: TObject);
+begin
+    Self.Inicialize ;
+
 end;
 
 procedure Tfrm_Veiculo.Inicialize;

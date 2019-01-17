@@ -14,6 +14,7 @@ object frm_Veiculo: Tfrm_Veiculo
   Font.Style = []
   KeyPreview = True
   OldCreateOrder = False
+  OnShow = FormShow
   DesignSize = (
     634
     271)
@@ -42,26 +43,14 @@ object frm_Veiculo: Tfrm_Veiculo
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
+    ExplicitLeft = 8
     DesignSize = (
       634
       40)
-    object btn_Close: TJvFooterBtn
-      Left = 536
-      Top = 5
-      Width = 90
-      Height = 30
-      Anchors = [akRight, akBottom]
-      Caption = 'Fechar'
-      TabOrder = 0
-      TabStop = False
-      OnClick = btn_CloseClick
-      ButtonIndex = 0
-      SpaceInterval = 6
-    end
     object btn_New: TJvFooterBtn
       Left = 8
       Top = 5
-      Width = 90
+      Width = 75
       Height = 30
       Hint = 'Inicializa cadastro de um novo ve'#237'culo'
       Anchors = [akLeft, akBottom]
@@ -69,24 +58,24 @@ object frm_Veiculo: Tfrm_Veiculo
       TabOrder = 1
       OnClick = btn_NewClick
       Alignment = taLeftJustify
-      ButtonIndex = 1
+      ButtonIndex = 0
       SpaceInterval = 6
     end
     object btn_Edit: TJvFooterBtn
-      Left = 102
+      Left = 87
       Top = 5
-      Width = 90
+      Width = 75
       Height = 30
       Anchors = [akLeft, akBottom]
-      Caption = 'Editar'
+      Caption = 'Alterar'
       TabOrder = 5
       OnClick = btn_EditClick
       Alignment = taLeftJustify
-      ButtonIndex = 2
+      ButtonIndex = 1
       SpaceInterval = 6
     end
     object btn_Save: TJvFooterBtn
-      Left = 198
+      Left = 168
       Top = 5
       Width = 90
       Height = 30
@@ -96,31 +85,44 @@ object frm_Veiculo: Tfrm_Veiculo
       TabOrder = 2
       OnClick = btn_SaveClick
       Alignment = taLeftJustify
-      ButtonIndex = 3
+      ButtonIndex = 2
       SpaceInterval = 6
     end
     object btn_Cancel: TJvFooterBtn
-      Left = 294
+      Left = 264
       Top = 5
-      Width = 90
+      Width = 75
       Height = 30
       Anchors = [akLeft, akBottom]
       Caption = 'Cancelar'
       TabOrder = 3
       OnClick = btn_CancelClick
       Alignment = taLeftJustify
-      ButtonIndex = 4
+      ButtonIndex = 3
       SpaceInterval = 6
     end
     object btn_Delete: TJvFooterBtn
-      Left = 390
+      Left = 345
       Top = 5
-      Width = 90
+      Width = 75
       Height = 30
       Anchors = [akLeft, akBottom]
       Caption = 'Excluir'
       TabOrder = 4
       Alignment = taLeftJustify
+      ButtonIndex = 4
+      SpaceInterval = 6
+    end
+    object btn_Close: TJvFooterBtn
+      Left = 551
+      Top = 5
+      Width = 75
+      Height = 30
+      Anchors = [akRight, akBottom]
+      Caption = 'Fechar'
+      TabOrder = 0
+      TabStop = False
+      OnClick = btn_CloseClick
       ButtonIndex = 5
       SpaceInterval = 6
     end

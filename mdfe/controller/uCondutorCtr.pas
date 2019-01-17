@@ -11,9 +11,11 @@ type
   ICondutorCtr = Interface(IController)
     ['{F67F82CA-8A93-43DD-B0DB-2CF63B556131}']
     function getModel: ICondutor;
+    procedure setModel(Value: ICondutor);
     function getView: IView;
-    property Model: ICondutor read getModel ;
-    property View: IView read getView ;
+    procedure setView(Value: IView);
+    property Model: ICondutor read getModel write setModel;
+    property View: IView read getView write setView;
 
     procedure ExecView;
 
@@ -24,17 +26,20 @@ type
 
   end;
 
-  //TCondutorCtrStyle
-  TCCondutorCtr = class(TInterfacedObject, ICondutorCtr)
+  TCCondutorCtr = class(TInterfacedObject, ICondutorCtr, ICondutorList)
   private
+    m_CondutorList: TCCondutorList ;
     m_Model: ICondutor;
     m_View: IView;
     function getModel: ICondutor;
+    procedure setModel(Value: ICondutor);
     function getView: IView;
+    procedure setView(Value: IView);
   protected
   public
-    property Model: ICondutor read getModel ;
-    property View: IView read getView ;
+    property Model: ICondutor read getModel write setModel;
+    property View: IView read getView write setView;
+    property ModelList: TCCondutorList read m_CondutorList implements ICondutorList;
 
     constructor Create() ;
     procedure Inicialize;
@@ -122,6 +127,8 @@ end;
 
 constructor TCCondutorCtr.Create() ;
 begin
+    m_CondutorList :=TCCondutorList.Create(Self) ;
+    {
     //
     // Instancia o model
     m_Model :=TCCondutor.Create;
@@ -133,7 +140,7 @@ begin
 
     m_Model.OnModelChanged :=(m_View as Tfrm_Condutor).ModelChanged ;
     m_View.Inicialize ;
-
+    }
 end;
 
 procedure TCCondutorCtr.Edit;
@@ -178,5 +185,17 @@ begin
     ;
 end;
 
+
+procedure TCCondutorCtr.setModel(Value: ICondutor);
+begin
+    m_Model :=Value ;
+
+end;
+
+procedure TCCondutorCtr.setView(Value: IView);
+begin
+    m_View :=Value ;
+
+end;
 
 end.

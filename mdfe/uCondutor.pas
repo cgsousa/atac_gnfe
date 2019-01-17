@@ -149,23 +149,24 @@ type
 
   //
   // lista de condutores
-  ICondutorList = interface
-    function addNew(aCondutor: ICondutor): ICondutor ;
-    function indexOf(const id: Int32): ICondutor ;
-    procedure clearItems ;
+  ICondutorList = interface (IDataList<ICondutor>)
+//    function addNew(aCondutor: ICondutor): ICondutor ;
+//    function indexOf(const id: Int32): ICondutor ;
+//    procedure clearItems ;
   end;
 
-  //TCCondutorList = class(TAggregatedObject, IDataList<ICondutor>)
   TCCondutorList = class(TAggregatedObject, ICondutorList)
   private
     m_DataList: TList<ICondutor> ;
+    function getItems: TList<ICondutor> ;
   public
+    property Items: TList<ICondutor> read getItems ;
     constructor Create(aController: IInterface);
     destructor Destroy; override ;
     function addNew(aCondutor: ICondutor): ICondutor ;
     function indexOf(const id: Int32): ICondutor;
     procedure clearItems ;
-    function getDataList: TList<ICondutor> ;
+    procedure Load;
   end;
 
 
@@ -546,7 +547,7 @@ begin
     inherited Destroy;
 end;
 
-function TCCondutorList.getDataList: TList<ICondutor>;
+function TCCondutorList.getItems: TList<ICondutor>;
 begin
     Result :=m_DataList;
 
@@ -555,6 +556,31 @@ end;
 function TCCondutorList.indexOf(const id: Int32): ICondutor;
 begin
 
+end;
+
+procedure TCCondutorList.Load;
+var
+  F: TCondutorFilter ;
+  Q: TADOQuery ;
+  I: ICondutor;
+begin
+    F.codseq :=0;
+    Q :=TCCondutor.CLoad(F) ;
+    try
+        while not Q.Eof do
+        begin
+            I :=Self.addNew(nil) ;
+            I.id :=Q.Field('cdt_codseq').AsInteger;
+            I.CPFCNPJ :=Q.Field('cdt_cpfcnpj').AsString;
+            I.Nome :=Q.Field('cdt_xnome').AsString;
+            I.RNTRC:=Q.Field('cdt_rntrc').AsString;
+            I.IE :=Q.Field('cdt_ie').AsString;
+            I.UF :=Q.Field('cdt_uf').AsString;
+            Q.Next ;
+        end ;
+    finally
+        Q.Free ;
+    end;
 end;
 
 end.

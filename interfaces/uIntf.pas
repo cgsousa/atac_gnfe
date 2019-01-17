@@ -34,7 +34,7 @@ type
   end;
 
   IDataList<T> = Interface(IInterface)
-    function addNew: T ;
+    function addNew(aItem: T): T ;
     procedure clearItems ;
     function getItems: TList<T>;
     property Items: TList<T> read getItems ;

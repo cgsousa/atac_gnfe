@@ -530,16 +530,19 @@ type
 
   //
   // lista de manifestos
-  TCManifestoDFList = class(TInterfacedObject, IDataList<IManifestoDF>)
+  IManifestoDFList = interface (IDataList<IManifestoDF>)
+  end;
+  TCManifestoDFList = class(TAggregatedObject, IManifestoDFList)
   private
     m_DataList: TList<IManifestoDF> ;
     function getItems: TList<IManifestoDF>;
   protected
   public
-    constructor Create ;
-    function addNew: IManifestoDF ;
+    constructor Create(aController: IInterface);
+    function addNew(aItem: IManifestoDF): IManifestoDF ;
     procedure clearItems ;
     property Items: TList<IManifestoDF> read getItems ;
+    function Load(const aFilter: TManifestoFilter): Boolean;
   end;
 
 
@@ -921,7 +924,7 @@ begin
         C.AddParamWithValue('@md3_codvei', ftSmallint, Self.m_codvei);
         C.AddParamWithValue('@md3_codcdt', ftSmallint, 0) ;
 
-        for P in m_ModalRodo.condutores.getDataList do
+        for P in m_ModalRodo.condutores.Items do
         begin
             C.Param('@md3_codcdt').Value :=P.id ;
             try
@@ -1155,15 +1158,12 @@ function TCManifestoDF.isValid: Boolean;
 begin
     Result :=False ;
     if m_Municipios.getDataList.Count = 0 then
-        raise EMunCargaIsEmpty.Create('Nenhum município de carregamento adicionado!')
+        raise EMunCargaIsEmpty.Create('Nenhum município de carregamento/descarregamento vinculado ao manifesto!')
     else if m_ModalRodo.veiculo.id = 0 then
-        raise EVeiculoIsEmpty.Create('Nenhum veículo selecionado!')
-    else if m_ModalRodo.condutores.getDataList.Count = 0 then
-        raise ECondutorIsEmpty.Create('Nenhum condutor de veículo adicionado!')
-    else if m_MunDescarga.municipio.m_codmun = 0 then
-        raise EMunDescargaIsEmpty.Create('Nenhum município de descarregamento adicionado!')
-    else if m_MunDescarga.nfeList.getDataList.Count = 0 then
-      raise EDocIsEmpty.Create('Nenhum documento fiscal (NFE) foi vinculado ao manifesto!');
+        raise EVeiculoIsEmpty.Create('Nenhum veículo vinculado ao manifesto!')
+    else if m_ModalRodo.condutores.Items.Count = 0 then
+        raise ECondutorIsEmpty.Create('Nenhum condutor vinculado ao veículo!');
+//      raise EDocIsEmpty.Create('Nenhum documento fiscal (NFE) foi vinculado ao manifesto!');
     Result :=True ;
 end;
 
@@ -1823,9 +1823,10 @@ end;
 
 { TCManifestoDFList }
 
-function TCManifestoDFList.addNew: IManifestoDF;
+function TCManifestoDFList.addNew(aItem: IManifestoDF): IManifestoDF ;
 begin
-    Result :=TCManifestoDF.Create ;
+    if aItem = nil then
+        Result :=TCManifestoDF.Create ;
     m_DataList.Add(Result);
 end;
 
@@ -1835,8 +1836,9 @@ begin
 
 end;
 
-constructor TCManifestoDFList.Create;
+constructor TCManifestoDFList.Create(aController: IInterface);
 begin
+    inherited Create(aController);
     m_DataList :=TList<IManifestoDF>.Create ;
 
 end;
@@ -1844,6 +1846,25 @@ end;
 function TCManifestoDFList.getItems: TList<IManifestoDF>;
 begin
     Result :=m_DataList ;
+end;
+
+function TCManifestoDFList.Load(const aFilter: TManifestoFilter): Boolean;
+var
+  ds: TDataSet ;
+  I: IManifestoDF;
+begin
+    ds :=TCManifestoDF.CLoad(aFilter) ;
+    try
+        Result :=not ds.IsEmpty;
+        while not ds.Eof do
+        begin
+            I :=Self.addNew(nil) ;
+            I.loadFromDataset(ds);
+            ds.Next ;
+        end;
+    finally
+        TADOQuery(ds).Free ;
+    end;
 end;
 
 end.

@@ -15,18 +15,15 @@ object frm_Princ00: Tfrm_Princ00
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  OnResize = FormResize
   OnShow = FormShow
-  DesignSize = (
-    1018
-    572)
   PixelsPerInch = 96
   TextHeight = 14
   object html_Status: THTMLabel
-    Left = 5
-    Top = 491
-    Width = 1005
+    Left = 0
+    Top = 478
+    Width = 1018
     Height = 35
+    Align = alBottom
     ColorTo = 11769496
     BorderWidth = 1
     BorderStyle = bsSingle
@@ -38,14 +35,17 @@ object frm_Princ00: Tfrm_Princ00
     ParentColor = False
     Transparent = False
     Version = '1.9.0.2'
+    ExplicitLeft = 5
+    ExplicitTop = 491
+    ExplicitWidth = 1005
   end
   object vst_Grid1: TVirtualStringTree
-    Left = 5
-    Top = 5
-    Width = 1005
-    Height = 485
+    Left = 295
+    Top = 0
+    Width = 723
+    Height = 478
+    Align = alClient
     Alignment = taCenter
-    Anchors = [akLeft, akTop, akRight]
     BevelInner = bvNone
     BevelKind = bkTile
     BorderStyle = bsNone
@@ -77,6 +77,7 @@ object frm_Princ00: Tfrm_Princ00
     OnChange = vst_Grid1Change
     OnChecked = vst_Grid1Checked
     OnHeaderClick = vst_Grid1HeaderClick
+    ExplicitTop = -6
     Columns = <
       item
         Color = 15000804
@@ -271,14 +272,13 @@ object frm_Princ00: Tfrm_Princ00
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitTop = 532
     DesignSize = (
       1018
       40)
     object btn_Config: TJvFooterBtn
       Left = 8
       Top = 5
-      Width = 100
+      Width = 90
       Height = 30
       Hint = 'Configura a forma de emiss'#227'o'
       Anchors = [akLeft, akBottom]
@@ -292,7 +292,7 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_ConsSvc: TJvFooterBtn
-      Left = 112
+      Left = 102
       Top = 5
       Width = 75
       Height = 30
@@ -308,7 +308,7 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_Filter: TJvFooterBtn
-      Left = 193
+      Left = 183
       Top = 5
       Width = 75
       Height = 30
@@ -336,7 +336,7 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_Items: TJvFooterBtn
-      Left = 274
+      Left = 264
       Top = 5
       Width = 75
       Height = 30
@@ -352,7 +352,7 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_Send: TJvFooterBtn
-      Left = 355
+      Left = 345
       Top = 5
       Width = 75
       Height = 30
@@ -368,7 +368,7 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_Cons: TJvFooterBtn
-      Left = 436
+      Left = 426
       Top = 5
       Width = 75
       Height = 30
@@ -383,40 +383,40 @@ object frm_Princ00: Tfrm_Princ00
       ButtonIndex = 6
       SpaceInterval = 6
     end
-    object btn_Cancel: TJvFooterBtn
-      Left = 517
+    object btn_Listagem: TJvFooterBtn
+      Left = 507
       Top = 5
       Width = 75
       Height = 30
+      Hint = 'DANFE, listagem e exportar XML'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Listagem'
+      DropDownMenu = ppm_Listagem
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 10
+      Alignment = taLeftJustify
+      ButtonIndex = 7
+      SpaceInterval = 6
+    end
+    object btn_Cancel: TJvFooterBtn
+      Left = 588
+      Top = 5
+      Width = 90
+      Height = 30
       Hint = 'Evento da NFE - Cancelamento / Carta de Corre'#231#227'o'
       Anchors = [akLeft, akBottom]
-      Caption = 'Cancelar NFE CC-e'
+      Caption = 'Eventos da NFE'
       DropDownMenu = AdvPopupMenu1
       ParentShowHint = False
       ShowHint = True
       TabOrder = 7
       Alignment = taLeftJustify
-      ButtonIndex = 7
-      SpaceInterval = 6
-    end
-    object btn_Danfe: TJvFooterBtn
-      Left = 598
-      Top = 5
-      Width = 75
-      Height = 30
-      Hint = 'Imprime DANFE'
-      Anchors = [akLeft, akBottom]
-      Caption = 'DANFE'
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 10
-      OnClick = btn_DanfeClick
-      Alignment = taLeftJustify
       ButtonIndex = 8
       SpaceInterval = 6
     end
     object btn_Inut: TJvFooterBtn
-      Left = 679
+      Left = 684
       Top = 5
       Width = 75
       Height = 30
@@ -431,41 +431,28 @@ object frm_Princ00: Tfrm_Princ00
       ButtonIndex = 9
       SpaceInterval = 6
     end
-    object btn_export: TJvFooterBtn
-      Left = 760
+    object btn_MDFE: TJvFooterBtn
+      Left = 765
       Top = 5
       Width = 75
       Height = 30
-      Hint = 'Exporta NFE para um local'
       Anchors = [akLeft, akBottom]
-      Caption = 'Exportar'
+      Caption = 'MDF-e'
       ParentShowHint = False
-      ShowHint = True
+      ShowHint = False
       TabOrder = 9
-      OnClick = btn_exportClick
+      OnClick = btn_MDFEClick
       Alignment = taLeftJustify
       ButtonIndex = 10
       SpaceInterval = 6
     end
-    object btn_RelNF: TJvFooterBtn
-      Left = 841
-      Top = 5
-      Width = 75
-      Height = 30
-      Anchors = [akLeft, akBottom]
-      Caption = 'Relat'#243'rios'
-      TabOrder = 11
-      OnClick = btn_RelNFClick
-      Alignment = taLeftJustify
-      ButtonIndex = 11
-      SpaceInterval = 6
-    end
   end
   object pnl_Filter: TAdvPanel
-    Left = 5
-    Top = 5
+    Left = 0
+    Top = 0
     Width = 295
-    Height = 485
+    Height = 478
+    Align = alLeft
     BevelOuter = bvNone
     BevelWidth = 0
     BorderStyle = bsSingle
@@ -515,11 +502,11 @@ object frm_Princ00: Tfrm_Princ00
     StatusBar.GradientDirection = gdVertical
     DesignSize = (
       293
-      483)
+      476)
     FullHeight = 485
     object chk_EnvLote: TAdvOfficeCheckBox
       Left = 5
-      Top = 424
+      Top = 417
       Width = 283
       Height = 20
       Anchors = [akLeft, akBottom]
@@ -599,7 +586,7 @@ object frm_Princ00: Tfrm_Princ00
     end
     object btn_Exec: TJvImgBtn
       Left = 188
-      Top = 450
+      Top = 443
       Width = 100
       Height = 30
       Anchors = [akRight, akBottom]
@@ -770,7 +757,7 @@ object frm_Princ00: Tfrm_Princ00
         Text = 'TODOS'
       end
       object edt_NSerie: TAdvEdit
-        Left = 174
+        Left = 180
         Top = 50
         Width = 100
         Height = 22
@@ -986,16 +973,15 @@ object frm_Princ00: Tfrm_Princ00
     SimplePanel = False
     Styler = dm_Styles.AdvOfficeStatusBarOfficeStyler1
     Version = '1.5.2.2'
-    ExplicitTop = 554
   end
   object AppInstances1: TJvAppInstances
     Active = False
-    Left = 288
-    Top = 496
+    Left = 320
+    Top = 480
   end
   object ActionList1: TActionList
-    Left = 472
-    Top = 496
+    Left = 368
+    Top = 480
     object act_CancNFE: TAction
       Category = 'EVENTO'
       Caption = 'Cancelar NFE'
@@ -1008,12 +994,27 @@ object frm_Princ00: Tfrm_Princ00
       GroupIndex = 1
       OnExecute = act_CCEExecute
     end
+    object act_DANFE: TAction
+      Category = 'IMPRESSAO'
+      Caption = 'DANFE'
+      OnExecute = act_DANFEExecute
+    end
+    object act_ListNF: TAction
+      Category = 'IMPRESSAO'
+      Caption = 'Listagem de NF'
+      OnExecute = act_ListNFExecute
+    end
+    object act_ExportXML: TAction
+      Category = 'IMPRESSAO'
+      Caption = 'Exportar NFE'
+      OnExecute = act_ExportXMLExecute
+    end
   end
   object AdvPopupMenu1: TAdvPopupMenu
     MenuStyler = AdvMenuStyler1
     Version = '2.5.4.3'
-    Left = 528
-    Top = 496
+    Left = 552
+    Top = 480
     object mnu_CancNFE: TMenuItem
       Action = act_CancNFE
     end
@@ -1079,7 +1080,25 @@ object frm_Princ00: Tfrm_Princ00
     ButtonAppearance.CaptionFont.Height = -11
     ButtonAppearance.CaptionFont.Name = 'Segoe UI'
     ButtonAppearance.CaptionFont.Style = []
-    Left = 576
-    Top = 496
+    Left = 488
+    Top = 480
+  end
+  object ppm_Listagem: TAdvPopupMenu
+    MenuStyler = AdvMenuStyler1
+    Version = '2.5.4.3'
+    Left = 640
+    Top = 480
+    object DANFE1: TMenuItem
+      Action = act_DANFE
+    end
+    object ListagemdeNF1: TMenuItem
+      Action = act_ListNF
+    end
+    object N1: TMenuItem
+      Caption = '-'
+    end
+    object ExportarNFE1: TMenuItem
+      Action = act_ExportXML
+    end
   end
 end

@@ -12,18 +12,15 @@ uses
   JvExStdCtrls, JvButton, JvCtrls, JvExMask, JvToolEdit,
 
   FormBase, uStatusBar, VirtualTrees, uVSTree,
-  uIntf, uManifestoCtr
+  uIntf, uManifestoCtr, JvFooter, JvExExtCtrls, JvExtComponent
   ;
 
 type
   Tfrm_ManifestoList = class(TBaseForm, IView)
-    AdvDockPanel1: TAdvDockPanel;
-    AdvToolBar1: TAdvToolBar;
     AdvOfficeStatusBar1: TAdvOfficeStatusBar;
     vst_Grid1: TVirtualStringTree;
     pnl_Filter: TAdvPanel;
     gbx_DtEmis: TAdvGroupBox;
-    Label1: TLabel;
     edt_DatIni: TJvDateEdit;
     edt_DatFin: TJvDateEdit;
     rgx_Status: TAdvOfficeRadioGroup;
@@ -31,23 +28,30 @@ type
     gbx_Ident: TAdvGroupBox;
     edt_CodSeq: TAdvEdit;
     chk_ChvNFe: TAdvOfficeCheckBox;
-    btn_Config: TAdvGlowButton;
-    AdvToolBarSeparator1: TAdvToolBarSeparator;
-    btn_Filter: TAdvGlowButton;
-    AdvToolBarSeparator2: TAdvToolBarSeparator;
-    btn_New: TAdvGlowButton;
-    btn_Edit: TAdvGlowButton;
-    procedure btn_FilterClick(Sender: TObject);
+    pnl_Footer: TJvFooter;
+    btn_Config: TJvFooterBtn;
+    btn_Filter: TJvFooterBtn;
+    btn_Close: TJvFooterBtn;
+    btn_Send: TJvFooterBtn;
+    btn_Edit: TJvFooterBtn;
+    btn_Cancel: TJvFooterBtn;
+    btn_New: TJvFooterBtn;
     procedure FormShow(Sender: TObject);
     procedure btn_FindClick(Sender: TObject);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
     procedure btn_NewClick(Sender: TObject);
-    procedure vst_Grid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure btn_EditClick(Sender: TObject);
+    procedure btn_FilterClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
-    m_Ctrl: IManifestoCtr;
+    m_Ctrl: TCManifestoCtr;
+    m_StatusBar: TCStatusBarWidget;
+    m_StatusProgress: TAdvOfficeStatusPanel ;
+    m_StatusItems: TAdvOfficeStatusPanel ;
+    m_StatusText: TAdvOfficeStatusPanel ;
+    procedure setStatusBar();
   public
     { Public declarations }
     class procedure NewAndShow ;
@@ -79,11 +83,13 @@ begin
     M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
     if(M <> nil)and(M.id > 0) then
     begin
+        M.Edit ;
         V :=Tfrm_Manifesto.Create(m_Ctrl);
         m_Ctrl.Model :=M ;
         m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
         //m_Ctrl.Inicialize ;
         V.Execute ;
+
     end;
 end;
 
@@ -132,7 +138,7 @@ begin
     end;
 
     vst_Grid1.Clear ;
-    if m_Ctrl.cmdFind(F) then
+    if m_Ctrl.ModelList.Load(F) then
     begin
         vst_Grid1.RootNodeCount :=m_Ctrl.ModelList.Items.Count;
         vst_Grid1.IndexItem :=0;
@@ -161,10 +167,25 @@ begin
 
 end;
 
+procedure Tfrm_ManifestoList.FormCreate(Sender: TObject);
+begin
+    m_Ctrl :=TCManifestoCtr.Create ;
+    //
+    // statusBar
+    m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
+    m_StatusProgress :=m_StatusBar.AddPanel(psProgress, 200) ;
+    m_StatusItems:=m_StatusBar.AddPanel(psHTML, 121) ;
+    m_StatusText:=m_StatusBar.AddPanel(psHTML) ;
+end;
+
 procedure Tfrm_ManifestoList.FormShow(Sender: TObject);
 begin
-    Self.Inicialize ;
+    edt_DatIni.Date :=Date;
+    edt_DatFin.Date :=edt_DatIni.Date;
 
+    ActiveControl :=edt_DatIni;
+
+    Self.Inicialize ;
 end;
 
 procedure Tfrm_ManifestoList.Inicialize;
@@ -177,7 +198,6 @@ begin
     m_Ctrl.View :=Self;
     m_Ctrl.Inicialize ;
     //
-    btn_Edit.Enabled :=False ;
 end;
 
 procedure Tfrm_ManifestoList.ModelChanged;
@@ -195,13 +215,9 @@ begin
    (V as Tfrm_ManifestoList).ShowModal ;
 end;
 
-procedure Tfrm_ManifestoList.vst_Grid1Change(Sender: TBaseVirtualTree;
-  Node: PVirtualNode);
+procedure Tfrm_ManifestoList.setStatusBar;
 begin
-    if Assigned(Node) then
-    begin
-        btn_Edit.Enabled :=True ;
-    end;
+    //
 end;
 
 procedure Tfrm_ManifestoList.vst_Grid1GetText(Sender: TBaseVirtualTree;

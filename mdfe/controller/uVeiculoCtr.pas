@@ -11,9 +11,11 @@ type
   IVeiculoCtr = Interface(IController)
     ['{F67F82CA-8A93-43DD-B0DB-2CF63B556131}']
     function getModel: IVeiculo;
+    procedure setModel(Value: IVeiculo);
     function getView: IView;
-    property Model: IVeiculo read getModel ;
-    property View: IView read getView ;
+    procedure setView(Value: IView);
+    property Model: IVeiculo read getModel write setModel;
+    property View: IView read getView write setView;
 
     procedure ExecView;
 
@@ -24,16 +26,20 @@ type
 
   end;
 
-  TCVeiculoCtr = class(TInterfacedObject, IVeiculoCtr)
+  TCVeiculoCtr = class(TInterfacedObject, IVeiculoCtr, IVeiculoList)
   private
+    m_ModelList: TCVeiculoList ;
     m_Model: IVeiculo;
     m_View: IView;
     function getModel: IVeiculo;
+    procedure setModel(Value: IVeiculo);
     function getView: IView;
+    procedure setView(Value: IView);
   protected
   public
-    property Model: IVeiculo read getModel ;
-    property View: IView read getView ;
+    property Model: IVeiculo read getModel write setModel;
+    property View: IView read getView write setView;
+    property ModelList: TCVeiculoList read m_ModelList implements IVeiculoList;
 
     constructor Create() ;
     procedure Inicialize;
@@ -110,7 +116,8 @@ end;
 
 constructor TCVeiculoCtr.Create() ;
 begin
-    //
+    m_ModelList :=TCVeiculoList.Create(Self) ;
+    {//
     // Instancia o model
     m_Model :=TCVeiculo.Create;
     //EmpresaDAO := TEmpresaDAO.Create;
@@ -120,8 +127,7 @@ begin
     m_View :=Tfrm_Veiculo.Create(Self);
 
     m_Model.OnModelChanged :=(m_View as Tfrm_Veiculo).ModelChanged ;
-    m_View.Inicialize ;
-
+    m_View.Inicialize ;}
 end;
 
 procedure TCVeiculoCtr.Edit;
@@ -166,5 +172,17 @@ begin
     ;
 end;
 
+
+procedure TCVeiculoCtr.setModel(Value: IVeiculo);
+begin
+    m_Model :=Value ;
+
+end;
+
+procedure TCVeiculoCtr.setView(Value: IView);
+begin
+    m_View :=Value ;
+
+end;
 
 end.

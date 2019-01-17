@@ -13,230 +13,10 @@ object frm_ManifestoList: Tfrm_ManifestoList
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
-  object AdvDockPanel1: TAdvDockPanel
-    Left = 0
-    Top = 0
-    Width = 794
-    Height = 44
-    MinimumSize = 3
-    LockHeight = False
-    Persistence.Location = plRegistry
-    Persistence.Enabled = False
-    ToolBarStyler = dm_Styles.AdvToolBarOfficeStyler1
-    UseRunTimeHeight = False
-    Version = '6.0.2.1'
-    object AdvToolBar1: TAdvToolBar
-      Left = 3
-      Top = 1
-      Width = 368
-      Height = 29
-      AllowFloating = False
-      Caption = 'Untitled'
-      CaptionFont.Charset = DEFAULT_CHARSET
-      CaptionFont.Color = clWindowText
-      CaptionFont.Height = -11
-      CaptionFont.Name = 'Tahoma'
-      CaptionFont.Style = []
-      CompactImageIndex = -1
-      TextAutoOptionMenu = 'Add or Remove Buttons'
-      TextOptionMenu = 'Options'
-      ToolBarStyler = dm_Styles.AdvToolBarOfficeStyler1
-      ParentOptionPicture = True
-      ToolBarIndex = -1
-      object AdvToolBarSeparator1: TAdvToolBarSeparator
-        Left = 109
-        Top = 2
-        Width = 10
-        Height = 23
-        LineColor = clBtnShadow
-      end
-      object AdvToolBarSeparator2: TAdvToolBarSeparator
-        Left = 194
-        Top = 2
-        Width = 10
-        Height = 23
-        LineColor = clBtnShadow
-      end
-      object btn_Config: TAdvGlowButton
-        Left = 9
-        Top = 2
-        Width = 100
-        Height = 25
-        Caption = 'Configura'#231#245'es'
-        FocusType = ftHot
-        NotesFont.Charset = DEFAULT_CHARSET
-        NotesFont.Color = clWindowText
-        NotesFont.Height = -11
-        NotesFont.Name = 'Tahoma'
-        NotesFont.Style = []
-        TabOrder = 0
-        Appearance.BorderColor = 14727579
-        Appearance.BorderColorHot = 10079963
-        Appearance.BorderColorDown = 4548219
-        Appearance.BorderColorChecked = clBlack
-        Appearance.Color = 15653832
-        Appearance.ColorTo = 16178633
-        Appearance.ColorChecked = 11918331
-        Appearance.ColorCheckedTo = 7915518
-        Appearance.ColorDisabled = 15921906
-        Appearance.ColorDisabledTo = 15921906
-        Appearance.ColorDown = 7778289
-        Appearance.ColorDownTo = 4296947
-        Appearance.ColorHot = 15465983
-        Appearance.ColorHotTo = 11332863
-        Appearance.ColorMirror = 15586496
-        Appearance.ColorMirrorTo = 16245200
-        Appearance.ColorMirrorHot = 5888767
-        Appearance.ColorMirrorHotTo = 10807807
-        Appearance.ColorMirrorDown = 946929
-        Appearance.ColorMirrorDownTo = 5021693
-        Appearance.ColorMirrorChecked = 10480637
-        Appearance.ColorMirrorCheckedTo = 5682430
-        Appearance.ColorMirrorDisabled = 11974326
-        Appearance.ColorMirrorDisabledTo = 15921906
-        Appearance.GradientHot = ggVertical
-        Appearance.GradientMirrorHot = ggVertical
-        Appearance.GradientDown = ggVertical
-        Appearance.GradientMirrorDown = ggVertical
-        Appearance.GradientChecked = ggVertical
-      end
-      object btn_Filter: TAdvGlowButton
-        Left = 119
-        Top = 2
-        Width = 75
-        Height = 25
-        Caption = 'Filtro'
-        FocusType = ftHot
-        NotesFont.Charset = DEFAULT_CHARSET
-        NotesFont.Color = clWindowText
-        NotesFont.Height = -11
-        NotesFont.Name = 'Tahoma'
-        NotesFont.Style = []
-        TabOrder = 1
-        OnClick = btn_FilterClick
-        Appearance.BorderColor = 14727579
-        Appearance.BorderColorHot = 10079963
-        Appearance.BorderColorDown = 4548219
-        Appearance.BorderColorChecked = clBlack
-        Appearance.Color = 15653832
-        Appearance.ColorTo = 16178633
-        Appearance.ColorChecked = 11918331
-        Appearance.ColorCheckedTo = 7915518
-        Appearance.ColorDisabled = 15921906
-        Appearance.ColorDisabledTo = 15921906
-        Appearance.ColorDown = 7778289
-        Appearance.ColorDownTo = 4296947
-        Appearance.ColorHot = 15465983
-        Appearance.ColorHotTo = 11332863
-        Appearance.ColorMirror = 15586496
-        Appearance.ColorMirrorTo = 16245200
-        Appearance.ColorMirrorHot = 5888767
-        Appearance.ColorMirrorHotTo = 10807807
-        Appearance.ColorMirrorDown = 946929
-        Appearance.ColorMirrorDownTo = 5021693
-        Appearance.ColorMirrorChecked = 10480637
-        Appearance.ColorMirrorCheckedTo = 5682430
-        Appearance.ColorMirrorDisabled = 11974326
-        Appearance.ColorMirrorDisabledTo = 15921906
-        Appearance.GradientHot = ggVertical
-        Appearance.GradientMirrorHot = ggVertical
-        Appearance.GradientDown = ggVertical
-        Appearance.GradientMirrorDown = ggVertical
-        Appearance.GradientChecked = ggVertical
-      end
-      object btn_New: TAdvGlowButton
-        Left = 204
-        Top = 2
-        Width = 75
-        Height = 25
-        Caption = 'Novo'
-        FocusType = ftHot
-        NotesFont.Charset = DEFAULT_CHARSET
-        NotesFont.Color = clWindowText
-        NotesFont.Height = -11
-        NotesFont.Name = 'Tahoma'
-        NotesFont.Style = []
-        TabOrder = 2
-        OnClick = btn_NewClick
-        Appearance.BorderColor = 14727579
-        Appearance.BorderColorHot = 10079963
-        Appearance.BorderColorDown = 4548219
-        Appearance.BorderColorChecked = clBlack
-        Appearance.Color = 15653832
-        Appearance.ColorTo = 16178633
-        Appearance.ColorChecked = 11918331
-        Appearance.ColorCheckedTo = 7915518
-        Appearance.ColorDisabled = 15921906
-        Appearance.ColorDisabledTo = 15921906
-        Appearance.ColorDown = 7778289
-        Appearance.ColorDownTo = 4296947
-        Appearance.ColorHot = 15465983
-        Appearance.ColorHotTo = 11332863
-        Appearance.ColorMirror = 15586496
-        Appearance.ColorMirrorTo = 16245200
-        Appearance.ColorMirrorHot = 5888767
-        Appearance.ColorMirrorHotTo = 10807807
-        Appearance.ColorMirrorDown = 946929
-        Appearance.ColorMirrorDownTo = 5021693
-        Appearance.ColorMirrorChecked = 10480637
-        Appearance.ColorMirrorCheckedTo = 5682430
-        Appearance.ColorMirrorDisabled = 11974326
-        Appearance.ColorMirrorDisabledTo = 15921906
-        Appearance.GradientHot = ggVertical
-        Appearance.GradientMirrorHot = ggVertical
-        Appearance.GradientDown = ggVertical
-        Appearance.GradientMirrorDown = ggVertical
-        Appearance.GradientChecked = ggVertical
-      end
-      object btn_Edit: TAdvGlowButton
-        Left = 279
-        Top = 2
-        Width = 75
-        Height = 25
-        Caption = 'Editar'
-        FocusType = ftHot
-        NotesFont.Charset = DEFAULT_CHARSET
-        NotesFont.Color = clWindowText
-        NotesFont.Height = -11
-        NotesFont.Name = 'Tahoma'
-        NotesFont.Style = []
-        TabOrder = 3
-        OnClick = btn_EditClick
-        Appearance.BorderColor = 14727579
-        Appearance.BorderColorHot = 10079963
-        Appearance.BorderColorDown = 4548219
-        Appearance.BorderColorChecked = clBlack
-        Appearance.Color = 15653832
-        Appearance.ColorTo = 16178633
-        Appearance.ColorChecked = 11918331
-        Appearance.ColorCheckedTo = 7915518
-        Appearance.ColorDisabled = 15921906
-        Appearance.ColorDisabledTo = 15921906
-        Appearance.ColorDown = 7778289
-        Appearance.ColorDownTo = 4296947
-        Appearance.ColorHot = 15465983
-        Appearance.ColorHotTo = 11332863
-        Appearance.ColorMirror = 15586496
-        Appearance.ColorMirrorTo = 16245200
-        Appearance.ColorMirrorHot = 5888767
-        Appearance.ColorMirrorHotTo = 10807807
-        Appearance.ColorMirrorDown = 946929
-        Appearance.ColorMirrorDownTo = 5021693
-        Appearance.ColorMirrorChecked = 10480637
-        Appearance.ColorMirrorCheckedTo = 5682430
-        Appearance.ColorMirrorDisabled = 11974326
-        Appearance.ColorMirrorDisabledTo = 15921906
-        Appearance.GradientHot = ggVertical
-        Appearance.GradientMirrorHot = ggVertical
-        Appearance.GradientDown = ggVertical
-        Appearance.GradientMirrorDown = ggVertical
-        Appearance.GradientChecked = ggVertical
-      end
-    end
-  end
   object AdvOfficeStatusBar1: TAdvOfficeStatusBar
     Left = 0
     Top = 553
@@ -347,10 +127,10 @@ object frm_ManifestoList: Tfrm_ManifestoList
     Version = '1.5.2.2'
   end
   object vst_Grid1: TVirtualStringTree
-    Left = 0
-    Top = 44
-    Width = 794
-    Height = 509
+    Left = 200
+    Top = 0
+    Width = 594
+    Height = 513
     Align = alClient
     Alignment = taCenter
     BevelInner = bvNone
@@ -376,13 +156,13 @@ object frm_ManifestoList: Tfrm_ManifestoList
     Header.Style = hsPlates
     ParentFont = False
     RootNodeCount = 30
-    TabOrder = 2
+    TabOrder = 1
     TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScroll, toAutoTristateTracking]
     TreeOptions.MiscOptions = [toAcceptOLEDrop, toCheckSupport, toGridExtensions, toInitOnSave, toToggleOnDblClick, toWheelPanning]
     TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
-    OnChange = vst_Grid1Change
     OnGetText = vst_Grid1GetText
+    ExplicitTop = -1
     Columns = <
       item
         Alignment = taRightJustify
@@ -488,9 +268,10 @@ object frm_ManifestoList: Tfrm_ManifestoList
   end
   object pnl_Filter: TAdvPanel
     Left = 0
-    Top = 248
-    Width = 295
-    Height = 305
+    Top = 0
+    Width = 200
+    Height = 513
+    Align = alLeft
     BevelOuter = bvNone
     BevelWidth = 0
     BorderStyle = bsSingle
@@ -501,7 +282,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    TabOrder = 3
+    TabOrder = 2
     UseDockManager = True
     Version = '2.3.0.0'
     BorderColor = clGray
@@ -539,34 +320,21 @@ object frm_ManifestoList: Tfrm_ManifestoList
     StatusBar.ColorTo = 11119017
     StatusBar.GradientDirection = gdVertical
     DesignSize = (
-      293
-      303)
+      198
+      511)
     FullHeight = 485
     object gbx_DtEmis: TAdvGroupBox
       Left = 5
       Top = 68
-      Width = 283
-      Height = 50
+      Width = 188
+      Height = 77
       RoundEdges = True
       Align = alTop
       Caption = ' Data de emiss'#227'o '
       TabOrder = 1
-      object Label1: TLabel
-        Left = 13
-        Top = 20
-        Width = 155
-        Height = 14
-        Caption = 'De:                            At'#233':'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        ParentFont = False
-      end
       object edt_DatIni: TJvDateEdit
-        Left = 35
-        Top = 18
+        Left = 75
+        Top = 20
         Width = 100
         Height = 22
         ShowNullDate = False
@@ -574,8 +342,8 @@ object frm_ManifestoList: Tfrm_ManifestoList
         DisabledColor = clSilver
       end
       object edt_DatFin: TJvDateEdit
-        Left = 174
-        Top = 18
+        Left = 75
+        Top = 44
         Width = 100
         Height = 22
         ShowNullDate = False
@@ -585,16 +353,15 @@ object frm_ManifestoList: Tfrm_ManifestoList
     end
     object rgx_Status: TAdvOfficeRadioGroup
       Left = 5
-      Top = 118
-      Width = 283
-      Height = 125
+      Top = 145
+      Width = 188
+      Height = 171
       RoundEdges = True
       Version = '1.3.7.0'
       Align = alTop
       Caption = ' Situa'#231#227'o '
       ParentBackground = False
       TabOrder = 2
-      Columns = 2
       ItemIndex = 5
       Items.Strings = (
         'Pronto para envio;'
@@ -607,9 +374,9 @@ object frm_ManifestoList: Tfrm_ManifestoList
       Ellipsis = False
     end
     object btn_Find: TJvImgBtn
-      Left = 188
-      Top = 268
-      Width = 100
+      Left = 103
+      Top = 476
+      Width = 90
       Height = 30
       Anchors = [akRight, akBottom]
       Caption = 'Buscar'
@@ -619,21 +386,20 @@ object frm_ManifestoList: Tfrm_ManifestoList
     object gbx_Ident: TAdvGroupBox
       Left = 5
       Top = 18
-      Width = 283
+      Width = 188
       Height = 50
       RoundEdges = True
       Align = alTop
-      Caption = ' Id do manifesto '
+      Caption = ' N'#250'mero do manifesto '
       TabOrder = 0
       object edt_CodSeq: TAdvEdit
-        Left = 174
-        Top = 18
+        Left = 75
+        Top = 20
         Width = 100
         Height = 22
         EditAlign = eaCenter
         EditType = etNumeric
         EmptyTextStyle = []
-        LabelCaption = 'Informe um identificador:'
         LabelMargin = 3
         LabelTransparent = True
         LabelFont.Charset = DEFAULT_CHARSET
@@ -656,8 +422,8 @@ object frm_ManifestoList: Tfrm_ManifestoList
     end
     object chk_ChvNFe: TAdvOfficeCheckBox
       Left = 5
-      Top = 243
-      Width = 283
+      Top = 316
+      Width = 188
       Height = 20
       Align = alTop
       Checked = True
@@ -669,6 +435,126 @@ object frm_ManifestoList: Tfrm_ManifestoList
       State = cbChecked
       Themed = True
       Version = '1.3.7.0'
+    end
+  end
+  object pnl_Footer: TJvFooter
+    Left = 0
+    Top = 513
+    Width = 794
+    Height = 40
+    Align = alBottom
+    BevelStyle = bsRaised
+    BevelVisible = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Trebuchet MS'
+    Font.Style = []
+    ParentFont = False
+    DesignSize = (
+      794
+      40)
+    object btn_Config: TJvFooterBtn
+      Left = 8
+      Top = 5
+      Width = 90
+      Height = 30
+      Hint = 'Configura a forma de emiss'#227'o'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Configura'#231#245'es'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 1
+      Alignment = taLeftJustify
+      ButtonIndex = 0
+      SpaceInterval = 6
+    end
+    object btn_Filter: TJvFooterBtn
+      Left = 102
+      Top = 5
+      Width = 90
+      Height = 30
+      Hint = 'Mostra/Esconde o Filtro'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Filtro'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 2
+      OnClick = btn_FilterClick
+      Alignment = taLeftJustify
+      ButtonIndex = 1
+      SpaceInterval = 6
+    end
+    object btn_Close: TJvFooterBtn
+      Left = 696
+      Top = 5
+      Width = 90
+      Height = 30
+      Anchors = [akRight, akBottom]
+      Caption = 'Fechar'
+      TabOrder = 0
+      ButtonIndex = 2
+      SpaceInterval = 6
+    end
+    object btn_New: TJvFooterBtn
+      Left = 198
+      Top = 5
+      Width = 90
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Novo'
+      ParentShowHint = False
+      ShowHint = False
+      TabOrder = 6
+      OnClick = btn_NewClick
+      Alignment = taLeftJustify
+      ButtonIndex = 3
+      SpaceInterval = 6
+    end
+    object btn_Edit: TJvFooterBtn
+      Left = 294
+      Top = 5
+      Width = 90
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Alterar'
+      ParentShowHint = False
+      ShowHint = False
+      TabOrder = 4
+      OnClick = btn_EditClick
+      Alignment = taLeftJustify
+      ButtonIndex = 4
+      SpaceInterval = 6
+    end
+    object btn_Send: TJvFooterBtn
+      Left = 390
+      Top = 5
+      Width = 90
+      Height = 30
+      Hint = 'Autoriza Nota Fiscal'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Enviar'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 3
+      Alignment = taLeftJustify
+      ButtonIndex = 5
+      SpaceInterval = 6
+    end
+    object btn_Cancel: TJvFooterBtn
+      Left = 486
+      Top = 5
+      Width = 90
+      Height = 30
+      Hint = 'Evento da NFE - Cancelamento / Carta de Corre'#231#227'o'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Eventos da NFE'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 5
+      Alignment = taLeftJustify
+      ButtonIndex = 6
+      SpaceInterval = 6
     end
   end
 end

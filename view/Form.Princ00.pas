@@ -43,19 +43,20 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, Mask, ExtCtrls,
+  Dialogs, StdCtrls, Mask, ExtCtrls, ActnList, Menus,
   //JEDI
   JvExStdCtrls, JvExExtCtrls, JvExtComponent, JvCtrls,
   JvFooter, JvToolEdit, JvGroupBox, JvButton, JvAppInst,
   //TMS
   AdvPanel, AdvEdit, JvExMask, AdvGlowButton, AdvOfficeButtons, AdvGroupBox,
-  AdvCombo, HTMLabel, AdvToolBar ,
+  AdvCombo, HTMLabel, AdvToolBar, AdvMenus, AdvOfficeStatusBar,
   //
   VirtualTrees, uVSTree,
   //
   FormBase,
-  uclass, ulog, uTaskDlg, unotfis00, ActnList, AdvMenus, Menus,
-  AdvOfficeStatusBar;
+  uclass, ulog, uTaskDlg, uStatusBar,
+  unotfis00
+  ;
 
 
 
@@ -109,16 +110,15 @@ type
     btn_Cons: TJvFooterBtn;
     btn_Cancel: TJvFooterBtn;
     btn_Inut: TJvFooterBtn;
-    btn_export: TJvFooterBtn;
+    btn_MDFE: TJvFooterBtn;
     html_Status: THTMLabel;
-    btn_Danfe: TJvFooterBtn;
+    btn_Listagem: TJvFooterBtn;
     gbx_CodPed: TAdvGroupBox;
     edt_PedIni: TAdvEdit;
     edt_PedFin: TAdvEdit;
     Label1: TLabel;
     chk_EnvLote: TAdvOfficeCheckBox;
     chk_ChvNFe: TAdvOfficeCheckBox;
-    btn_RelNF: TJvFooterBtn;
     cbx_Ordem: TAdvComboBox;
     chk_Desc: TAdvOfficeCheckBox;
     gbx_ModSer: TAdvGroupBox;
@@ -133,6 +133,14 @@ type
     mnu_CancNFE: TMenuItem;
     mnu_CCE: TMenuItem;
     AdvOfficeStatusBar1: TAdvOfficeStatusBar;
+    ppm_Listagem: TAdvPopupMenu;
+    act_DANFE: TAction;
+    act_ListNF: TAction;
+    act_ExportXML: TAction;
+    DANFE1: TMenuItem;
+    ListagemdeNF1: TMenuItem;
+    N1: TMenuItem;
+    ExportarNFE1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -144,13 +152,9 @@ type
     procedure vst_Grid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure btn_ConsClick(Sender: TObject);
     procedure btn_InutClick(Sender: TObject);
-    procedure FormResize(Sender: TObject);
-    procedure btn_exportClick(Sender: TObject);
-    procedure btn_DanfeClick(Sender: TObject);
     procedure btn_ConsSvcClick(Sender: TObject);
     procedure vst_Grid1HeaderClick(Sender: TVTHeader;
       HitInfo: TVTHeaderHitInfo);
-    procedure btn_RelNFClick(Sender: TObject);
     procedure rgx_StatusClick(Sender: TObject);
     procedure chk_EnvLoteClick(Sender: TObject);
     procedure chk_ChvNFeClick(Sender: TObject);
@@ -158,12 +162,22 @@ type
     procedure btn_ItemsClick(Sender: TObject);
     procedure act_CCEExecute(Sender: TObject);
     procedure act_CancNFEExecute(Sender: TObject);
+    procedure act_DANFEExecute(Sender: TObject);
+    procedure act_ListNFExecute(Sender: TObject);
+    procedure act_ExportXMLExecute(Sender: TObject);
+    procedure btn_MDFEClick(Sender: TObject);
   private
     { Private declarations }
     m_Service: Boolean ;
     m_Filter: TNotFis00Filter;
     m_Lote: TCNotFis00Lote;
     m_bSelCodSeq: Int32;
+    m_StatusBar: TCStatusBarWidget;
+    m_StatusProgress: TAdvOfficeStatusPanel ;
+    m_StatusTotQtd: TAdvOfficeStatusPanel ;
+    m_StatusTotVlr: TAdvOfficeStatusPanel ;
+    m_StatusText: TAdvOfficeStatusPanel ;
+    procedure setStatusBar();
 
 //    procedure OnButtonDraw(Sender: TObject;
 //      const DrawItemStruct: tagDRAWITEMSTRUCT);
@@ -222,7 +236,8 @@ uses StrUtils, DateUtils, IOUtils , DB, Clipbrd ,
   //Form.Config,
   Form.ParametroList, Form.NFEStatus,
   Form.Justifica, Form.Inutiliza,
-  Form.RelNFRL00, Form.Ajuda, Form.EnvioLote, Form.Items, Form.CCEList ;
+  Form.RelNFRL00, Form.Ajuda, Form.EnvioLote, Form.Items, Form.CCEList,
+  Form.ManifestoList ;
 
 const
   Alignments: array [TAlignment] of Word = (DT_LEFT, DT_RIGHT, DT_CENTER);
@@ -289,6 +304,44 @@ begin
         Tfrm_CCEList.lp_Show(N) ;
     end;
     ActiveControl :=vst_Grid1;
+end;
+
+procedure Tfrm_Princ00.act_DANFEExecute(Sender: TObject);
+var
+  N: TCNotFis00 ;
+begin
+    if CMsgDlg.Confirm('Deseja imprimir o DANFE?') then
+    begin
+        DoUpdateStatus('Imprimindo...');
+        N :=m_Lote.Items[vst_Grid1.IndexItem] ;
+        if Tdm_nfe.getInstance.PrintDANFE(N) then
+        begin
+            CMsgDlg.Info('DANFE impresso com sucesso.') ;
+        end
+        else begin
+            CMsgDlg.Error('DANFE não impresso!') ;
+        end;
+        DoUpdateStatus('');
+    end;
+    ActiveControl :=vst_Grid1;
+end;
+
+procedure Tfrm_Princ00.act_ExportXMLExecute(Sender: TObject);
+begin
+    if CMsgDlg.Confirm('Somente as Notas processadas serão exportadas! Deseja continuar?') then
+    begin
+        m_Service :=False;
+        CRec.OnIni :=OnINI;
+        CRec.OnEnd :=OnEND;
+        CRec.CProc :=DoRun;
+        CRec.CExec :=TCThreadProc.Create(CRec);
+    end;
+end;
+
+procedure Tfrm_Princ00.act_ListNFExecute(Sender: TObject);
+begin
+    Tfrm_RelNFRL00.Execute(m_Lote);
+
 end;
 
 procedure Tfrm_Princ00.btn_CloseClick(Sender: TObject);
@@ -379,26 +432,6 @@ begin
     ActiveControl :=vst_Grid1;
 end;
 
-procedure Tfrm_Princ00.btn_DanfeClick(Sender: TObject);
-var
-  N: TCNotFis00 ;
-begin
-    if CMsgDlg.Confirm('Deseja imprimir o DANFE?') then
-    begin
-        DoUpdateStatus('Imprimindo...');
-        N :=m_Lote.Items[vst_Grid1.IndexItem] ;
-        if Tdm_nfe.getInstance.PrintDANFE(N) then
-        begin
-            CMsgDlg.Info('DANFE impresso com sucesso.') ;
-        end
-        else begin
-            CMsgDlg.Error('DANFE não impresso!') ;
-        end;
-        DoUpdateStatus('');
-    end;
-    ActiveControl :=vst_Grid1;
-end;
-
 procedure Tfrm_Princ00.btn_ExecClick(Sender: TObject);
 begin
     //
@@ -477,31 +510,18 @@ begin
     begin
         btn_FilterClick(nil);
         btn_Items.Enabled :=True;
-        btn_RelNF.Enabled :=True ;
+        ActionList1.State :=asNormal ;
         btn_Cons.Enabled :=True  ;
-        btn_export.Enabled :=True;
     end
     else begin
-        CMsgDlg.Info('Nenhuma nota encontrada neste filtro!') ;
-        ActiveControl :=edt_PedIni;
         btn_Items.Enabled :=False;
         btn_Send.Enabled :=False;
         btn_Cons.Enabled :=False;
-        btn_RelNF.Enabled :=False;
-        btn_export.Enabled :=True;
+        ActionList1.State :=asSuspended ;
+        CMsgDlg.Info('Nenhuma nota encontrada neste filtro!') ;
+        ActiveControl :=edt_PedIni;
     end;
-end;
-
-procedure Tfrm_Princ00.btn_exportClick(Sender: TObject);
-begin
-    if CMsgDlg.Confirm('Somente as Notas processadas serão exportadas! Deseja continuar?') then
-    begin
-        m_Service :=False;
-        CRec.OnIni :=OnINI;
-        CRec.OnEnd :=OnEND;
-        CRec.CProc :=DoRun;
-        CRec.CExec :=TCThreadProc.Create(CRec);
-    end;
+    setStatusBar ;
 end;
 
 procedure Tfrm_Princ00.btn_FilterClick(Sender: TObject);
@@ -541,10 +561,10 @@ begin
     ActiveControl :=vst_Grid1;
 end;
 
-procedure Tfrm_Princ00.btn_RelNFClick(Sender: TObject);
+procedure Tfrm_Princ00.btn_MDFEClick(Sender: TObject);
 begin
-//    Tfrm_RelNF.CF_Execute(m_Lote);
-    Tfrm_RelNFRL00.Execute(m_Lote);
+    Tfrm_ManifestoList.NewAndShow ;
+
 end;
 
 procedure Tfrm_Princ00.btn_SendClick(Sender: TObject);
@@ -810,19 +830,19 @@ begin
                                                   TCExeInfo.getInstance.BuildNumber
                                                  ]);
     AppInstances1.Active :=True;
+    //
+    // statusBar
+    m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
+    m_StatusProgress :=m_StatusBar.AddPanel(psProgress, 200) ;
+    m_StatusTotQtd:=m_StatusBar.AddPanel(psHTML, 121) ;
+    m_StatusTotVlr:=m_StatusBar.AddPanel(psHTML, 121) ;
+    m_StatusText:=m_StatusBar.AddPanel(psHTML) ;
+
 end;
 
 procedure Tfrm_Princ00.FormDestroy(Sender: TObject);
 begin
     m_Lote.Destroy ;
-
-end;
-
-procedure Tfrm_Princ00.FormResize(Sender: TObject);
-begin
-    vst_Grid1.Anchors :=vst_Grid1.Anchors +[akBottom];
-    pnl_Filter.Anchors:=[akLeft,akTop,akBottom];
-    html_Status.Anchors:=[akLeft,akRight,akBottom];
 
 end;
 
@@ -848,10 +868,14 @@ begin
     btn_Filter.Enabled  :=True;
     btn_ConsSvc.Enabled :=True;
     btn_Inut.Enabled  :=True;
+    btn_Listagem.Enabled :=True;
+    btn_MDFE.Enabled :=True;
     btn_Close.Enabled :=True;
 
 //    btn_Filter.m_ShortCut :='F2';
 //    btn_Items.m_ShortCut :='Alt+I';
+
+    ActionList1.State :=asSuspended ;
 
     DoUpdateStatus('');
     m_bSelCodSeq :=0;
@@ -990,7 +1014,7 @@ var
   P: PVirtualNode;
 begin
     vst_Grid1.Clear ;
-    DoUpdateStatus('Carregando Notas Fiscais, Aguarde...');
+    setStatus('Carregando Notas Fiscais'#13#10'Aguarde...', crSQLWait);
     try
 
       Result :=m_Lote.Load(m_Filter);
@@ -1016,14 +1040,13 @@ begin
           //btn_Send.Enabled :=False;
           //btn_Cons.Enabled :=False;
           //btn_Cancel.Enabled :=False;
-          btn_export.Enabled :=True;
 
       end
       else
           m_bSelCodSeq :=0;
 
     finally
-      DoUpdateStatus('');
+      setStatus('');
     end;
 end;
 
@@ -1124,6 +1147,25 @@ begin
 
 end;
 
+procedure Tfrm_Princ00.setStatusBar;
+var
+  N: TCNotFis00 ;
+  P: string;
+begin
+    if vst_Grid1.RootNodeCount > 0 then
+    begin
+        N :=m_Lote.Items[vst_Grid1.IndexItem];
+        m_StatusTotQtd.Text :=Format('NF: %d',[m_Lote.Items.Count]) ;
+        m_StatusTotVlr.Text :=Format('VT: %-15.2m',[m_Lote.vTotalNF]);
+        m_StatusText.Text :=Format('%d|%s',[N.m_codstt,N.m_motivo]);
+    end
+    else begin
+        m_StatusTotQtd.Text :='Nenhum' ;
+        m_StatusTotVlr.Text :='Nenhum' ;
+        m_StatusText.Text :='';
+    end;
+end;
+
 procedure Tfrm_Princ00.vst_Grid1Change(Sender: TBaseVirtualTree;
   Node: PVirtualNode);
 var
@@ -1161,7 +1203,7 @@ begin
 
         btn_Cancel.Enabled :=N.m_codstt =TCNotFis00.CSTT_AUTORIZADO_USO;
 
-        btn_Danfe.Enabled :=N.m_codstt in[TCNotFis00.CSTT_EMIS_CONTINGE,
+        act_DANFE.Enabled :=N.m_codstt in[TCNotFis00.CSTT_EMIS_CONTINGE,
                                           TCNotFis00.CSTT_AUTORIZADO_USO];
 
         //
@@ -1174,7 +1216,6 @@ begin
         btn_Send.Enabled :=False;
         btn_Cons.Enabled :=False;
         btn_Cancel.Enabled:=False;
-        btn_export.Enabled :=False;
     end;
 end;
 
@@ -1282,7 +1323,7 @@ begin
     end;
     Canvas.Font.Name :=fontName;
     Canvas.Font.Size :=fontSize;
-    Canvas.Font.Style :=fontStyl;
+    Canvas.Font.Style:=fontStyl;
 end;
 
 procedure TJvFooterBtn.DrawItem(const DrawItemStruct: TDrawItemStruct);

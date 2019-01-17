@@ -17,7 +17,18 @@ uses
   ucce in 'model\ucce.pas',
   Form.CCEList in 'view\Form.CCEList.pas' {frm_CCEList},
   Form.CCE in 'view\Form.CCE.pas' {frm_CCE},
-  fdm.Styles in 'conteiners\fdm.Styles.pas' {dm_Styles: TDataModule};
+  fdm.Styles in 'conteiners\fdm.Styles.pas' {dm_Styles: TDataModule},
+  uIntf in 'interfaces\uIntf.pas',
+  uCondutor in 'mdfe\uCondutor.pas',
+  uManifestoDF in 'mdfe\uManifestoDF.pas',
+  uVeiculo in 'mdfe\uVeiculo.pas',
+  uCondutorCtr in 'mdfe\controller\uCondutorCtr.pas',
+  uManifestoCtr in 'mdfe\controller\uManifestoCtr.pas',
+  uVeiculoCtr in 'mdfe\controller\uVeiculoCtr.pas',
+  Form.ManifestoList in 'mdfe\view\Form.ManifestoList.pas' {frm_ManifestoList},
+  Form.Manifesto in 'mdfe\view\Form.Manifesto.pas' {frm_Manifesto},
+  Form.Condutor in 'mdfe\view\Form.Condutor.pas' {frm_Condutor},
+  Form.Veiculo in 'mdfe\view\Form.Veiculo.pas' {frm_Veiculo};
 
 {$R *.res}
 {$R ATAC_APP_NFE.UAC.res}

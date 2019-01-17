@@ -86,6 +86,7 @@ type
 
     procedure Insert ;
     procedure Edit ;
+    procedure loadFromDataset(ds: TDataSet);
 
     function Merge(): TModelUpdateKind;
   end;
@@ -94,7 +95,6 @@ type
   private
     m_OnModelChanged: TModelChangedEvent;
     m_StateChange: TModelState ;
-    //m_infCdt: TList<TCCondutor>;
     procedure cmdInsert ;
     procedure cmdUpdate ;
     procedure cmdDelete ;
@@ -182,6 +182,25 @@ type
     class function CLoad(const codseq: Int32): TDataSet ;
   end;
 
+  //
+  // lista de veiculos
+  IVeiculoList = interface (IDataList<IVeiculo>)
+  end;
+  TCVeiculoList = class(TAggregatedObject, IVeiculoList)
+  private
+    m_DataList: TList<IVeiculo> ;
+    function getItems: TList<IVeiculo> ;
+  public
+    property Items: TList<IVeiculo> read getItems ;
+    constructor Create(aController: IInterface);
+    destructor Destroy; override ;
+    function addNew(aItem: IVeiculo): IVeiculo ;
+    function indexOf(const id: Int32): IVeiculo;
+    procedure clearItems ;
+    procedure Load;
+  end;
+
+
 
 
 function tpRodadoToStr(const tprod: smallint): string ;
@@ -231,7 +250,7 @@ begin
     begin
         Q.AddCmd('where vei_codseq =%d',[codseq]);
     end;
-    Q.AddCmd('order by vei_codseq    ');
+    Q.AddCmd('order by vei_placa      ');
     Q.Open ;
     //
     //
@@ -647,5 +666,63 @@ begin
     ;
 end;
 
+
+{ TCVeiculoList }
+
+function TCVeiculoList.addNew(aItem: IVeiculo): IVeiculo;
+begin
+    if aItem = nil then
+        Result :=TCVeiculo.Create
+    else
+        Result :=aItem;
+    m_DataList.Add(Result) ;
+end;
+
+procedure TCVeiculoList.clearItems;
+begin
+    m_DataList.Clear ;
+
+end;
+
+constructor TCVeiculoList.Create(aController: IInterface);
+begin
+    inherited Create(aController);
+    m_DataList :=TList<IVeiculo>.Create ;
+end;
+
+destructor TCVeiculoList.Destroy;
+begin
+
+    inherited;
+end;
+
+function TCVeiculoList.getItems: TList<IVeiculo>;
+begin
+    Result :=m_DataList;
+
+end;
+
+function TCVeiculoList.indexOf(const id: Int32): IVeiculo;
+begin
+
+end;
+
+procedure TCVeiculoList.Load;
+var
+  ds: TDataSet ;
+  I: IVeiculo ;
+begin
+    ds :=TCVeiculo.CLoad(0) ;
+    try
+        while not ds.Eof do
+        begin
+            I :=Self.addNew(nil) ;
+            I.loadFromDataset(ds);
+            ds.Next ;
+        end;
+    finally
+        TADOQuery(ds).Free ;
+    end;
+end;
 
 end.

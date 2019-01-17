@@ -92,6 +92,25 @@
 				<Form>dm_Styles</Form>
 				<DesignClass>TDataModule</DesignClass>
 			</DCCReference>
+			<DCCReference Include="interfaces\uIntf.pas"/>
+			<DCCReference Include="mdfe\uCondutor.pas"/>
+			<DCCReference Include="mdfe\uManifestoDF.pas"/>
+			<DCCReference Include="mdfe\uVeiculo.pas"/>
+			<DCCReference Include="mdfe\controller\uCondutorCtr.pas"/>
+			<DCCReference Include="mdfe\controller\uManifestoCtr.pas"/>
+			<DCCReference Include="mdfe\controller\uVeiculoCtr.pas"/>
+			<DCCReference Include="mdfe\view\Form.ManifestoList.pas">
+				<Form>frm_ManifestoList</Form>
+			</DCCReference>
+			<DCCReference Include="mdfe\view\Form.Manifesto.pas">
+				<Form>frm_Manifesto</Form>
+			</DCCReference>
+			<DCCReference Include="mdfe\view\Form.Condutor.pas">
+				<Form>frm_Condutor</Form>
+			</DCCReference>
+			<DCCReference Include="mdfe\view\Form.Veiculo.pas">
+				<Form>frm_Veiculo</Form>
+			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
