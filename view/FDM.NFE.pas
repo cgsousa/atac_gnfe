@@ -999,12 +999,18 @@ begin
 end;
 
 function Tdm_nfe.getDaysUseCertif: Smallint;
+var
+  yy,mm,dd: Word;
 begin
     m_NFE.SSL.CarregarCertificadoSeNecessario;
     if Empresa.DateServ > m_NFE.SSL.CertDataVenc then
         Result :=-DaysBetween(Empresa.DateServ, m_NFE.SSL.CertDataVenc)
-    else
-        Result :=DaysBetween(Empresa.DateServ, m_NFE.SSL.CertDataVenc);
+    else begin
+        if DayOf(Empresa.DateServ) =DayOf(m_NFE.SSL.CertDataVenc) then
+            Result :=1
+        else
+            Result :=DaysBetween(Empresa.DateServ, m_NFE.SSL.CertDataVenc);
+    end;
 end;
 
 class function Tdm_nfe.getInstance: Tdm_nfe;
