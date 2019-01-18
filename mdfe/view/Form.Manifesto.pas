@@ -14,7 +14,7 @@ uses
   AdvCombo, AdvEdit, JvExMask, JvToolEdit, AdvGroupBox,
   AdvToolBar, AdvGlowButton, AdvMenus, AdvToolBarStylers, AdvEdBtn,
 
-  uIntf, uManifestoCtr, unotfis00, uCondutor
+  uIntf, uManifestoCtr, unotfis00, uCondutorCtr, uCondutor
   ;
 
 type
@@ -52,43 +52,50 @@ type
     tab_Rodo: TAdvTabSheet;
     vst_GridMun: TVirtualStringTree;
     edt_VeiCod: TAdvEditBtn;
-    gbx_Condutor: TAdvGroupBox;
-    vst_GridCondutor: TVirtualStringTree;
-    edt_CdtCod: TAdvEditBtn;
     pnl_Footer: TJvFooter;
     btn_Filter: TJvFooterBtn;
     btn_Close: TJvFooterBtn;
     btn_Vincula: TJvFooterBtn;
     btn_Remove: TJvFooterBtn;
     btn_Save: TJvFooterBtn;
+    pnl_Condutor: TAdvPanel;
+    vst_GridCdtVinc: TVirtualStringTree;
+    vst_GridCdtCad: TVirtualStringTree;
+    btn_CdtCad: TJvImgBtn;
+    btn_CdtAdd: TJvImgBtn;
+    btn_CdtRmv: TJvImgBtn;
+    Label1: TLabel;
+    Label2: TLabel;
     procedure FormDestroy(Sender: TObject);
     procedure btn_FindClick(Sender: TObject);
     procedure edt_VeiCodClickBtn(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure pag_Control00Change(Sender: TObject);
     procedure vst_GridMunChange(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure vst_GridMunGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
     procedure btn_FilterClick(Sender: TObject);
-    procedure edt_CdtCodClickBtn(Sender: TObject);
     procedure btn_VinculaClick(Sender: TObject);
-    procedure vst_GridCondutorGetText(Sender: TBaseVirtualTree;
+    procedure vst_GridCdtVincGetText(Sender: TBaseVirtualTree;
       Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
       var CellText: string);
     procedure btn_SaveClick(Sender: TObject);
+    procedure btn_CdtCadClick(Sender: TObject);
+    procedure vst_GridCdtCadGetText(Sender: TBaseVirtualTree;
+      Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
+      var CellText: string);
+    procedure btn_CdtAddClick(Sender: TObject);
+    procedure pag_Control00Change(Sender: TObject);
+    procedure btn_CloseClick(Sender: TObject);
+    procedure btn_CdtRmvClick(Sender: TObject);
   private
     { Private declarations }
     m_Ctrl: IManifestoCtr;
     m_StatusBar: TCStatusBarWidget;
     m_lote: TCNotFis00Lote;
-    m_Condutor: ICondutor;
+    m_CondutorCtr: TCCondutorCtr;
     procedure loadGridMun ;
     procedure loadVeiculo ;
-    procedure loadCondutor;
-  private
-    procedure VincNFE ;
-    procedure VincVei ;
-    procedure VincCdt ;
+    procedure loadCondutores;
   protected
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
   public
@@ -107,7 +114,7 @@ implementation
 uses StrUtils, DateUtils,
   uTaskDlg, uadodb, udbconst,
   FDM.NFE, fdm.Styles ,
-  uManifestoDF, uVeiculoCtr, uVeiculo, uCondutorCtr,
+  uManifestoDF, uVeiculoCtr, uVeiculo,
   Form.Veiculo, Form.Condutor
   ;
 
@@ -119,10 +126,67 @@ const
 
 { Tfrm_Manifesto }
 
+procedure Tfrm_Manifesto.btn_CdtAddClick(Sender: TObject);
+var
+  C: ICondutor ;
+begin
+    if CMsgDlg.Confirm('Deseja vincular o condutor ao veículo?')then
+    begin
+        C :=m_CondutorCtr.ModelList.Items[vst_GridCdtCad.IndexItem] ;
+        if m_Ctrl.Model.modalRodo.condutores.indexOf(C.id) <> nil then
+        begin
+            raise Exception.CreateFmt('o condutor [%d|%s], já vinculado!',[C.id,C.Nome]);
+        end;
+        m_Ctrl.Model.modalRodo.condutores.addNew(C) ;
+        vst_GridCdtVinc.AddChild(nil) ;
+    end;
+end;
+
+procedure Tfrm_Manifesto.btn_CdtCadClick(Sender: TObject);
+var
+  M: ICondutor ;
+  V: IView ;
+begin
+    M :=TCCondutor.Create ;
+    V :=Tfrm_Condutor.Create(m_CondutorCtr);
+    m_CondutorCtr.Model :=M;
+    m_CondutorCtr.Model.OnModelChanged :=(V as Tfrm_Condutor).ModelChanged ;
+    m_CondutorCtr.Model.Insert ;
+    V.Execute ;
+end;
+
+procedure Tfrm_Manifesto.btn_CdtRmvClick(Sender: TObject);
+var
+  C: ICondutor ;
+begin
+{    if CMsgDlg.Confirm('Deseja remover o vinculo do condutor?')then
+    begin
+        C :=m_CondutorCtr.ModelList.Items[vst_GridCdtCad.IndexItem] ;
+        if m_Ctrl.Model.modalRodo.condutores.indexOf(C.id) <> nil then
+        begin
+            raise Exception.CreateFmt('o condutor [%d|%s], já vinculado!',[C.id,C.Nome]);
+        end;
+        m_Ctrl.Model.modalRodo.condutores.addNew(C) ;
+        vst_GridCdtVinc.AddChild(nil) ;
+    end;}
+end;
+
+procedure Tfrm_Manifesto.btn_CloseClick(Sender: TObject);
+begin
+    Self.Close;
+
+end;
+
 procedure Tfrm_Manifesto.btn_FilterClick(Sender: TObject);
 begin
-  pnl_Filter.Visible :=not pnl_Filter.Visible ;
-
+    if pag_Control00.ActivePageIndex <> 0 then
+    begin
+        pag_Control00.ActivePageIndex :=0 ;
+        pnl_Filter.Visible :=True ;
+        ActiveControl :=edt_PedIni;
+    end
+    else
+        pnl_Filter.Visible :=not pnl_Filter.Visible ;
 end;
 
 procedure Tfrm_Manifesto.btn_FindClick(Sender: TObject);
@@ -255,7 +319,7 @@ begin
         begin
             CMsgDlg.Error(E.Message);
             pag_Control01.ActivePageIndex :=1 ;
-            ActiveControl :=edt_CdtCod;
+            ActiveControl :=btn_CdtAdd;
         end;
 
         on E: EDocIsEmpty do
@@ -275,11 +339,69 @@ begin
 end;
 
 procedure Tfrm_Manifesto.btn_VinculaClick(Sender: TObject);
+var
+  L: TCNotFis00Lote ;
+  N: TCNotFis00 ;
+  M: TCManifestodf01mun;
+  I: IManifestodf02nfe ;
 begin
-    if pag_Control00.ActivePageIndex = 0 then
-        VincNFE
-    else
-        VincCdt ;
+    if CMsgDlg.Confirm('Deseja vincular as notas ao manifesto?')then
+    begin
+        //
+        // loop para add os municipios
+        for N in L.Items do
+        begin
+            //
+            // valida vinculo
+            if N.Checked then
+            begin
+                //
+                // mun. carga
+                M :=m_Ctrl.Model.municipios.indexOf(N.m_emit.EnderEmit.cMun,mtCarga) ;
+                if M = nil then
+                begin
+                    M :=TCManifestodf01mun.New( 0,
+                                                N.m_emit.EnderEmit.cMun,
+                                                N.m_emit.EnderEmit.xMun,
+                                                N.m_emit.EnderEmit.UF,
+                                                mtCarga );
+                    m_Ctrl.Model.municipios.addNew(M) ;
+                end;
+
+                //
+                // mun. descarga
+                M :=m_Ctrl.Model.municipios.indexOf(N.m_dest.EnderDest.cMun,mtDescarga) ;
+                if M = nil then
+                begin
+                    M :=TCManifestodf01mun.New( 0,
+                                                N.m_dest.EnderDest.cMun,
+                                                N.m_dest.EnderDest.xMun,
+                                                N.m_dest.EnderDest.UF,
+                                                mtDescarga );
+                    m_Ctrl.Model.municipios.addNew(M) ;
+                end;
+
+                //
+                // add nfe somente para mum. descarga
+                if M.tipoMun =mtDescarga then
+                begin
+                    M.nfeList.addNew(
+                        TCManifestodf02nfe.New( N.m_chvnfe, '', False,
+                                                N.m_codseq,
+                                                N.m_icmstot.vNF,
+                                                N.m_transp.Vol.Items[0].pesoB
+                                                )
+                    ) ;
+                end;
+            end;
+        end;
+        //
+        // carga grid
+        loadGridMun ;
+        pag_Control00.ActivePageIndex :=1;
+        pag_Control01.ActivePageIndex :=0;
+        ActiveControl :=vst_GridNFE ;
+    end;
 end;
 
 constructor Tfrm_Manifesto.Create(aCtrl: IManifestoCtr);
@@ -288,7 +410,7 @@ begin
     m_Ctrl :=aCtrl;
     m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
     m_lote :=TCNotFis00Lote.Create ;
-    m_Condutor :=TCCondutor.Create ;
+    m_CondutorCtr :=TCCondutorCtr.Create ;
 
     edt_PedIni.Clear;
     edt_PedFin.Clear;
@@ -297,53 +419,11 @@ begin
     //
     //
 
-
     cbx_mdfTpEmit.AddItem('1 - Prestador de serviço de transporte', nil);
     cbx_mdfTpEmit.AddItem('2 - Transportador de Carga Própria', nil);
     cbx_mdfTpEmit.AddItem('3 - Prestador de serviço de transporte que emitirá CT-e Globalizado', nil);
 
     cbx_mdfTpTrasp.AddText('"1 - ETC","2 - TAC","3 - CTC"');
-end;
-
-procedure Tfrm_Manifesto.edt_CdtCodClickBtn(Sender: TObject);
-var
-  V: IView ;
-  C: TCCondutorCtr;
-  F: TCondutorFilter;
-var
-  cod,e: Integer ;
-begin
-
-    //
-    try
-        Val(edt_CdtCod.Text, F.codseq, e) ;
-        if F.codseq = 0 then
-        begin
-            F.xnome :=edt_CdtCod.Text;
-        end;
-
-        if not m_Condutor.cmdFind(F) then
-        begin
-            C :=TCCondutorCtr.Create();
-            V :=Tfrm_Condutor.Create(C);
-            C.Model :=m_Condutor;
-            C.Model.OnModelChanged :=(V as Tfrm_Condutor).ModelChanged ;
-            C.Model.Insert ;
-            V.Execute ;
-        end;
-
-        if m_Condutor.id > 0 then
-        begin
-            edt_CdtCod.Text :=Format('%d|%s',[m_Condutor.id,m_Condutor.Nome]);
-            edt_CdtCod.formatReadOnly(True);
-        end;
-    except
-        on E: EBuscaIsEmpty do
-        begin
-            CMsgDlg.Error(E.Message);
-            edt_CdtCod.SetFocus ;
-        end;
-    end;
 end;
 
 procedure Tfrm_Manifesto.edt_VeiCodClickBtn(Sender: TObject);
@@ -407,68 +487,77 @@ procedure Tfrm_Manifesto.Inicialize;
 begin
     //
     // muda o stado da view conforme o estado do model
+    //
 
-    if m_Ctrl.Model.State = msInsert then
-        pag_Control00.ActivePageIndex :=0
+    //
+    // format titulo
+    if m_Ctrl.Model.id > 0 then
+    begin
+        if m_Ctrl.Model.State <> msBrowse then
+            Self.Caption :=Format('Edição de Manifesto[Id: %d]',[m_Ctrl.Model.id])
+        else
+            Self.Caption :=Format('Consulta de Manifesto[Id: %d]',[m_Ctrl.Model.id])
+    end
     else
-        pag_Control00.ActivePageIndex :=1;
+        Self.Caption :='Emissão de Manifesto';
+
+    if m_Ctrl.Model.State <> msBrowse then
+    begin
+        if m_Ctrl.Model.State = msInsert then
+            pag_Control00.ActivePageIndex :=0
+        else
+            pag_Control00.ActivePageIndex :=1;
+    end
+    else begin
+        tab_Browse.TabVisible :=False ;
+    end;
+
+    cbx_mdfTpEmit.Enabled :=m_Ctrl.Model.State <> msBrowse;
+    cbx_mdfTpTrasp.Enabled :=m_Ctrl.Model.State <> msBrowse;
+    edt_mdfNumDoc.Enabled :=False ;
+    edt_mdDtEmis.Enabled :=False ;
+
+    btn_Filter.Visible :=tab_Browse.TabVisible ;
+    btn_Vincula.Visible :=tab_Browse.TabVisible;
+    btn_Remove.Visible :=tab_Browse.TabVisible ;
+    btn_Save.Visible :=tab_Browse.TabVisible ;
 
     pag_Control01.ActivePageIndex :=0;
 
-    //
-    // reset/trava controles
-    ResetWContrls(gbx_Ident);
-
     vst_GridNFE.Clear ;
-    vst_GridMun.Clear ;
-    vst_GridCondutor.Clear ;
 
-    {*
-     * ler estado do model
-     *}
+    //
+    // load grid
+    loadGridMun ;
 
-    if m_Ctrl.Model.id > 0 then
-    begin
-        Self.Caption :=Format('Manifesto Id: %d',[m_Ctrl.Model.id]) ;
-        //
-        // load grid
-        loadGridMun ;
+    //
+    // load modal/rodoviario
+    loadVeiculo ;
 
-        //
-        // load modal/rodoviario
-        loadVeiculo ;
+    //
+    // load condutores
+    loadCondutores ;
 
-        //
-        // load condutores
-        loadCondutor ;
-
-    end ;
-{
     edt_mdfNumDoc.IntValue :=m_Ctrl.Model.numeroDoc ;
     if m_Ctrl.Model.dhEmissao > 0 then
     begin
-        edt_mdDtEmis.Text    :=DateTimeToStr(m_Ctrl.Model.dhEmissao) ;
+        edt_mdDtEmis.Text    :=DateTimeToStr(m_Ctrl.Model.dhEmissao, LocalFormatSettings) ;
     end;
-    cbx_mdfTpAmb.ItemIndex :=m_Ctrl.Model.tpAmbiente ;
+
     cbx_mdfTpEmit.ItemIndex :=m_Ctrl.Model.tpEmitente;
     cbx_mdfTpTrasp.ItemIndex :=m_Ctrl.Model.tpTransportador ;
-    cbx_mdfTpEmis.ItemIndex :=m_Ctrl.Model.tpEmissao ;
-    edt_mdfUFCarga.Text  :=m_Ctrl.Model.ufeIni;
-    edt_mdfUFDescarga.Text  :=m_Ctrl.Model.ufeFim;
 
-    case m_Ctrl.Model.State of
-        msInactive: ResetWContrls(gbx_Ident, True);
-    end;
-    FormatCod;
+//    case m_Ctrl.Model.State of
+//        msInactive: ResetWContrls(gbx_Ident, True);
+//    end;
 
-    btn_Config.Enabled :=m_Ctrl.Model.State = msInactive;
-    btn_New.Enabled :=m_Ctrl.Model.State = msInactive;
+    {btn_New.Enabled :=m_Ctrl.Model.State = msInactive;
     btn_Save.Enabled:=m_Ctrl.Model.State in[msInsert, msEdit];
     btn_Cancel.Enabled:=m_Ctrl.Model.State in[msInsert, msEdit];
     btn_Delete.Enabled:=m_Ctrl.Model.State = msBrowse;
     btn_Edit.Enabled  :=m_Ctrl.Model.State = msBrowse;
     btn_Send.Enabled  :=m_Ctrl.Model.State = msBrowse;
- }
+    }
 end;
 
 procedure Tfrm_Manifesto.KeyDown(var Key: Word; Shift: TShiftState);
@@ -482,52 +571,35 @@ begin
             else
                 edt_VeiCodClickBtn(edt_VeiCod);
         end
-        else if ActiveControl =edt_CdtCod then
-        begin
-            if edt_CdtCod.ReadOnly then
-                inherited
-            else
-                edt_CdtCodClickBtn(edt_VeiCod);
-        end
         else
             inherited;
         VK_BACK:
+        if ActiveControl = edt_VeiCod then
         begin
-            if ActiveControl = edt_VeiCod then
-            begin
-                edt_VeiCod.formatReadOnly(False) ;
-                m_Ctrl.Model.modalRodo.veiculo.Inicialize ;
-            end
-            else if ActiveControl =edt_CdtCod then
-            begin
-                edt_CdtCod.formatReadOnly(False);
-                m_Condutor.Inicialize ;
-            end;
+            edt_VeiCod.formatReadOnly(False) ;
+            m_Ctrl.Model.modalRodo.veiculo.Inicialize ;
         end;
     else
         inherited;
     end;
 end;
 
-procedure Tfrm_Manifesto.loadCondutor;
-var
-  C: TCCondutorCtr;
-  I: ICondutor ;
+procedure Tfrm_Manifesto.loadCondutores;
 begin
-    C :=TCCondutorCtr.Create ;
-    C.ModelList.Load ;
-    edt_CdtCod.Lookup.DisplayList.Clear;
-    edt_CdtCod.Lookup.ValueList.Clear  ;
-    for I in C.ModelList.Items do
-    begin
-        edt_CdtCod.Lookup.DisplayList.Add(I.Nome);
-        edt_CdtCod.Lookup.ValueList.Add(IntToStr(I.id));
-    end;
-    edt_CdtCod.Lookup.DisplayCount :=8 ;
-    edt_CdtCod.Lookup.NumChars :=1;
-    edt_CdtCod.Lookup.History :=True;
-    edt_CdtCod.Lookup.Multi :=False;
-    edt_CdtCod.Lookup.Enabled :=true ;
+    //
+    // cadastro
+    vst_GridCdtCad.Clear ;
+    m_CondutorCtr.ModelList.Load ;
+    vst_GridCdtCad.RootNodeCount :=m_CondutorCtr.ModelList.Items.Count ;
+    vst_GridCdtCad.IndexItem :=0;
+    btn_CdtAdd.Enabled :=vst_GridCdtCad.RootNodeCount > 0;
+
+    //
+    // condutores vinculados
+    vst_GridCdtVinc.Clear ;
+    vst_GridCdtVinc.RootNodeCount :=m_Ctrl.Model.modalRodo.condutores.Items.Count ;
+    vst_GridCdtVinc.IndexItem :=0;
+    btn_CdtRmv.Enabled :=vst_GridCdtVinc.RootNodeCount > 0;
 end;
 
 procedure Tfrm_Manifesto.loadGridMun;
@@ -597,8 +669,11 @@ begin
     edt_VeiCod.Lookup.Multi :=False;
     edt_VeiCod.Lookup.Enabled :=true ;
 
-    edt_VeiCod.Text :=IntToStr(m_Ctrl.Model.modalRodo.veiculo.id);
-    edt_VeiCodClickBtn(edt_VeiCod) ;
+    if m_Ctrl.Model.modalRodo.veiculo.id > 0 then
+    begin
+        edt_VeiCod.Text :=IntToStr(m_Ctrl.Model.modalRodo.veiculo.id);
+        edt_VeiCodClickBtn(edt_VeiCod) ;
+    end;
 end;
 
 procedure Tfrm_Manifesto.ModelChanged;
@@ -609,93 +684,24 @@ end;
 
 procedure Tfrm_Manifesto.pag_Control00Change(Sender: TObject);
 begin
-    btn_Filter.Enabled :=pag_Control00.ActivePageIndex =0 ;
+    btn_Vincula.Enabled :=pag_Control00.ActivePageIndex =0;
 
 end;
 
-procedure Tfrm_Manifesto.VincCdt;
-begin
-    if CMsgDlg.Confirm('Deseja vincular o condutor ao veículo?')then
-    begin
-        if m_Ctrl.Model.modalRodo.condutores.indexOf(m_Condutor.id) <> nil then
-        begin
-            raise Exception.CreateFmt('o condutor [%d-%s], já incluído!',[m_Condutor.id,m_Condutor.Nome]);
-        end;
-        m_Ctrl.Model.modalRodo.condutores.addNew(m_Condutor) ;
-        vst_GridCondutor.AddChild(nil) ;
-        edt_CdtCod.formatReadOnly(False);
-        m_Condutor.Inicialize ;
-        ActiveControl :=edt_CdtCod;
-    end;
-end;
-
-procedure Tfrm_Manifesto.VincNFE;
+procedure Tfrm_Manifesto.vst_GridCdtCadGetText(Sender: TBaseVirtualTree;
+  Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
+  var CellText: string);
 var
-  L: TCNotFis00Lote ;
-  N: TCNotFis00 ;
-  M: TCManifestodf01mun;
-  I: IManifestodf02nfe ;
+  C: ICondutor ;
 begin
-    if CMsgDlg.Confirm('Deseja vincular as notas ao manifesto?')then
+    if Assigned(Node) then
     begin
-
-        //
-        // loop para add os municipios
-        for N in L.Items do
-        begin
-            //
-            // valida vinculo
-            if N.Checked then
-            begin
-                //
-                // mun. carga
-                M :=m_Ctrl.Model.municipios.indexOf(N.m_emit.EnderEmit.cMun,mtCarga) ;
-                if M = nil then
-                begin
-                    M :=TCManifestodf01mun.New( 0,
-                                                N.m_emit.EnderEmit.cMun,
-                                                N.m_emit.EnderEmit.xMun,
-                                                N.m_emit.EnderEmit.UF,
-                                                mtCarga );
-                    m_Ctrl.Model.municipios.addNew(M) ;
-                end;
-
-                //
-                // mun. descarga
-                M :=m_Ctrl.Model.municipios.indexOf(N.m_dest.EnderDest.cMun,mtDescarga) ;
-                if M = nil then
-                begin
-                    M :=TCManifestodf01mun.New( 0,
-                                                N.m_dest.EnderDest.cMun,
-                                                N.m_dest.EnderDest.xMun,
-                                                N.m_dest.EnderDest.UF,
-                                                mtDescarga );
-                    m_Ctrl.Model.municipios.addNew(M) ;
-                end;
-
-                //
-                // add nfe somente para mum. descarga
-                if M.tipoMun =mtDescarga then
-                begin
-                    M.nfeList.addNew(
-                        TCManifestodf02nfe.New( N.m_chvnfe, '', False,
-                                                N.m_codseq,
-                                                N.m_icmstot.vNF,
-                                                N.m_transp.Vol.Items[0].pesoB
-                                                )
-                    ) ;
-                end;
-            end;
-        end;
+        C :=m_CondutorCtr.ModelList.Items[Node.Index] ;
+        CellText :=Format('%s!%s',[C.CPFCNPJ,C.Nome]);
     end;
 end;
 
-procedure Tfrm_Manifesto.VincVei;
-begin
-
-end;
-
-procedure Tfrm_Manifesto.vst_GridCondutorGetText(Sender: TBaseVirtualTree;
+procedure Tfrm_Manifesto.vst_GridCdtVincGetText(Sender: TBaseVirtualTree;
   Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
   var CellText: string);
 var
@@ -704,10 +710,7 @@ begin
     if Assigned(Node) then
     begin
         C :=m_Ctrl.Model.modalRodo.condutores.Items[Node.Index] ;
-        case Column of
-            0: CellText :=C.CPFCNPJ;
-            1: CellText :=C.Nome;
-        end;
+        CellText :=Format('%s!%s',[C.CPFCNPJ,C.Nome]);
     end;
 end;
 

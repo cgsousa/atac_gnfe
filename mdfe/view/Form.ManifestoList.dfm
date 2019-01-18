@@ -394,7 +394,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
       TabOrder = 0
       object edt_CodSeq: TAdvEdit
         Left = 75
-        Top = 20
+        Top = 22
         Width = 100
         Height = 22
         EditAlign = eaCenter
@@ -472,7 +472,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
     object btn_Filter: TJvFooterBtn
       Left = 102
       Top = 5
-      Width = 90
+      Width = 80
       Height = 30
       Hint = 'Mostra/Esconde o Filtro'
       Anchors = [akLeft, akBottom]
@@ -486,9 +486,9 @@ object frm_ManifestoList: Tfrm_ManifestoList
       SpaceInterval = 6
     end
     object btn_Close: TJvFooterBtn
-      Left = 696
+      Left = 706
       Top = 5
-      Width = 90
+      Width = 80
       Height = 30
       Anchors = [akRight, akBottom]
       Caption = 'Fechar'
@@ -497,27 +497,27 @@ object frm_ManifestoList: Tfrm_ManifestoList
       SpaceInterval = 6
     end
     object btn_New: TJvFooterBtn
-      Left = 198
+      Left = 188
       Top = 5
-      Width = 90
+      Width = 80
       Height = 30
       Anchors = [akLeft, akBottom]
       Caption = 'Novo'
       ParentShowHint = False
       ShowHint = False
-      TabOrder = 6
+      TabOrder = 5
       OnClick = btn_NewClick
       Alignment = taLeftJustify
       ButtonIndex = 3
       SpaceInterval = 6
     end
     object btn_Edit: TJvFooterBtn
-      Left = 294
+      Left = 274
       Top = 5
-      Width = 90
+      Width = 80
       Height = 30
       Anchors = [akLeft, akBottom]
-      Caption = 'Alterar'
+      Caption = 'Editar'
       ParentShowHint = False
       ShowHint = False
       TabOrder = 4
@@ -526,10 +526,26 @@ object frm_ManifestoList: Tfrm_ManifestoList
       ButtonIndex = 4
       SpaceInterval = 6
     end
-    object btn_Send: TJvFooterBtn
-      Left = 390
+    object btn_Cons: TJvFooterBtn
+      Left = 360
       Top = 5
-      Width = 90
+      Width = 80
+      Height = 30
+      Hint = 'Consulta status do servi'#231'o'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Consultar'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 6
+      OnClick = btn_ConsClick
+      Alignment = taLeftJustify
+      ButtonIndex = 5
+      SpaceInterval = 6
+    end
+    object btn_Send: TJvFooterBtn
+      Left = 446
+      Top = 5
+      Width = 80
       Height = 30
       Hint = 'Autoriza Nota Fiscal'
       Anchors = [akLeft, akBottom]
@@ -537,23 +553,34 @@ object frm_ManifestoList: Tfrm_ManifestoList
       ParentShowHint = False
       ShowHint = True
       TabOrder = 3
-      Alignment = taLeftJustify
-      ButtonIndex = 5
-      SpaceInterval = 6
-    end
-    object btn_Cancel: TJvFooterBtn
-      Left = 486
-      Top = 5
-      Width = 90
-      Height = 30
-      Hint = 'Evento da NFE - Cancelamento / Carta de Corre'#231#227'o'
-      Anchors = [akLeft, akBottom]
-      Caption = 'Eventos da NFE'
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 5
+      OnClick = btn_SendClick
       Alignment = taLeftJustify
       ButtonIndex = 6
+      SpaceInterval = 6
+    end
+    object btn_Canc: TJvFooterBtn
+      Left = 532
+      Top = 5
+      Width = 80
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Cancelar'
+      TabOrder = 7
+      Alignment = taLeftJustify
+      ButtonIndex = 7
+      SpaceInterval = 6
+    end
+    object btn_Detalh: TJvFooterBtn
+      Left = 618
+      Top = 5
+      Width = 80
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Detalhar'
+      TabOrder = 8
+      OnClick = btn_DetalhClick
+      Alignment = taLeftJustify
+      ButtonIndex = 8
       SpaceInterval = 6
     end
   end

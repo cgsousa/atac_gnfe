@@ -554,8 +554,18 @@ begin
 end;
 
 function TCCondutorList.indexOf(const id: Int32): ICondutor;
+var
+  I: ICondutor ;
 begin
-
+    Result :=nil;
+    for I in Self.Items do
+    begin
+        if I.id =id then
+        begin
+            Result :=I ;
+            Break ;
+        end;
+    end;
 end;
 
 procedure TCCondutorList.Load;

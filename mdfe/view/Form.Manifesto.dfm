@@ -151,7 +151,6 @@ object frm_Manifesto: Tfrm_Manifesto
     TabOrder = 1
     TabWidth = 250
     OnChange = pag_Control00Change
-    ExplicitTop = -1
     object tab_Browse: TAdvTabSheet
       Caption = 'Busca de NFE para vincular ao Manifesto'
       Color = clWindow
@@ -306,6 +305,8 @@ object frm_Manifesto: Tfrm_Manifesto
         StatusBar.Color = 14606046
         StatusBar.ColorTo = 11119017
         StatusBar.GradientDirection = gdVertical
+        ExplicitLeft = -6
+        ExplicitTop = -2
         DesignSize = (
           239
           522)
@@ -314,14 +315,30 @@ object frm_Manifesto: Tfrm_Manifesto
           Left = 5
           Top = 123
           Width = 229
-          Height = 105
+          Height = 110
           RoundEdges = True
           Align = alTop
           Caption = ' Data de emiss'#227'o '
           TabOrder = 1
+          object Label1: TLabel
+            Left = 81
+            Top = 18
+            Width = 32
+            Height = 16
+            AutoSize = False
+            Caption = 'De: '
+          end
+          object Label2: TLabel
+            Left = 81
+            Top = 62
+            Width = 32
+            Height = 16
+            AutoSize = False
+            Caption = 'At'#233': '
+          end
           object edt_DatIni: TJvDateEdit
             Left = 81
-            Top = 32
+            Top = 34
             Width = 100
             Height = 22
             ShowNullDate = False
@@ -330,7 +347,7 @@ object frm_Manifesto: Tfrm_Manifesto
           end
           object edt_DatFin: TJvDateEdit
             Left = 81
-            Top = 68
+            Top = 78
             Width = 100
             Height = 22
             ShowNullDate = False
@@ -339,8 +356,8 @@ object frm_Manifesto: Tfrm_Manifesto
           end
         end
         object btn_Find: TJvImgBtn
-          Left = 128
-          Top = 477
+          Left = 122
+          Top = 471
           Width = 100
           Height = 30
           Anchors = [akRight, akBottom]
@@ -428,14 +445,14 @@ object frm_Manifesto: Tfrm_Manifesto
         Left = 0
         Top = 0
         Width = 786
-        Height = 75
+        Height = 70
         Align = alTop
         Caption = ' Identifica'#231#227'o  '
         TabOrder = 0
         object cbx_mdfTpEmit: TAdvComboBox
-          Left = 192
+          Left = 163
           Top = 16
-          Width = 121
+          Width = 350
           Height = 22
           Color = clWindow
           Version = '1.5.1.0'
@@ -446,6 +463,7 @@ object frm_Manifesto: Tfrm_Manifesto
           Enabled = True
           ItemIndex = -1
           LabelCaption = 'Tipo do emitente:'
+          LabelMargin = 2
           LabelTransparent = True
           LabelFont.Charset = DEFAULT_CHARSET
           LabelFont.Color = clWindowText
@@ -455,8 +473,8 @@ object frm_Manifesto: Tfrm_Manifesto
           TabOrder = 0
         end
         object cbx_mdfTpTrasp: TAdvComboBox
-          Left = 192
-          Top = 40
+          Left = 163
+          Top = 41
           Width = 121
           Height = 22
           Color = clWindow
@@ -468,6 +486,7 @@ object frm_Manifesto: Tfrm_Manifesto
           Enabled = True
           ItemIndex = -1
           LabelCaption = 'Tipo do trasportador:'
+          LabelMargin = 2
           LabelTransparent = True
           LabelFont.Charset = DEFAULT_CHARSET
           LabelFont.Color = clWindowText
@@ -477,13 +496,15 @@ object frm_Manifesto: Tfrm_Manifesto
           TabOrder = 1
         end
         object edt_mdfNumDoc: TAdvEdit
-          Left = 477
-          Top = 16
+          Left = 645
+          Top = 15
           Width = 121
           Height = 20
+          TabStop = False
           EditType = etNumeric
           EmptyTextStyle = []
           LabelCaption = 'N'#250'mero do manifesto:'
+          LabelMargin = 2
           LabelFont.Charset = DEFAULT_CHARSET
           LabelFont.Color = clWindowText
           LabelFont.Height = -11
@@ -502,12 +523,14 @@ object frm_Manifesto: Tfrm_Manifesto
           Version = '3.3.2.0'
         end
         object edt_mdDtEmis: TAdvEdit
-          Left = 477
-          Top = 40
+          Left = 645
+          Top = 41
           Width = 121
           Height = 20
+          TabStop = False
           EmptyTextStyle = []
           LabelCaption = 'Data/Hora emiss'#227'o:'
+          LabelMargin = 2
           LabelFont.Charset = DEFAULT_CHARSET
           LabelFont.Color = clWindowText
           LabelFont.Height = -11
@@ -527,10 +550,10 @@ object frm_Manifesto: Tfrm_Manifesto
       end
       object pag_Control01: TAdvPageControl
         Left = 0
-        Top = 75
+        Top = 70
         Width = 786
-        Height = 449
-        ActivePage = tab_Mun
+        Height = 454
+        ActivePage = tab_Rodo
         ActiveFont.Charset = DEFAULT_CHARSET
         ActiveFont.Color = clWindowText
         ActiveFont.Height = -11
@@ -553,13 +576,15 @@ object frm_Manifesto: Tfrm_Manifesto
           Caption = 'Munic'#237'pios de Carregamento/Descarregamento'
           Color = clWindow
           ColorTo = clNone
+          Highlighted = True
           TabColor = clInactiveCaption
           TabColorTo = clNone
+          ExplicitHeight = 420
           object vst_GridMun: TVirtualStringTree
             Left = 0
             Top = 0
             Width = 646
-            Height = 420
+            Height = 425
             Align = alLeft
             Alignment = taCenter
             BevelInner = bvNone
@@ -632,8 +657,10 @@ object frm_Manifesto: Tfrm_Manifesto
           Caption = 'Ve'#237'culo /Condutores'
           Color = clWindow
           ColorTo = clNone
+          Highlighted = True
           TabColor = clInactiveCaption
           TabColorTo = clNone
+          ExplicitHeight = 420
           object edt_VeiCod: TAdvEditBtn
             Left = 121
             Top = 0
@@ -673,23 +700,61 @@ object frm_Manifesto: Tfrm_Manifesto
             ButtonCaption = 'F2'
             OnClickBtn = edt_VeiCodClickBtn
           end
-          object gbx_Condutor: TAdvGroupBox
+          object pnl_Condutor: TAdvPanel
             Left = 0
-            Top = 148
+            Top = 107
             Width = 778
-            Height = 272
-            BorderStyle = bsNone
-            CheckBox.Checked = True
-            CheckBox.State = cbChecked
-            RoundEdges = True
+            Height = 318
             Align = alBottom
-            Caption = ' Informa'#231#245'es do(s) Condutor(s) do ve'#237'culo '
+            BevelOuter = bvNone
+            Color = clWhite
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clBlack
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentFont = False
             TabOrder = 1
-            object vst_GridCondutor: TVirtualStringTree
-              Left = 3
-              Top = 25
-              Width = 449
-              Height = 244
+            UseDockManager = True
+            Version = '2.3.0.0'
+            BorderColor = 13815240
+            Caption.Color = clWhite
+            Caption.ColorTo = 15590880
+            Caption.Font.Charset = DEFAULT_CHARSET
+            Caption.Font.Color = 5978398
+            Caption.Font.Height = -11
+            Caption.Font.Name = 'Tahoma'
+            Caption.Font.Style = []
+            Caption.GradientDirection = gdVertical
+            Caption.Indent = 4
+            Caption.ShadeLight = 255
+            Caption.Text = ' Informa'#231#245'es do(s) Condutor(s) do ve'#237'culo '
+            Caption.Visible = True
+            CollapsColor = clNone
+            CollapsDelay = 0
+            ColorTo = 15590880
+            ShadowColor = clBlack
+            ShadowOffset = 0
+            StatusBar.BorderColor = 16249840
+            StatusBar.BorderStyle = bsSingle
+            StatusBar.Font.Charset = DEFAULT_CHARSET
+            StatusBar.Font.Color = 5978398
+            StatusBar.Font.Height = -11
+            StatusBar.Font.Name = 'Tahoma'
+            StatusBar.Font.Style = []
+            StatusBar.Color = clWhite
+            StatusBar.ColorTo = 15590880
+            StatusBar.GradientDirection = gdVertical
+            StatusBar.Visible = True
+            Styler = dm_Styles.AdvPanelStyler1
+            ExplicitTop = 102
+            FullHeight = 200
+            object vst_GridCdtVinc: TVirtualStringTree
+              Left = 433
+              Top = 18
+              Width = 345
+              Height = 282
+              Align = alRight
               Alignment = taCenter
               BevelInner = bvNone
               BevelKind = bkTile
@@ -719,66 +784,102 @@ object frm_Manifesto: Tfrm_Manifesto
               TreeOptions.MiscOptions = [toAcceptOLEDrop, toInitOnSave, toToggleOnDblClick, toWheelPanning]
               TreeOptions.PaintOptions = [toHotTrack, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowTreeLines, toShowVertGridLines, toUseBlendedImages]
               TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
-              OnGetText = vst_GridCondutorGetText
+              OnGetText = vst_GridCdtVincGetText
               Columns = <
                 item
                   Color = clWindow
                   Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coAllowFocus]
                   Position = 0
-                  Width = 121
-                  WideText = 'CPF do Condutor'
-                end
-                item
-                  Color = clWindow
-                  Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coAllowFocus, coUseCaptionAlignment]
-                  Position = 1
-                  Width = 250
-                  WideText = 'Nome do Condutor'
+                  Width = 315
+                  WideText = 'Condutores vinculados'
                 end>
-              WideDefaultText = '000.000.000-00'
             end
-            object edt_CdtCod: TAdvEditBtn
-              Left = 575
-              Top = 25
-              Width = 200
-              Height = 20
-              EmptyText = 'Digite um c'#243'digo/nome aqui'
-              EmptyTextStyle = []
-              Flat = False
-              LabelCaption = 'Selecione um condutor:'
-              LabelFont.Charset = DEFAULT_CHARSET
-              LabelFont.Color = clWindowText
-              LabelFont.Height = -11
-              LabelFont.Name = 'Tahoma'
-              LabelFont.Style = []
-              Lookup.DisplayCount = 8
-              Lookup.Font.Charset = DEFAULT_CHARSET
-              Lookup.Font.Color = clWindowText
-              Lookup.Font.Height = -11
-              Lookup.Font.Name = 'Arial'
-              Lookup.Font.Style = []
-              Lookup.History = True
-              Lookup.Separator = ';'
-              Lookup.SearchValue = True
-              Lookup.ShowValue = True
-              Color = clWindow
-              Ctl3D = False
+            object vst_GridCdtCad: TVirtualStringTree
+              Left = 0
+              Top = 18
+              Width = 345
+              Height = 282
+              Align = alLeft
+              Alignment = taCenter
+              BevelInner = bvNone
+              BevelKind = bkTile
+              BorderStyle = bsNone
+              Colors.DropTargetColor = 7063465
+              Colors.DropTargetBorderColor = 4958089
+              Colors.FocusedSelectionColor = clActiveCaption
+              Colors.FocusedSelectionBorderColor = clActiveCaption
+              Colors.GridLineColor = clBtnShadow
+              Colors.UnfocusedSelectionBorderColor = clBtnShadow
+              DefaultNodeHeight = 22
               Font.Charset = DEFAULT_CHARSET
               Font.Color = clWindowText
-              Font.Height = -12
-              Font.Name = 'Tahoma'
-              Font.Style = [fsBold]
-              ParentCtl3D = False
+              Font.Height = -13
+              Font.Name = 'Trebuchet MS'
+              Font.Style = []
+              Header.AutoSizeIndex = -1
+              Header.Background = clBtnHighlight
+              Header.Height = 21
+              Header.Options = [hoColumnResize, hoDrag, hoShowImages, hoShowSortGlyphs, hoVisible]
+              Header.ParentFont = True
+              Header.Style = hsPlates
               ParentFont = False
-              ReadOnly = False
+              RootNodeCount = 10
               TabOrder = 1
-              Visible = True
-              Version = '1.3.5.0'
-              ButtonStyle = bsButton
-              ButtonWidth = 25
-              Etched = False
-              ButtonCaption = 'F2'
-              OnClickBtn = edt_CdtCodClickBtn
+              TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScroll, toAutoTristateTracking]
+              TreeOptions.MiscOptions = [toAcceptOLEDrop, toInitOnSave, toToggleOnDblClick, toWheelPanning]
+              TreeOptions.PaintOptions = [toHotTrack, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowTreeLines, toShowVertGridLines, toUseBlendedImages]
+              TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
+              OnGetText = vst_GridCdtCadGetText
+              Columns = <
+                item
+                  Color = clWindow
+                  Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coAllowFocus]
+                  Position = 0
+                  Width = 315
+                  WideText = 'Cadastro de condutores'
+                end>
+            end
+            object btn_CdtCad: TJvImgBtn
+              Left = 351
+              Top = 266
+              Width = 75
+              Height = 30
+              Caption = 'Incluir'
+              TabOrder = 2
+              OnClick = btn_CdtCadClick
+              HotTrackFont.Charset = DEFAULT_CHARSET
+              HotTrackFont.Color = clWindowText
+              HotTrackFont.Height = -11
+              HotTrackFont.Name = 'Tahoma'
+              HotTrackFont.Style = []
+            end
+            object btn_CdtAdd: TJvImgBtn
+              Left = 351
+              Top = 80
+              Width = 75
+              Height = 30
+              Caption = '>>'
+              TabOrder = 3
+              OnClick = btn_CdtAddClick
+              HotTrackFont.Charset = DEFAULT_CHARSET
+              HotTrackFont.Color = clWindowText
+              HotTrackFont.Height = -11
+              HotTrackFont.Name = 'Tahoma'
+              HotTrackFont.Style = []
+            end
+            object btn_CdtRmv: TJvImgBtn
+              Left = 351
+              Top = 116
+              Width = 75
+              Height = 30
+              Caption = '<<'
+              TabOrder = 4
+              OnClick = btn_CdtRmvClick
+              HotTrackFont.Charset = DEFAULT_CHARSET
+              HotTrackFont.Color = clWindowText
+              HotTrackFont.Height = -11
+              HotTrackFont.Name = 'Tahoma'
+              HotTrackFont.Style = []
             end
           end
         end
@@ -827,6 +928,7 @@ object frm_Manifesto: Tfrm_Manifesto
       Anchors = [akRight, akBottom]
       Caption = 'Fechar'
       TabOrder = 0
+      OnClick = btn_CloseClick
       ButtonIndex = 1
       SpaceInterval = 6
     end

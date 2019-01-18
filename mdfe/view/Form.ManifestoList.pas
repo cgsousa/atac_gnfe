@@ -34,8 +34,10 @@ type
     btn_Close: TJvFooterBtn;
     btn_Send: TJvFooterBtn;
     btn_Edit: TJvFooterBtn;
-    btn_Cancel: TJvFooterBtn;
     btn_New: TJvFooterBtn;
+    btn_Cons: TJvFooterBtn;
+    btn_Canc: TJvFooterBtn;
+    btn_Detalh: TJvFooterBtn;
     procedure FormShow(Sender: TObject);
     procedure btn_FindClick(Sender: TObject);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -44,6 +46,9 @@ type
     procedure btn_EditClick(Sender: TObject);
     procedure btn_FilterClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure btn_SendClick(Sender: TObject);
+    procedure btn_ConsClick(Sender: TObject);
+    procedure btn_DetalhClick(Sender: TObject);
   private
     { Private declarations }
     m_Ctrl: TCManifestoCtr;
@@ -75,7 +80,31 @@ uses StrUtils, DateUtils,
 
 { Tfrm_ManifestoList }
 
-procedure Tfrm_ManifestoList.btn_EditClick(Sender: TObject);
+procedure Tfrm_ManifestoList.btn_ConsClick(Sender: TObject);
+var
+  rep: Tdm_nfe ;
+begin
+    if CMsgDlg.Confirm('Deseja consultar o status do serviço?') then
+    begin
+        setStatus('Cominucando, aguarde...',crHourGlass);
+        rep :=Tdm_nfe.getInstance ;
+        try
+          if rep.OnlyStatusSvc(58) then
+          begin
+              CMsgDlg.Info(rep.m_MDFE.WebServices.StatusServico.Msg) ;
+          end
+          else begin
+              CMsgDlg.Warning(rep.ErrMsg) ;
+          end;
+        finally
+          setStatus('');
+          //Tdm_nfe.do
+        end;
+    end;
+    ActiveControl :=vst_Grid1;
+end;
+
+procedure Tfrm_ManifestoList.btn_DetalhClick(Sender: TObject);
 var
   M: IManifestoDF;
   V: IView ;
@@ -83,14 +112,35 @@ begin
     M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
     if(M <> nil)and(M.id > 0) then
     begin
-        M.Edit ;
         V :=Tfrm_Manifesto.Create(m_Ctrl);
         m_Ctrl.Model :=M ;
+        m_Ctrl.Model.State :=msBrowse ;
         m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
         //m_Ctrl.Inicialize ;
         V.Execute ;
-
     end;
+    ActiveControl :=vst_Grid1 ;
+end;
+
+procedure Tfrm_ManifestoList.btn_EditClick(Sender: TObject);
+var
+  M: IManifestoDF;
+  V: IView ;
+begin
+    if CMsgDlg.Confirm('Deseja editar o manifesto?') then
+    begin
+        M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
+        if(M <> nil)and(M.id > 0) then
+        begin
+            V :=Tfrm_Manifesto.Create(m_Ctrl);
+            m_Ctrl.Model :=M ;
+            m_Ctrl.Model.Edit;
+            m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
+            //m_Ctrl.Inicialize ;
+            V.Execute ;
+        end;
+    end;
+    ActiveControl :=vst_Grid1 ;
 end;
 
 procedure Tfrm_ManifestoList.btn_FilterClick(Sender: TObject);
@@ -153,13 +203,43 @@ end;
 
 procedure Tfrm_ManifestoList.btn_NewClick(Sender: TObject);
 var
+  M: IManifestoDF;
   V: IView ;
 begin
-    V :=Tfrm_Manifesto.Create(m_Ctrl);
-    m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
-    m_Ctrl.Inicialize ;
-    V.Execute ;
-    //.
+    if CMsgDlg.Confirm('Deseja emitir um novo manifesto?') then
+    begin
+        V :=Tfrm_Manifesto.Create(m_Ctrl);
+        M :=TCManifestoDF.Create ;
+        m_Ctrl.Model :=M ;
+        m_Ctrl.Model.Insert;
+        m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
+        //m_Ctrl.Inicialize ;
+        V.Execute ;
+    end;
+    ActiveControl :=vst_Grid1 ;
+end;
+
+procedure Tfrm_ManifestoList.btn_SendClick(Sender: TObject);
+var
+  rep: Tdm_nfe;
+  ret: Boolean;
+begin
+    if CMsgDlg.Confirm('Deseja enviar o MDFe?')then
+    begin
+        rep :=Tdm_nfe.getInstance ;
+        setStatus('Processando o MDF-e'#13#10'Aguarde...', crHourGlass);
+        try
+            ret :=rep.OnlySendMDFE(m_Ctrl.Model) ;
+            setStatus('');
+            if ret then
+                CMsgDlg.Info('%d-%s',[m_Ctrl.Model.Status,m_Ctrl.Model.motivo])
+            else
+                CMsgDlg.Warning(rep.ErrMsg);
+        finally
+            setStatus('');
+        end;
+    end;
+    ActiveControl :=vst_Grid1 ;
 end;
 
 procedure Tfrm_ManifestoList.Execute;
@@ -194,7 +274,7 @@ var
 begin
     Model :=TCManifestoDF.Create;
     m_Ctrl :=TCManifestoCtr.Create ;
-    m_Ctrl.Model :=Model ;
+    m_Ctrl.Model:=Model ;
     m_Ctrl.View :=Self;
     m_Ctrl.Inicialize ;
     //

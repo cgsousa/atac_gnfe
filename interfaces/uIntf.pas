@@ -8,7 +8,7 @@ uses
 type
   TModelChangedEvent = procedure of object;
 
-  TModelState =(msInactive, msBrowse, msEdit, msInsert, msFilter);
+  TModelState =(msInactive, msBrowse, msEdit, msInsert, msFilter, msDelete);
   TUpdateKind = (ukModify, ukInsert, ukDelete);
   TModelUpdateKind = (mukUnModify, mukModify, mukInsert, mukDelete);
 

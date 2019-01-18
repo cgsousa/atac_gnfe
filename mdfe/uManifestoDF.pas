@@ -236,6 +236,17 @@ type
     function getChMDFE: string ;
     property chMDFE: string read getChMDFE;
 
+    //
+    // info de protocolo
+    function getVerApp: string ;
+    property verApp: string read getVerApp ;
+    function getDHRecebto: TDatetime ;
+    property dhRecebto: TDatetime read getDHRecebto ;
+    function getNumProt: string ;
+    property numProt: string read getNumProt ;
+    function getDigVal: string ;
+    property digVal: string read getDigVal ;
+
     procedure setXML(const aCodStt: Int16; const aMotivo, aChv, aXML: string) ;
     procedure setRet(const aCodStt: Int16; const aMotivo,
       ret_verapp, ret_numreci, ret_numprot, ret_digval: string;
@@ -301,7 +312,7 @@ type
 
     // retorno
     m_verapp: string ;
-    m_dhreceb: Tdatetime;
+    m_dhrecebto: Tdatetime;
     m_numreci: string ;
     m_numprot: string ;
     m_digval: string ;
@@ -356,6 +367,13 @@ type
 
     function getChMDFE: string ;
 
+    //
+    // info protocolo
+    function getVerApp: string ;
+    function getDHRecebto: TDatetime ;
+    function getNumProt: string ;
+    function getDigVal: string ;
+
     procedure loadMunDocs;
     procedure loadCondutores;
 
@@ -396,6 +414,11 @@ type
     property Status: Int16 read getStatus ;
     property motivo: string read getMotivo;
     property chMDFE: string read getChMDFE;
+
+    property verApp: string read getVerApp ;
+    property dhRecebto: TDatetime read getDHRecebto ;
+    property numProt: string read getNumProt ;
+    property digVal: string read getDigVal ;
 
     procedure setXML(const aCodStt: Int16; const aMotivo, aChv, aXML: string);
     procedure setRet(const aCodStt: Int16; const aMotivo,
@@ -1008,6 +1031,18 @@ begin
     ;
 end;
 
+function TCManifestoDF.getDHRecebto: TDatetime;
+begin
+    Result :=m_dhrecebto;
+
+end;
+
+function TCManifestoDF.getDigVal: string;
+begin
+    Result :=m_digval;
+
+end;
+
 function TCManifestoDF.getModal: Int16;
 begin
     Result :=m_modal
@@ -1043,6 +1078,12 @@ function TCManifestoDF.getNumDoc: Int32;
 begin
     Result :=m_numdoc
     ;
+end;
+
+function TCManifestoDF.getNumProt: string;
+begin
+    Result :=m_numprot ;
+
 end;
 
 function TCManifestoDF.getNumSer: Int16;
@@ -1109,6 +1150,12 @@ function TCManifestoDF.getUFeIni: string;
 begin
     Result :=m_ufeini
     ;
+end;
+
+function TCManifestoDF.getVerApp: string;
+begin
+    Result :=m_verapp;
+
 end;
 
 function TCManifestoDF.getVerProc: string;
@@ -1382,7 +1429,7 @@ begin
     m_numreci:=ret_numreci;
     m_numprot:=ret_numprot;
     m_digval :=ret_digval ;
-    m_dhreceb:=ret_dhreceb;
+    m_dhrecebto:=ret_dhreceb;
 
     //
     //
@@ -1401,7 +1448,7 @@ begin
         C.AddCmd('where md0_codseq =@codseq                    ');
         //
         //
-        C.AddParamWithValue('@dhreceb', ftDateTime, m_dhreceb);
+        C.AddParamWithValue('@dhreceb', ftDateTime, m_dhrecebto);
         C.Execute ;
     finally
         C.Free ;

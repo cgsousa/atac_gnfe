@@ -63,9 +63,11 @@ uses
   ACBrNFeDANFEClass, ACBrNFeDANFeRLClass,
   ACBrBase, ACBrDFe, ACBrNFeDANFeESCPOS,
   ACBrNFeNotasFiscais, ACBrNFeWebServices,
-  pcnConversao, pcnNFe, pcnEventoNFe,
+  ACBrMDFe, ACBrMDFeDAMDFeClass, ACBrMDFeDAMDFeRLClass, ACBrMDFeManifestos,
+  ACBrMDFeWebServices,
+  pcnConversao, pcnNFe, pmdfeMDFe, pcnEventoNFe, pmdfeConversaoMDFe,
   blcksock,
-  unotfis00, ucce;
+  unotfis00, ucce, uManifestoDF;
 
 {$I ACBr.inc}
 
@@ -87,6 +89,20 @@ type
     procedure Save() ;
   end;
 
+  //
+  // params do manifesto
+  TRegMDFe = record
+    active_mdfe: TPair<string,Boolean>;
+    amb_producao: TPair<string,Boolean>;
+    forma_emissao: TPair<string,smallint>;
+    tip_emitente: TPair<string,smallint>;
+    ver_doc: TPair<string,smallint>;
+    path_schema: TPair<string,string>;
+    procedure Load();
+  end;
+
+
+
 
 
 type
@@ -98,11 +114,14 @@ type
     m_DRL: TACBrNFeDANFeRL;
     m_DF: TACBrNFeDANFCeFortes;
     m_Val: TACBrValidador;
+    m_MDFE: TACBrMDFe;
+    m_DAMDFeRL: TACBrMDFeDAMDFeRL;
     procedure m_NFEStatusChange(Sender: TObject);
     procedure m_NFEGerarLog(const ALogLine: string; var Tratado: Boolean);
     procedure m_NFETransmitError(const HttpError, InternalError: Integer;
       const URL, DadosEnviados, SoapAction: string; var Retentar,
       Tratado: Boolean);
+    procedure m_MDFEStatusChange(Sender: TObject);
   private
     { Private declarations }
     class var _Instance: Tdm_nfe;
@@ -124,6 +143,9 @@ type
     m_ErrCod: Integer;
     m_ErrMsg: string ;
     procedure LoadConfig() ;
+  private
+    { MDF-e declarations }
+    m_RegMDFe: TRegMDFe;
   protected
     function CheckConnInternet(): Boolean ;
     function CheckConnectedStateInternet(): Boolean ;
@@ -170,7 +192,7 @@ type
 
   public
     { somente chamadas dos serviços, sem checa status }
-    function OnlyStatusSvc(): Boolean;
+    function OnlyStatusSvc(const aMod: Word =55): Boolean;
     function OnlySend(NF: TCNotFis00): Boolean; overload ;
     function OnlySend(const aNumLot: Integer): Boolean; overload ;
     function OnlyCons(NF: TCNotFis00): Boolean;
@@ -181,6 +203,13 @@ type
   public
     class function getInstance: Tdm_nfe; static;
     class procedure doFreeAndNil;
+  public
+    { MDFe propreidades/metodos }
+    property regMDFe: TRegMDFe read m_RegMDFe;
+    function AddMDFe(mdf: IManifestoDF;
+      out codStt: Int16; out motivo: string): Manifesto ;
+    function OnlySendMDFE(mdf: IManifestoDF): Boolean;
+    function OnlyCancMDFE(mdf: IManifestoDF; const just: String): Boolean;
   end;
 
 implementation
@@ -188,14 +217,199 @@ implementation
 {$R *.dfm}
 
 uses StrUtils, DateUtils, TypInfo, WinInet, DB,
-  uadodb, uparam ,
+  uadodb, uparam,
   ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp ,
-  pcnConversaoNFe, pcnEnvEventoNFe ,
+  pcnConversaoNFe, pcnEnvEventoNFe, pmdfeEnvEventoMDFe,
   RLPrinters ,
-  Form.NFEStatus
+  Form.NFEStatus,
+  uCondutor
   ;
 
 { Tdm_nfe }
+
+function Tdm_nfe.AddMDFe(mdf: IManifestoDF; out codStt: Int16;
+  out motivo: string): Manifesto;
+var
+  Man: Manifesto ;
+  mdfe: TMDFe;
+  I: TinfMunDescargaCollectionItem;
+var
+  M: TCManifestodf01mun;
+  N: IManifestodf02nfe ;
+  C: ICondutor ;
+var
+  tot_vlr: Currency;
+  pso_bru: Double;
+begin
+    Result :=nil ;
+    //
+    // reset
+    m_MDFE.Manifestos.Clear;
+
+    //
+    // add
+    Man :=m_MDFE.Manifestos.Add ;
+    mdfe:=Man.MDFe ;
+
+    //
+    // ide
+    mdfe.Ide.cUF :=mdf.codUfe ;
+    mdfe.Ide.tpAmb  :=TpcnTipoAmbiente(mdf.tpAmbiente) ;
+    mdfe.Ide.tpEmit :=TTpEmitenteMDFe(mdf.tpEmitente) ;
+    if mdf.tpTransportador > -1 then
+    begin
+        mdfe.Ide.tpTransp :=TTransportadorMDFe(mdf.tpTransportador) ;
+    end;
+    mdfe.Ide.modelo :=IntToStr(mdf.codMod) ;
+    mdfe.Ide.serie  :=mdf.numSer ;
+    mdfe.Ide.nMDF   :=mdf.numeroDoc ;
+    mdfe.Ide.cMDF   :=mdf.id ;
+    mdfe.Ide.modal  :=moRodoviario ;
+    mdfe.Ide.dhEmi  :=mdf.dhEmissao;
+    mdfe.Ide.tpEmis :=TpcnTipoEmissao(mdf.tpEmissao);
+    mdfe.Ide.procEmi:=peAplicativoContribuinte ;
+    mdfe.Ide.verProc:=mdf.verProc ;
+    mdfe.Ide.UFIni  :=mdf.ufeIni ;
+    mdfe.Ide.UFFim  :=mdf.ufeFim ;
+    //
+    // mun. de carga
+    for M in mdf.municipios.getDataList do
+    begin
+        if M.tipoMun =mtCarga then
+        with mdfe.Ide.infMunCarrega.Add do
+        begin
+            cMunCarrega :=M.codigoMun;
+            xMunCarrega :=M.nomeMun ;
+        end;
+    end;
+
+    //
+    // emitente
+    mdfe.Emit.CNPJCPF           :=Empresa.CNPJ;
+    mdfe.Emit.IE                :=Empresa.IE;
+    mdfe.Emit.xNome             :=Empresa.RzSoci;
+    mdfe.Emit.xFant             :=Empresa.xFant;
+    mdfe.Emit.EnderEmit.CEP     :=StrToIntDef(Empresa.CEP,0);
+    mdfe.Emit.EnderEmit.xLgr    :=Empresa.xEnder;
+    mdfe.Emit.EnderEmit.nro     :=Empresa.Numero;
+    mdfe.Emit.EnderEmit.xCpl    :=Empresa.Comple;
+    mdfe.Emit.EnderEmit.xBairro :=Empresa.Bairro;
+    mdfe.Emit.EnderEmit.cMun    :=Empresa.CodMun;
+    mdfe.Emit.EnderEmit.xMun    :=Empresa.Munici;
+    mdfe.Emit.EnderEmit.UF      :=Empresa.UF;
+    mdfe.Emit.EnderEmit.fone    :=Empresa.fone;
+    mdfe.Emit.EnderEmit.email   :=Empresa.Email;
+
+    //
+    // modal rodoviário
+    // info veiculo
+    mdfe.rodo.RNTRC :=mdf.rntrc ;
+    mdfe.rodo.veicTracao.cInt :=IntToStr(mdf.modalRodo.veiculo.id);
+    mdfe.rodo.veicTracao.placa :=mdf.modalRodo.veiculo.placa;
+    mdfe.rodo.veicTracao.RENAVAM :=mdf.modalRodo.veiculo.RENAVAM;
+    mdfe.rodo.veicTracao.tara :=mdf.modalRodo.veiculo.tara;
+    mdfe.rodo.veicTracao.capKG :=mdf.modalRodo.veiculo.capacidadeKg;
+    mdfe.rodo.veicTracao.capM3 :=mdf.modalRodo.veiculo.capacidadeM3;
+    mdfe.rodo.veicTracao.tpRod :=TpcteTipoRodado(mdf.modalRodo.veiculo.tipRodado);
+    mdfe.rodo.veicTracao.tpCar :=TpcteTipoCarroceria(mdf.modalRodo.veiculo.tipCarroceria);
+    mdfe.rodo.veicTracao.UF :=mdf.modalRodo.veiculo.ufLicenca;
+
+    //
+    // modal rodoviário
+    // info de condutores
+    for C in mdf.modalRodo.condutores.Items do
+    begin
+        with mdfe.rodo.veicTracao.condutor.Add do
+        begin
+            xNome :=C.Nome;
+            CPF   :=C.CPFCNPJ;
+        end;
+    end;
+
+    //
+    // mun. descarga
+    for M in mdf.municipios.getDataList do
+    begin
+        if M.tipoMun =mtDescarga then
+        begin
+            I :=mdfe.infDoc.infMunDescarga.Add ;
+            I.cMunDescarga :=M.codigoMun ;
+            I.xMunDescarga :=M.nomeMun ;
+            //
+            // docs (NFE´s) vinculados
+            tot_vlr :=0;
+            pso_bru :=0;
+            for N in M.nfeList.getDataList do
+            begin
+                with I.infNFe.Add do
+                begin
+                    chNFe :=N.chvNFE ;
+                    SegCodBarra :=N.codBarras ;
+                end;
+                tot_vlr :=tot_vlr +N.vlrNtf;
+                pso_bru :=pso_bru +N.volPsoB;
+            end;
+        end;
+    end;
+
+    //
+    // totais
+    mdfe.tot.qNFe :=mdf.munDescarga.nfeList.getDataList.Count;
+    mdfe.tot.vCarga :=tot_vlr;
+    // UnidMed = (uM3,uKG, uTON, uUNIDADE, uLITROS);
+    mdfe.tot.cUnid  :=uTon;
+    mdfe.tot.qCarga :=pso_bru;
+
+//    mdfe.infAdic.infCpl     := 'Empresa optante pelo Simples Nacional.; Caminhao VW.';
+//    mdfe.infAdic.infAdFisco := '';
+
+    try
+        Man.Assinar ;
+    except
+        on E:EACBrDFeException  do
+        begin
+            Self.m_ErrCod :=55;
+            Self.m_ErrMsg :=E.Message ;
+            Exit(nil) ;
+        end;
+    end;
+
+    if Man.VerificarAssinatura then
+    begin
+        Result :=Man;
+        try
+            Man.Validar ;
+            if Man.ValidarRegrasdeNegocios then
+            begin
+                if TpcnTipoEmissao(mdf.tpEmissao) = teNormal then
+                begin
+                    codStt :=1;
+                    motivo :='MDF-e pronta para envio';
+                end
+                else begin
+                    codStt :=9;
+                    motivo :='MDF-e emitido em contingência!';
+                end;
+            end
+            else begin
+                Self.m_ErrCod :=88;
+                Self.m_ErrMsg :=Man.ErroRegrasdeNegocios;
+                codstt :=Self.m_ErrCod ;
+                motivo :=Self.m_ErrMsg ;
+            end;
+        except
+            Self.m_ErrCod :=77;
+            //Self.m_ErrMsg :=N.ErroValidacao;
+            Self.m_ErrMsg :=Man.ErroValidacaoCompleto;
+            codstt :=Self.m_ErrCod ;
+            motivo :=Self.m_ErrMsg ;
+        end;
+    end
+    else begin
+        Self.m_ErrCod :=66;
+        Self.m_ErrMsg :=Man.ErroValidacao;
+    end;
+end;
 
 function Tdm_nfe.AddNotaFiscal(NF: TCNotFis00;
   const Clear, InfProt: Boolean): NotaFiscal ;
@@ -1223,6 +1437,99 @@ begin
     // *********************
     m_reg.Load();
 
+    {*
+     * ler parametros MDFE
+     *
+     *}
+    m_RegMDFe.Load ;
+    if m_RegMDFe.active_mdfe.Value then
+    begin
+        //
+        // certificado
+        m_MDFE.Configuracoes.Certificados.ArquivoPFX :=m_NFE.Configuracoes.Certificados.ArquivoPFX;
+        if FileExists(m_MDFE.Configuracoes.Certificados.ArquivoPFX)then
+        begin
+            m_MDFE.Configuracoes.Certificados.Senha :=m_NFE.Configuracoes.Certificados.Senha ;
+            m_MDFE.Configuracoes.Certificados.NumeroSerie :='';
+        end
+        else begin
+            m_MDFE.Configuracoes.Certificados.NumeroSerie :=m_NFE.Configuracoes.Certificados.NumeroSerie ;
+            m_MDFE.Configuracoes.Certificados.ArquivoPFX :='';
+            m_MDFE.Configuracoes.Certificados.Senha :='';
+        end;
+
+        //
+        // config. geral
+        m_MDFE.Configuracoes.Geral.RetirarAcentos   :=m_NFE.Configuracoes.Geral.RetirarAcentos ;
+        m_MDFE.Configuracoes.Geral.ExibirErroSchema :=m_NFE.Configuracoes.Geral.ExibirErroSchema ;
+        m_MDFE.Configuracoes.Geral.FormatoAlerta    :=m_NFE.Configuracoes.Geral.FormatoAlerta;
+        m_MDFE.Configuracoes.Geral.FormaEmissao     :=TpcnTipoEmissao(m_RegMDFe.forma_emissao.Value) ;
+        m_MDFE.Configuracoes.Geral.SSLLib           :=m_NFE.Configuracoes.Geral.SSLLib;
+        m_MDFE.Configuracoes.Geral.SSLCryptLib      :=m_NFE.Configuracoes.Geral.SSLCryptLib;
+        m_MDFE.Configuracoes.Geral.SSLHttpLib       :=m_NFE.Configuracoes.Geral.SSLHttpLib;
+        m_MDFE.Configuracoes.Geral.SSLXmlSignLib    :=m_NFE.Configuracoes.Geral.SSLXmlSignLib;
+        //m_MDFE.Configuracoes.Geral.ModeloDF
+        m_MDFE.Configuracoes.Geral.VersaoDF         :=TVersaoMDFe(m_RegMDFe.ver_doc.Value) ;
+        m_MDFE.Configuracoes.Geral.Salvar           :=m_NFE.Configuracoes.Geral.Salvar;
+
+        m_MDFE.SSL.SSLType :=m_NFE.SSL.SSLType;
+
+        //
+        // config. WS
+        m_MDFE.Configuracoes.WebServices.UF         :=Empresa.UF ;
+        if m_RegMDFe.amb_producao.Value then
+        begin
+            m_MDFE.Configuracoes.WebServices.Ambiente   :=taProducao;
+        end
+        else begin
+            m_MDFE.Configuracoes.WebServices.Ambiente   :=taHomologacao;
+        end;
+        m_MDFE.Configuracoes.WebServices.Visualizar :=m_NFE.Configuracoes.WebServices.Visualizar;
+        m_MDFE.Configuracoes.WebServices.Salvar     :=m_NFE.Configuracoes.WebServices.Salvar;
+        m_MDFE.Configuracoes.WebServices.AjustaAguardaConsultaRet :=m_NFE.Configuracoes.WebServices.AjustaAguardaConsultaRet;
+        m_MDFE.Configuracoes.WebServices.AguardarConsultaRet      :=m_NFE.Configuracoes.WebServices.AguardarConsultaRet;
+        m_MDFE.Configuracoes.WebServices.Tentativas :=m_NFE.Configuracoes.WebServices.Tentativas;
+        m_MDFE.Configuracoes.WebServices.IntervaloTentativas :=m_NFE.Configuracoes.WebServices.IntervaloTentativas;
+        m_MDFE.Configuracoes.WebServices.TimeOut :=m_NFE.Configuracoes.WebServices.TimeOut;
+        m_MDFE.Configuracoes.WebServices.ProxyHost :=m_NFE.Configuracoes.WebServices.ProxyHost;
+        m_MDFE.Configuracoes.WebServices.ProxyPort :=m_NFE.Configuracoes.WebServices.ProxyPort;
+        m_MDFE.Configuracoes.WebServices.ProxyUser :=m_NFE.Configuracoes.WebServices.ProxyUser;
+        m_MDFE.Configuracoes.WebServices.ProxyPass :=m_NFE.Configuracoes.WebServices.ProxyPass;
+
+        //
+        // config. arquivos
+        m_MDFE.Configuracoes.Arquivos.Salvar          :=m_NFE.Configuracoes.Arquivos.Salvar;
+        m_MDFE.Configuracoes.Arquivos.SepararPorMes   :=m_NFE.Configuracoes.Arquivos.SepararPorMes;
+        m_MDFE.Configuracoes.Arquivos.AdicionarLiteral:=m_NFE.Configuracoes.Arquivos.AdicionarLiteral;
+        m_MDFE.Configuracoes.Arquivos.SepararPorCNPJ  :=m_NFE.Configuracoes.Arquivos.SepararPorCNPJ;
+        m_MDFE.Configuracoes.Arquivos.SepararPorModelo:=m_NFE.Configuracoes.Arquivos.SepararPorModelo;
+        m_MDFE.Configuracoes.Arquivos.PathSalvar      :=ApplicationPath +'\dfe\mdfe';
+        m_MDFE.Configuracoes.Arquivos.PathSchemas     :=ApplicationPath +'\schemas\mdfe';
+        m_MDFE.Configuracoes.Arquivos.PathEvento      :=m_MDFE.Configuracoes.Arquivos.PathSalvar;
+    end;
+
+end;
+
+procedure Tdm_nfe.m_MDFEStatusChange(Sender: TObject);
+begin
+    case m_MDFE.Status of
+        stMDFeIdle: if frm_Status <> nil then frm_Status.Hide;
+
+        stMDFeStatusServico: Tfrm_NFEStatus.DoShow('Verificando Status do servico...');
+
+        stMDFeRecepcao: Tfrm_NFEStatus.DoShow('Enviando dados do MDFe...');
+
+        stMDFeRetRecepcao: Tfrm_NFEStatus.DoShow('Recebendo dados do MDFe...');
+
+        stMDFeConsulta: Tfrm_NFEStatus.DoShow('Consultando MDFe...');
+
+        stMDFeRecibo: Tfrm_NFEStatus.DoShow('Consultando Recibo de Lote...');
+
+        stMDFeEvento: Tfrm_NFEStatus.DoShow('Enviando Evento...');
+    end;
+    //
+    Application.ProcessMessages;
+    //
 end;
 
 procedure Tdm_nfe.m_NFEGerarLog(const ALogLine: string; var Tratado: Boolean);
@@ -1326,7 +1633,7 @@ end;
 function Tdm_nfe.OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
 var
   N: NotaFiscal ;
-  E: TInfEventoCollectionItem;
+  E: pcnEnvEventoNFe.TInfEventoCollectionItem;
 begin
     //check nota ja cancelada (101, 135, 151, 155)
     if Tdm_nfe.getInstance.CStatCancel(NF.m_codstt) then
@@ -1372,10 +1679,59 @@ begin
         m_ErrMsg :=m_NFE.WebServices.EnvEvento.xMotivo;
 end;
 
+function Tdm_nfe.OnlyCancMDFE(mdf: IManifestoDF; const just: String): Boolean;
+var
+  E: pmdfeEnvEventoMDFe.TInfEventoCollectionItem;
+var
+  cod: Smallint;
+  mot: string;
+begin
+    //check mdfe se ja cancelado (101, 151, 155)
+    if Self.m_MDFE.cStatCancelado(mdf.Status) then
+    begin
+        m_ErrMsg :='MDFe já cancelado!';
+        Exit(False);
+    end;
+
+    Self.AddMDFe(mdf, cod, mot) ;
+
+    m_MDFE.EventoMDFe.Evento.Clear;
+
+    E :=m_MDFE.EventoMDFe.Evento.Add ;
+    E.infEvento.CNPJCPF   :=OnlyNumber(Empresa.CNPJ);
+    E.infEvento.cOrgao    :=mdf.codUfe;
+    E.infEvento.dhEvento  :=now;
+    E.infEvento.tpEvento  :=teCancelamento;
+    E.infEvento.nSeqEvento:=1;
+    E.infEvento.chMDFe    :=mdf.chMDFE;
+    E.infEvento.detEvento.nProt :=mdf.numprot;
+    E.infEvento.detEvento.xJust :=Just;
+
+    Result :=m_MDFE.EnviarEvento(mdf.id) ;
+    if Result then
+    begin
+        m_ErrCod :=E.RetInfEvento.cStat;
+        m_ErrMsg :=E.RetInfEvento.xMotivo;
+        Result :=m_ErrCod in [135, 136, 155] ;
+        if Result then
+        begin
+            mdf.setRet( E.RetInfEvento.cStat ,
+                        E.RetInfEvento.xMotivo,
+                        E.RetInfEvento.verAplic,
+                        '',
+                        E.RetInfEvento.nProt,
+                        '', //E.RetInfEvento.digVal,
+                        E.RetInfEvento.dhRegEvento ) ;
+        end ;
+    end
+    else
+        m_ErrMsg :=m_MDFE.WebServices.EnvEvento.xMotivo;
+end;
+
 function Tdm_nfe.OnlyCCE(NF: TCNotFis00; const aCorrecao: String): Boolean;
 var
   N: NotaFiscal ;
-  E: TInfEventoCollectionItem;
+  E: pcnEnvEventoNFe.TInfEventoCollectionItem;
 begin
     //check nota ja cancelada (101, 135, 151, 155)
     if CStatCancel(NF.m_codstt) then
@@ -1539,11 +1895,66 @@ begin
     end;
 end;
 
-function Tdm_nfe.OnlyStatusSvc(): Boolean;
+function Tdm_nfe.OnlySendMDFE(mdf: IManifestoDF): Boolean;
+var
+  Man: Manifesto ;
+  cod: Int16;
+  mot: string;
+var
+  ret: TMDFeRetRecepcao ;
+begin
+
+    //
+    // gera, assina e valida XML
+    //
+    Man :=AddMDFe(mdf, cod, mot) ;
+    if Man <> nil then
+    begin
+        //
+        // grava xml, chave e status
+        //
+        mdf.setXML(cod, mot, OnlyNumber(Man.MDFe.infMDFe.Id), Man.XMLAssinado);
+
+        //
+        // chk status de erros (assinatura,validaçao e regras de negocio)
+        //
+        if cod in[66,77,88] then
+        begin
+            Exit(false);
+        end;
+    end
+    else begin
+        Self.m_ErrMsg :='Não foi possível gerar o MDF-e!';
+        Exit(false);
+    end;
+
+    m_ErrCod :=0;
+    m_ErrMsg :='';
+
+    Result :=m_MDFE.Enviar(mdf.id, False);
+    Result :=Result and(Self.m_ErrCod =0);
+    if Result then
+    begin
+        ret :=m_MDFE.WebServices.Retorno ;
+        mdf.tpAmbiente :=Ord(ret.TpAmb) ;
+        mdf.setRet( ret.cStat ,
+                    ret.xMotivo ,
+                    ret.verAplic,
+                    ret.Recibo  ,
+                    ret.Protocolo,
+                    '',
+                    now         );
+    end ;
+end;
+
+function Tdm_nfe.OnlyStatusSvc(const aMod: Word): Boolean;
 begin
     m_NFE.Configuracoes.Certificados.VerificarValidade :=True;
     try
-        Result :=StatusServico.Executar ;
+        if aMod <>58 then
+            Result :=StatusServico.Executar
+        else
+            Result :=m_MDFE.WebServices.StatusServico.Executar;
     finally
         m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
     end;
@@ -1552,7 +1963,7 @@ end;
 function Tdm_nfe.PrintCCE(NF: TCNotFis00; CC: TCEventoCCE): Boolean;
 var
   ptr: TRLPrinterWrapper;
-  E: TInfEventoCollectionItem;
+  E: pcnEnvEventoNFe.TInfEventoCollectionItem;
 begin
 
     if(not Assigned(NF))or(not Assigned(CC))then
@@ -1903,6 +2314,122 @@ begin
     begin
         p.xValor :=IntToStr(Ord(conting_offline.Value)) ;
         p.Save ;
+    end;
+end;
+
+{ TRegMDFe }
+
+procedure TRegMDFe.Load;
+const
+  CPRM_CATEGO = 'MDFE';
+var
+  params: TCParametroList ;
+  p: TCParametro ;
+var
+  prm_comple: TStrings ;
+  tp_emis: TpcnTipoEmissao;
+  tp_emit: TTpEmitenteMDFe;
+  vr_doc: TpcnVersaoDF ;
+begin
+    //
+    // cria lista vazia
+    params :=TCParametroList.Create(True) ;
+    try
+        //
+        // carrega totos params MDF-e
+        params.Load('',CPRM_CATEGO) ;
+
+        active_mdfe.Key :='active_mdfe';
+        p :=params.IndexOf(active_mdfe.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(active_mdfe.Key, ftBoolean) ;
+            p.xValor:='0';
+            p.Catego:=CPRM_CATEGO;
+            P.Descricao:='Indicador que ativa/desativa o modulo MDF-e';
+            p.Save ;
+        end;
+        active_mdfe.Value :=p.ReadBoo() ;
+
+        amb_producao.Key :=Format('amb_producao.%s.mdfe',[Empresa.CNPJ]) ;
+        p :=params.IndexOf(amb_producao.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(amb_producao.Key, ftBoolean) ;
+            p.xValor:='0';
+            p.Catego:=CPRM_CATEGO;
+            P.Descricao:='Indicador que ativa/desativa o ambiente de produção';
+            p.Save ;
+        end;
+        amb_producao.Value :=p.ReadBoo() ;
+
+        forma_emissao.Key :=Format('forma_emissao.%s.mdfe',[Empresa.CNPJ]);
+        p :=params.IndexOf(forma_emissao.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(forma_emissao.Key, ftSmallint) ;
+            p.xValor:='0';
+            p.Catego:=CPRM_CATEGO;
+            P.Descricao:='Forma de emissão (normal,continência)';
+            p.Save ;
+        end;
+        forma_emissao.Value :=p.ReadInt() ;
+
+        tip_emitente.Key :=Format('tip_emitente.%s',[Empresa.CNPJ]) ;
+        p :=params.IndexOf(tip_emitente.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(tip_emitente.Key, ftArray) ;
+            p.xValor:='0';
+            p.Catego:=CPRM_CATEGO;
+            P.Descricao:='Tipo do emitente por CNPJ';
+            //
+            // obtem os tipos enumerados
+            prm_comple :=TStringList.Create ;
+            try
+              for tp_emit:= Low(TTpEmitenteMDFe) to High(TTpEmitenteMDFe) do
+                  prm_comple.Add(
+                                  GetEnumName(TypeInfo(TTpEmitenteMDFe),
+                                              Integer(tp_emit)
+                                              )
+                                ) ;
+                  P.Comple :=prm_comple.CommaText ;
+            finally
+                prm_comple.Free ;
+            end;
+            p.Save ;
+        end;
+        tip_emitente.Value :=p.ReadInt() ;
+
+        ver_doc.Key :='versao_doc.mdfe';
+        p :=params.IndexOf(ver_doc.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(ver_doc.Key, ftArray) ;
+            p.xValor:='0';
+            p.Catego:=CPRM_CATEGO;
+            P.Descricao:='Versão do documento fiscal';
+            //
+            // obtem os tipos enumerados
+            prm_comple :=TStringList.Create ;
+            try
+              for vr_doc:= Low(TpcnVersaoDF) to High(TpcnVersaoDF) do
+                  prm_comple.Add(
+                                  GetEnumName(TypeInfo(TpcnVersaoDF),
+                                              Integer(vr_doc)
+                                              )
+                                ) ;
+                  P.Comple :=prm_comple.CommaText ;
+            finally
+                prm_comple.Free ;
+            end;
+            p.Save ;
+        end;
+        ver_doc.Value :=p.ReadInt() ;
+
+
+    finally
+        params.Free ;
     end;
 end;
 

@@ -8,13 +8,6 @@ uses Classes, Generics.Collections,
 
 type
 
-//  TSelectCondutor = record
-//    codseq: Int16;
-//    cpfcnpj: string;
-//    xnome: string ;
-//  end;
-
-
   IManifestoCtr = Interface(IController)
     ['{F67F82CA-8A93-43DD-B0DB-2CF63B556131}']
     function getModel: IManifestoDF;
@@ -88,25 +81,6 @@ begin
     else begin
         Q :=TCManifestoDF.CLoad(aFilter) ;
         try
-            Result :=not Q.IsEmpty ;
-            if Result then
-            begin
-                if Assigned(m_ModelList) then
-                    m_ModelList.clearItems
-                else
-                    m_ModelList :=TCManifestoDFList.Create ;
-
-                while not Q.Eof do
-                begin
-                    M :=TCManifestoDF.Create ;
-                    M.loadFromDataset(Q);
-                    m_ModelList.getItems.Add(M) ;
-                    Q.Next ;
-                end;
-            end;
-
-
-            {
             //
             // prepara a view da busca para mostrar os registros
             B :=TCBusca.NewBusca ;
@@ -176,7 +150,6 @@ begin
             finally
                 B.Free ;
             end;
-            }
 
         finally
             Q.Free ;

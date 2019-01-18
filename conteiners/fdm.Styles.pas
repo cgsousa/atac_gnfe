@@ -5,7 +5,7 @@ interface
 uses
   SysUtils, Classes,
   AdvOfficeStatusBar, AdvOfficeStatusBarStylers, AdvToolBarStylers, AdvToolBar,
-  AdvMenuStylers, AdvMenus;
+  AdvMenuStylers, AdvMenus, AdvPanel;
 
 type
   Tdm_Styles = class(TDataModule)
@@ -15,6 +15,7 @@ type
     AdvToolBarOfficeStyler1: TAdvToolBarOfficeStyler;
     AdvToolBarFantasyStyler1: TAdvToolBarFantasyStyler;
     AdvOfficeStatusBarOfficeStyler1: TAdvOfficeStatusBarOfficeStyler;
+    AdvPanelStyler1: TAdvPanelStyler;
   private
     { Private declarations }
   public

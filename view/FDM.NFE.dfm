@@ -182,4 +182,40 @@ object dm_nfe: Tdm_nfe
     Left = 288
     Top = 8
   end
+  object m_MDFE: TACBrMDFe
+    MAIL = m_Mail
+    OnTransmitError = m_NFETransmitError
+    OnStatusChange = m_MDFEStatusChange
+    OnGerarLog = m_NFEGerarLog
+    Configuracoes.Geral.SSLLib = libNone
+    Configuracoes.Geral.SSLCryptLib = cryNone
+    Configuracoes.Geral.SSLHttpLib = httpNone
+    Configuracoes.Geral.SSLXmlSignLib = xsNone
+    Configuracoes.Geral.FormatoAlerta = 'TAG:%TAGNIVEL% ID:%ID%/%TAG%(%DESCRICAO%) - %MSG%.'
+    Configuracoes.Arquivos.OrdenacaoPath = <>
+    Configuracoes.WebServices.UF = 'SP'
+    Configuracoes.WebServices.AguardarConsultaRet = 0
+    Configuracoes.WebServices.QuebradeLinha = '|'
+    DAMDFE = m_DAMDFeRL
+    Left = 336
+    Top = 96
+  end
+  object m_DAMDFeRL: TACBrMDFeDAMDFeRL
+    ACBrMDFe = m_MDFE
+    ImprimirHoraSaida = False
+    MostrarPreview = True
+    MostrarStatus = True
+    TipoDAMDFe = tiSemGeracao
+    TamanhoPapel = tpA4
+    NumCopias = 1
+    MargemInferior = 0.800000000000000000
+    MargemSuperior = 0.800000000000000000
+    MargemEsquerda = 0.600000000000000000
+    MargemDireita = 0.510000000000000000
+    MDFeCancelada = False
+    MDFeEncerrado = False
+    PrintDialog = True
+    Left = 336
+    Top = 152
+  end
 end
