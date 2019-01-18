@@ -1515,6 +1515,7 @@ object frm_ViewSvc: Tfrm_ViewSvc
   end
   object tm_MLog: TTimer
     Enabled = False
+    Interval = 4000
     OnTimer = tm_MLogTimer
     Left = 192
     Top = 8
@@ -1526,7 +1527,6 @@ object frm_ViewSvc: Tfrm_ViewSvc
   end
   object tm_Alert: TTimer
     Enabled = False
-    Interval = 4000
     OnTimer = tm_AlertTimer
     Left = 24
     Top = 136

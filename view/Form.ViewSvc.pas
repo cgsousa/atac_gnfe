@@ -281,7 +281,9 @@ begin
 
     ConnectionADO :=NewADOConnFromIniFile(
         ExtractFilePath(ParamStr(0)) +'Configuracoes.ini'
-                                ) ;
+
+                          ) ;
+    while not ConnectionADO.Connected do
     try
         ConnectionADO.Connected :=True ;
         //
