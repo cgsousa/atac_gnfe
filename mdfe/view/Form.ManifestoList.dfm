@@ -162,7 +162,6 @@ object frm_ManifestoList: Tfrm_ManifestoList
     TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnGetText = vst_Grid1GetText
-    ExplicitTop = -1
     Columns = <
       item
         Alignment = taRightJustify
@@ -319,6 +318,8 @@ object frm_ManifestoList: Tfrm_ManifestoList
     StatusBar.Color = 14606046
     StatusBar.ColorTo = 11119017
     StatusBar.GradientDirection = gdVertical
+    ExplicitLeft = -6
+    ExplicitTop = -1
     DesignSize = (
       198
       511)
@@ -465,6 +466,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
       ParentShowHint = False
       ShowHint = True
       TabOrder = 1
+      OnClick = btn_ConfigClick
       Alignment = taLeftJustify
       ButtonIndex = 0
       SpaceInterval = 6

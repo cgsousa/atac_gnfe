@@ -49,6 +49,7 @@ type
     procedure btn_SendClick(Sender: TObject);
     procedure btn_ConsClick(Sender: TObject);
     procedure btn_DetalhClick(Sender: TObject);
+    procedure btn_ConfigClick(Sender: TObject);
   private
     { Private declarations }
     m_Ctrl: TCManifestoCtr;
@@ -72,13 +73,36 @@ uses StrUtils, DateUtils,
   pcnConversao, pmdfeConversaoMDFe ,
   uTaskDlg, udbconst, FDM.NFE, fdm.Styles,
   uManifestoDF,
-  Form.Manifesto;
+  Form.Manifesto, Form.ParametroList;
 
 
 
 {$R *.dfm}
 
 { Tfrm_ManifestoList }
+
+procedure Tfrm_ManifestoList.btn_ConfigClick(Sender: TObject);
+var
+  pwd: string ;
+  rep_nfe: Tdm_nfe ;
+begin
+    if not InputQueryDlg('Acesso aos Parametros do MDF-e','Informe a senha:', pwd) then
+    begin
+        Exit;
+    end;
+    if not ChkPwd(pwd) then
+    begin
+        CMsgDlg.Warning('Senha inválida!') ;
+        Exit;
+    end;
+    //
+    //
+    rep_nfe :=Tdm_nfe.getInstance ;
+    rep_nfe.regMDFe.Load ;
+    //
+    //
+    Tfrm_ParametroList.lp_Show('MDFE') ;
+end;
 
 procedure Tfrm_ManifestoList.btn_ConsClick(Sender: TObject);
 var
@@ -208,11 +232,12 @@ var
 begin
     if CMsgDlg.Confirm('Deseja emitir um novo manifesto?') then
     begin
-        V :=Tfrm_Manifesto.Create(m_Ctrl);
         M :=TCManifestoDF.Create ;
-        m_Ctrl.Model :=M ;
+        V :=Tfrm_Manifesto.Create(m_Ctrl);
+        m_Ctrl.Model:=M;
         m_Ctrl.Model.Insert;
         m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
+        m_Ctrl.View :=V;
         //m_Ctrl.Inicialize ;
         V.Execute ;
     end;
