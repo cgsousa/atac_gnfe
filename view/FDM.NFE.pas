@@ -79,7 +79,17 @@ type
   TRegNFE = record
   public
     //
+    // ide
+    natope: TPair<string, string>;
+    codfop: TPair<string, Int16>;
+    codmod: TPair<string, Int16>;
+    tipdoc: TPair<string, Int16>;
+    tipimp: TPair<string, Int16>;
+    tpemis: TPair<string, Int16>;
+    tipamb: TPair<string, Int16>;
+    //
     // servidor smtp
+
     conting_offline: TPair<string, Boolean>;
     send_sincrono: TPair<string, Boolean>;
     send_maxnfelot: TPair<string, Int16>;
@@ -1835,13 +1845,158 @@ const
 var
   params: TCParametroList ;
   p: TCParametro ;
+var
+  acbr_tipdoc: TpcnTipoNFe ;
+  acbr_tipimp: TpcnTipoImpressao;
+  acbr_tpemis: TpcnTipoEmissao;
+  acbr_tipamb: TpcnTipoAmbiente;
+  S: TStrings ;
 begin
 
+    S :=TStringList.Create ;
     params :=TCParametroList.Create ;
     try
         //
         // carrega todos do nfe
         params.Load('', CST_CATEGO) ;
+
+        {*
+         * params ide
+         *}
+
+        natope.Key :='natureza_operacao' ;
+        p :=params.IndexOf(natope.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(natope.Key) ;
+            p.ValTyp:=ftString ;
+            P.xValor :='VENDA DENTRO DO ESTADO';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Natureza da operacao padrão de saida';
+            P.Save ;
+        end;
+        natope.Value :=p.ReadStr() ;
+
+        codfop.Key :='cfop' ;
+        p :=params.IndexOf(codfop.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(codfop.Key) ;
+            p.ValTyp:=ftSmallint ;
+            P.xValor :='5102';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='CFOP padrão de saida';
+            P.Save ;
+        end;
+        codfop.Value :=p.ReadInt() ;
+
+        codmod.Key :='cod_modelo' ;
+        p :=params.IndexOf(codmod.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(codmod.Key) ;
+            p.ValTyp:=ftSmallint ;
+            P.xValor :='55';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Código do modelo do Documento Fiscal.(55=NF-e;65=NFC-e)';
+            P.Save ;
+        end;
+        codmod.Value :=p.ReadInt() ;
+
+        tipdoc.Key :='tp_documentofiscal' ;
+        p :=params.IndexOf(tipdoc.Key) ;
+        if p = nil then
+        begin
+            S.Clear ;
+            p :=params.AddNew(tipdoc.Key) ;
+            p.ValTyp:=ftArray ;
+            //
+            // obtem os tipos enumerados (tipo doc.fiscal do ACBr)
+            for acbr_tipdoc :=Low(TpcnTipoNFe) to High(TpcnTipoNFe) do
+                S.Add(
+                      GetEnumName(TypeInfo(TpcnTipoNFe), Integer(acbr_tipdoc) )
+                      ) ;
+            //
+            // inicializa param
+            P.xValor :='1';
+            P.Comple :=S.CommaText ;
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Tipo do Documento Fiscal (0=entrada;1=saída)';
+            P.Save ;
+        end;
+        tipdoc.Value :=p.ReadInt() ;
+
+
+        tipimp.Key :='danfe.format' ;
+        p :=params.IndexOf(tipimp.Key) ;
+        if p = nil then
+        begin
+            S.Clear ;
+            p :=params.AddNew(tipimp.Key) ;
+            p.ValTyp:=ftArray ;
+            //
+            // obtem os tipos enumerados (tipo impressao do ACBr)
+            for acbr_tipimp :=Low(TpcnTipoImpressao) to High(TpcnTipoImpressao) do
+                S.Add(
+                      GetEnumName(TypeInfo(TpcnTipoImpressao), Integer(acbr_tipimp) )
+                      ) ;
+            //
+            // inicializa param
+            P.xValor :='0';
+            P.Comple :=S.CommaText ;
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Formato de impressão do DANFE';
+            P.Save ;
+        end;
+        tipimp.Value :=p.ReadInt() ;
+
+        tpemis.Key :=Format('forma_emissao.%s',[Empresa.CNPJ]) ;
+        p :=params.IndexOf(tpemis.Key) ;
+        if p = nil then
+        begin
+            S.Clear ;
+            p :=params.AddNew(tpemis.Key) ;
+            p.ValTyp:=ftArray ;
+            //
+            // obtem os tipos enumerados (tipo emissão do ACBr)
+            for acbr_tpemis :=Low(TpcnTipoEmissao) to High(TpcnTipoEmissao) do
+                S.Add(
+                      GetEnumName(TypeInfo(TpcnTipoEmissao), Integer(acbr_tpemis) )
+                      ) ;
+            //
+            // inicializa param
+            P.xValor :='0';
+            P.Comple :=S.CommaText ;
+            P.Catego :=CST_CATEGO;
+            P.Descricao :='Forma de emissão da NFE por CNPJ' ;
+            P.Save ;
+        end;
+        tpemis.Value :=p.ReadInt() ;
+
+        //: ;
+        tipamb.Key :=Format('tp_ambiente.%s',[Empresa.CNPJ]) ;
+        p :=params.IndexOf(tipamb.Key) ;
+        if p = nil then
+        begin
+            S.Clear ;
+            p :=params.AddNew(tipamb.Key) ;
+            p.ValTyp:=ftArray ;
+            //
+            // obtem os tipos enumerados (tipo ambiente do ACBr)
+            for acbr_tipamb :=Low(TpcnTipoAmbiente) to High(TpcnTipoAmbiente) do
+                S.Add(
+                      GetEnumName(TypeInfo(TpcnTipoAmbiente), Integer(acbr_tipamb) )
+                      ) ;
+            //
+            // inicializa param
+            P.xValor :='1';
+            P.Comple :=S.CommaText ;
+            P.Catego :=CST_CATEGO;
+            P.Descricao :='Identificação do Ambiente(1=Produção;2=Homologação)' ;
+            P.Save ;
+        end;
+        tipamb.Value :=p.ReadInt() ;
+
 
         //
         // contigencia off-line
@@ -1896,6 +2051,7 @@ begin
 
     finally
         params.Free ;
+        S.Free ;
     end;
 
 end;
