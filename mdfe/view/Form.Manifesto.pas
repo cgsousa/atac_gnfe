@@ -87,11 +87,13 @@ type
     procedure pag_Control00Change(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
     procedure btn_CdtRmvClick(Sender: TObject);
+    procedure vst_GridNFEGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
+      Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
   private
     { Private declarations }
     m_Ctrl: IManifestoCtr;
     m_StatusBar: TCStatusBarWidget;
-    m_lote: TCNotFis00Lote;
+    m_Lote: TCNotFis00Lote;
     m_CondutorCtr: TCCondutorCtr;
     procedure loadGridMun ;
     procedure loadVeiculo ;
@@ -153,6 +155,7 @@ begin
     m_CondutorCtr.Model.OnModelChanged :=(V as Tfrm_Condutor).ModelChanged ;
     m_CondutorCtr.Model.Insert ;
     V.Execute ;
+    loadCondutores ;
 end;
 
 procedure Tfrm_Manifesto.btn_CdtRmvClick(Sender: TObject);
@@ -196,14 +199,38 @@ procedure Tfrm_Manifesto.btn_FindClick(Sender: TObject);
     var
       N: TCNotFis00 ;
       P: PVirtualNode ;
+      M: TCManifestodf01mun;
+      I: IManifestodf02nfe ;
     begin
         vst_GridNFE.Clear ;
         for N in m_lote.Items do
         begin
             N.Checked :=True ;
+
             P :=vst_GridNFE.AddChild(nil) ;
-            P.CheckType :=ctCheckBox ;
-            P.CheckState :=csCheckedNormal ;
+            //
+            // chk mun. descarga
+            M :=m_Ctrl.Model.municipios.indexOf(N.m_dest.EnderDest.cMun,mtDescarga) ;
+            if M <> nil then
+            begin
+                //
+                // chk se NFE já vinculada!
+                for I in M.nfeList.getDataList do
+                begin
+                    if AnsiCompareStr(N.m_chvnfe,I.chvNFE)=0 then
+                    begin
+                        N.Checked :=False ;
+                        Break ;
+                    end;
+                end;
+            end;
+            if N.Checked then
+            begin
+                P.CheckType :=ctCheckBox ;
+                P.CheckState :=csCheckedNormal ;
+            end
+            else
+                Include(P.States, vsDisabled);
         end;
         vst_GridNFE.IndexItem :=0 ;
         vst_GridNFE.Refresh ;
@@ -284,8 +311,8 @@ begin
     // set model
     m_Ctrl.Model.codUfe :=21;
     //m_Ctrl.Model.tpAmbiente  :=cbx_mdfTpAmb.ItemIndex;
-    m_Ctrl.Model.tpEmitente  :=cbx_mdfTpEmit.ItemIndex;
-    m_Ctrl.Model.tpTransportador  :=cbx_mdfTpTrasp.ItemIndex;
+    m_Ctrl.Model.tpEmitente :=cbx_mdfTpEmit.ItemIndex;
+    m_Ctrl.Model.tpTransportador :=cbx_mdfTpTrasp.ItemIndex;
     //m_Ctrl.Model.tpEmissao  :=cbx_mdfTpEmis.ItemIndex;
     //m_Ctrl.Model.modalidade  :=0
     //m_Ctrl.Model.dataHoraEmissao :=0
@@ -340,7 +367,6 @@ end;
 
 procedure Tfrm_Manifesto.btn_VinculaClick(Sender: TObject);
 var
-  L: TCNotFis00Lote ;
   N: TCNotFis00 ;
   M: TCManifestodf01mun;
   I: IManifestodf02nfe ;
@@ -349,7 +375,7 @@ begin
     begin
         //
         // loop para add os municipios
-        for N in L.Items do
+        for N in m_Lote.Items do
         begin
             //
             // valida vinculo
@@ -387,7 +413,7 @@ begin
                 begin
                     M.nfeList.addNew(
                         TCManifestodf02nfe.New( N.m_chvnfe, '', False,
-                                                N.m_codseq,
+//                                                N.m_codseq,
                                                 N.m_icmstot.vNF,
                                                 N.m_transp.Vol.Items[0].pesoB
                                                 )
@@ -400,7 +426,8 @@ begin
         loadGridMun ;
         pag_Control00.ActivePageIndex :=1;
         pag_Control01.ActivePageIndex :=0;
-        ActiveControl :=vst_GridNFE ;
+        ActiveControl :=vst_GridMun ;
+        vst_GridNFE.Clear ;
     end;
 end;
 
@@ -503,8 +530,13 @@ begin
 
     if m_Ctrl.Model.State <> msBrowse then
     begin
+        edt_DatIni.Date :=StartOfTheMonth(Date);
+        edt_DatFin.Date :=Date;
         if m_Ctrl.Model.State = msInsert then
-            pag_Control00.ActivePageIndex :=0
+        begin
+            pag_Control00.ActivePageIndex :=0 ;
+            ActiveControl :=edt_DatFin;
+        end
         else
             pag_Control00.ActivePageIndex :=1;
     end
@@ -768,6 +800,26 @@ begin
                 end;
             end;
         end;
+    end;
+end;
+
+procedure Tfrm_Manifesto.vst_GridNFEGetText(Sender: TBaseVirtualTree;
+  Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
+  var CellText: string);
+var
+  N: TCNotFis00 ;
+begin
+    CellText :='';
+    N :=m_Lote.Items[Node.Index] ;
+    case Column of
+        00: CellText :=N.m_chvnfe;
+        01: CellText :=Format('%.8d',[N.m_codped]) ;
+        02: CellText :=IfThen(N.m_codmod=55,'NFe','NFCe') ;
+        03: CellText :=Format('%.3d',[N.m_nserie]) ;
+        04: CellText :=Format('%.8d',[N.m_numdoc]) ;
+        05: CellText :=FormatDateTime('dd/MM/yyyy HH:NN', N.m_dtemis) ;
+        06: CellText :=CFrmtStr.Cur(N.m_icmstot.vNF) ;
+        07: CellText :=CFrmtStr.Flt(N.m_transp.Vol.Items[0].pesoB, 3) ;
     end;
 end;
 

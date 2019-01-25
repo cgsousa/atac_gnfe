@@ -50,6 +50,8 @@ type
     procedure btn_ConsClick(Sender: TObject);
     procedure btn_DetalhClick(Sender: TObject);
     procedure btn_ConfigClick(Sender: TObject);
+    procedure btn_CloseClick(Sender: TObject);
+    procedure vst_Grid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
   private
     { Private declarations }
     m_Ctrl: TCManifestoCtr;
@@ -80,6 +82,12 @@ uses StrUtils, DateUtils,
 {$R *.dfm}
 
 { Tfrm_ManifestoList }
+
+procedure Tfrm_ManifestoList.btn_CloseClick(Sender: TObject);
+begin
+    Self.Close ;
+
+end;
 
 procedure Tfrm_ManifestoList.btn_ConfigClick(Sender: TObject);
 var
@@ -218,6 +226,7 @@ begin
         vst_Grid1.IndexItem :=0;
         ActiveControl :=vst_Grid1;
         btn_Filter.Click ;
+        btn_Detalh.Enabled :=True ;
     end
     else begin
         CMsgDlg.Info('Nenhuma manifesto encontrado neste filtro!') ;
@@ -285,29 +294,25 @@ end;
 
 procedure Tfrm_ManifestoList.FormShow(Sender: TObject);
 begin
-    edt_DatIni.Date :=Date;
-    edt_DatFin.Date :=edt_DatIni.Date;
+    edt_DatIni.Date :=StartOfTheMonth(Date);
+    edt_DatFin.Date :=Date;
 
-    ActiveControl :=edt_DatIni;
+    ActiveControl :=edt_DatFin;
 
     Self.Inicialize ;
 end;
 
 procedure Tfrm_ManifestoList.Inicialize;
-var
-  Model: IManifestoDF;
 begin
-    Model :=TCManifestoDF.Create;
-    m_Ctrl :=TCManifestoCtr.Create ;
-    m_Ctrl.Model:=Model ;
-    m_Ctrl.View :=Self;
-    m_Ctrl.Inicialize ;
-    //
+    btn_Edit.Enabled  :=False;
+    btn_Detalh.Enabled:=False;
+    btn_Send.Enabled:=False;
+    btn_Canc.Enabled:=False;
 end;
 
 procedure Tfrm_ManifestoList.ModelChanged;
 begin
-//    Self.Inicialize ;
+    Self.Inicialize ;
 
 end;
 
@@ -323,6 +328,18 @@ end;
 procedure Tfrm_ManifestoList.setStatusBar;
 begin
     //
+end;
+
+procedure Tfrm_ManifestoList.vst_Grid1Change(Sender: TBaseVirtualTree;
+  Node: PVirtualNode);
+var
+  M: IManifestoDF ;
+begin
+    if Assigned(Node) then
+    begin
+        M :=m_Ctrl.ModelList.Items[Node.Index] ;
+        btn_Edit.Enabled :=M.Status
+    end;
 end;
 
 procedure Tfrm_ManifestoList.vst_Grid1GetText(Sender: TBaseVirtualTree;

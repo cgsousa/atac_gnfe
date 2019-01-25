@@ -48,15 +48,15 @@ type
     procedure setCodBar(Value: string) ;
     property codBarras: string read getCodBar write setCodBar;
     //m_indree: Boolean;
-    function getCodNtf: Int32;
-    procedure setCodNtf(Value: Int32);
-    property codNtf: Int32 read getCodNtf write setCodNtf;
     function getVlrNtf: Currency;
     procedure setVlrNtf(Value: Currency);
     property vlrNtf: Currency read getVlrNtf write setVlrNtf;
     function getVolPsoB: Double;
     procedure setVolPsoB(Value: Double);
     property volPsoB: Double read getVolPsoB write setVolPsoB;
+    //
+    function getState: TModelState;
+    property State: TModelState read getState ;
   end;
   TCManifestodf02nfe = class;
 
@@ -478,10 +478,10 @@ type
     m_chvnfe: string;
     m_codbar: string;
     m_indree: Boolean;
-    m_codntf: Int32;
-
+//    m_codntf: Int32;
     m_vlrntf: Currency;
     m_volpsob: Double;
+    m_State: TModelState ;
 
     function getChvNFE: string;
     procedure setChvNFE(Value: string);
@@ -489,23 +489,24 @@ type
     function getCodBar: string ;
     procedure setCodBar(Value: string) ;
 
-    function getCodNtf: Int32;
-    procedure setCodNtf(Value: Int32);
+//    function getCodNtf: Int32;
+//    procedure setCodNtf(Value: Int32);
 
     function getVlrNtf: Currency;
     procedure setVlrNtf(Value: Currency);
 
     function getVolPsoB: Double;
     procedure setVolPsoB(Value: Double);
+
+    function getState: TModelState;
   public
     property chvNFE: string read getChvNFE write setChvNFE;
     property codBarras: string read getCodBar write setCodBar;
-    property codNtf: Int32 read getCodNtf write setCodNtf;
     property vlrNtf: Currency read getVlrNtf write setVlrNtf;
     property volPsoB: Double read getVolPsoB write setVolPsoB;
+    property State: TModelState read getState ;
     class function New(const chvnfe, codbar: string; const indree: Boolean;
-      const codntf: Int32; const vlrntf: Currency;
-      const volpsob: Double): IManifestodf02nfe ;
+      const vlrntf: Currency; const volpsob: Double): IManifestodf02nfe ;
   end;
 
   TCManifestodf02nfeList =class(TAggregatedObject, IManifestodf02nfeList)
@@ -791,8 +792,18 @@ begin
     //
     Self.m_codemp :=Empresa.codfil;
     Self.m_codvei :=m_ModalRodo.veiculo.id ;
-    Self.m_verproc :='ATAC MDFe 0.11';
-    if Self.m_rntrc = EmptyStr then Self.m_rntrc :=' ';
+    Self.m_verproc :='ATAC MDFe 0.01';
+    if Self.m_rntrc = EmptyStr then
+        Self.m_rntrc :=' ';
+    //
+    // obtem UF de carga/descarga
+    for M in m_Municipios.getDataList do
+    begin
+        if M.tipoMun =mtCarga then
+            Self.m_ufeini :=M.m_ufemun
+        else
+            Self.m_ufefim :=M.m_ufemun;
+    end;
 
     //
     // command para registrar as notas vinculadas ao manifesto
@@ -801,26 +812,22 @@ begin
     C2.AddCmd('declare @md2_chvnfe char(44)       ;set @md2_chvnfe =?;');
     C2.AddCmd('declare @md2_codbar varchar(14)    ;                   ');
     C2.AddCmd('declare @md2_indree smallint       ;                   ');
-    C2.AddCmd('declare @md2_codntf int            ;set @md2_codntf =?;');
     C2.AddCmd('declare @md2_vlrntf numeric (15,2) ;set @md2_vlrntf =?;');
     C2.AddCmd('declare @md2_volpsob numeric (12,3);set @md2_volpsob=?;');
     C2.AddCmd('insert into manifestodf02nfe( md2_codmun ,            ');
     C2.AddCmd('                              md2_chvnfe ,            ');
     C2.AddCmd('                              md2_codbar ,            ');
     C2.AddCmd('                              md2_indree ,            ');
-    C2.AddCmd('                              md2_codntf ,            ');
     C2.AddCmd('                              md2_vlrntf ,            ');
     C2.AddCmd('                              md2_volpsob)            ');
     C2.AddCmd('values                      ( @md2_codmun ,           ');
     C2.AddCmd('                              @md2_chvnfe ,           ');
     C2.AddCmd('                              @md2_codbar ,           ');
     C2.AddCmd('                              @md2_indree ,           ');
-    C2.AddCmd('                              @md2_codntf ,           ');
     C2.AddCmd('                              @md2_vlrntf ,           ');
     C2.AddCmd('                              @md2_volpsob);          ');
     C2.AddParamWithValue('@md2_codmun', ftInteger, 0) ;
-    C2.AddParamWithValue('@md2_chvnfe', ftString, DupeString(' ', 44)) ;
-    C2.AddParamWithValue('@md2_codntf', ftInteger, 0) ;
+    C2.AddParamWithValue('@md2_chvnfe', ftString, DupeString('*', 44)) ;
     C2.AddParamWithValue('@md2_vlrntf', ftCurrency, 0) ;
     C2.AddParamWithValue('@md2_volpsob', ftFloat, 0.000);
 
@@ -897,25 +904,31 @@ begin
             try
                 C.Execute ;
                 //
-                // guarda cada manifestodf01mun.md1_codseq
-                // codseqList.Add( TADOQuery.ident_current('manifestodf01mun') );
-                codseq :=TADOQuery.ident_current('manifestodf01mun');
-
-                //
                 // registra as nfe´s vinculadas ao manifesto
-                // se, e somente se, o mun. for descarregamento
-                for N in M.nfeList.getDataList do
+                // se, e somente se, o mun. for de descarregamento
+                if M.tipoMun =mtDescarga then
                 begin
-                    C.Param('@md2_chvnfe').Value :=N.chvNFE ;
-                    C.Param('@md2_codntf').Value :=N.codNtf ;
-                    try
-                        C.Execute ;
-                    except
-                        if C.Connection.InTransaction then
-                        begin
-                            C.Connection.RollbackTrans;
+                    //
+                    // guarda cada manifestodf01mun.md1_codseq
+                    codseq :=TADOQuery.ident_current('manifestodf01mun');
+                    //
+                    //
+                    for N in M.nfeList.getDataList do
+                    begin
+                        C2.Param('@md2_codmun').Value :=codseq ;
+                        C2.Param('@md2_chvnfe').Value :=N.chvNFE;
+                        C2.Param('@md2_vlrntf').Value :=N.vlrNtf;
+                        C2.Param('@md2_volpsob').Value :=N.volPsoB;
+//                        C2.Param('@md2_codntf').Value :=N.codNtf ;
+                        try
+                            C2.Execute ;
+                        except
+                            if C.Connection.InTransaction then
+                            begin
+                                C.Connection.RollbackTrans;
+                            end;
+                            raise;
                         end;
-                        raise;
                     end;
                 end;
 
@@ -1311,7 +1324,7 @@ begin
         Q.AddCmd('        md2_chvnfe ,                 ');
         Q.AddCmd('        md2_codbar ,                 ');
         Q.AddCmd('        md2_indree ,                 ');
-        Q.AddCmd('        md2_codntf ,                 ');
+//        Q.AddCmd('        md2_codntf ,                 ');
         Q.AddCmd('        md2_vlrntf ,                 ');
         Q.AddCmd('        md2_volpsob                  ');
         Q.AddCmd('from manifestodf01mun                ');
@@ -1354,7 +1367,7 @@ begin
                         Q.Field('md2_chvnfe').AsString,
                         Q.Field('md2_codbar').AsString,
                         Boolean(Q.Field('md2_indree').AsInteger),
-                        Q.Field('md2_codntf').AsInteger ,
+//                        Q.Field('md2_codntf').AsInteger ,
                         Q.Field('md2_vlrntf').AsCurrency,
                         Q.Field('md2_volpsob').AsFloat )
                 );
@@ -1743,9 +1756,9 @@ begin
 
 end;
 
-function TCManifestodf02nfe.getCodNtf: Int32;
+function TCManifestodf02nfe.getState: TModelState;
 begin
-    Result :=m_codntf;
+    Result :=m_State ;
 
 end;
 
@@ -1763,13 +1776,11 @@ end;
 
 class function TCManifestodf02nfe.New(const chvnfe, codbar: string;
   const indree: Boolean;
-  const codntf: Int32; const vlrntf: Currency;
-  const volpsob: Double): IManifestodf02nfe;
+  const vlrntf: Currency; const volpsob: Double): IManifestodf02nfe;
 begin
     Result :=TCManifestodf02nfe.Create ;
     Result.chvNFE :=chvnfe ;
     Result.codBarras :=codbar;
-    Result.codNtf :=codntf ;
     Result.vlrNtf :=vlrntf ;
     Result.volPsoB :=volpsob ;
 end;
@@ -1783,12 +1794,6 @@ end;
 procedure TCManifestodf02nfe.setCodBar(Value: string);
 begin
     m_codbar :=Value ;
-end;
-
-procedure TCManifestodf02nfe.setCodNtf(Value: Int32);
-begin
-    m_codntf :=Value;
-
 end;
 
 procedure TCManifestodf02nfe.setVlrNtf(Value: Currency);
@@ -1809,7 +1814,7 @@ function TCManifestodf02nfeList.addNew(
   aNFE: IManifestodf02nfe): IManifestodf02nfe;
 begin
     if aNFE = nil then
-        Result :=TCManifestodf02nfe.New('','',False,0,0,0)
+        Result :=TCManifestodf02nfe.New('','',False,0,0)
     else
         Result :=aNFE;
     m_DataList.Add(Result) ;

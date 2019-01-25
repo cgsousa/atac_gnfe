@@ -2,9 +2,9 @@ object frm_ManifestoList: Tfrm_ManifestoList
   Left = 0
   Top = 0
   BorderStyle = bsSingle
-  Caption = 'frm_ManifestoList'
+  Caption = 'Lista de Manifestos'
   ClientHeight = 572
-  ClientWidth = 794
+  ClientWidth = 1018
   Color = clWindow
   Ctl3D = False
   Font.Charset = DEFAULT_CHARSET
@@ -20,7 +20,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
   object AdvOfficeStatusBar1: TAdvOfficeStatusBar
     Left = 0
     Top = 553
-    Width = 794
+    Width = 1018
     Height = 19
     AnchorHint = False
     Panels = <
@@ -125,11 +125,12 @@ object frm_ManifestoList: Tfrm_ManifestoList
     SimplePanel = False
     Styler = dm_Styles.AdvOfficeStatusBarOfficeStyler1
     Version = '1.5.2.2'
+    ExplicitWidth = 794
   end
   object vst_Grid1: TVirtualStringTree
     Left = 200
     Top = 0
-    Width = 594
+    Width = 818
     Height = 513
     Align = alClient
     Alignment = taCenter
@@ -161,7 +162,9 @@ object frm_ManifestoList: Tfrm_ManifestoList
     TreeOptions.MiscOptions = [toAcceptOLEDrop, toCheckSupport, toGridExtensions, toInitOnSave, toToggleOnDblClick, toWheelPanning]
     TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
+    OnChange = vst_Grid1Change
     OnGetText = vst_Grid1GetText
+    ExplicitTop = -1
     Columns = <
       item
         Alignment = taRightJustify
@@ -318,8 +321,6 @@ object frm_ManifestoList: Tfrm_ManifestoList
     StatusBar.Color = 14606046
     StatusBar.ColorTo = 11119017
     StatusBar.GradientDirection = gdVertical
-    ExplicitLeft = -6
-    ExplicitTop = -1
     DesignSize = (
       198
       511)
@@ -441,7 +442,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
   object pnl_Footer: TJvFooter
     Left = 0
     Top = 513
-    Width = 794
+    Width = 1018
     Height = 40
     Align = alBottom
     BevelStyle = bsRaised
@@ -452,8 +453,9 @@ object frm_ManifestoList: Tfrm_ManifestoList
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
+    ExplicitWidth = 794
     DesignSize = (
-      794
+      1018
       40)
     object btn_Config: TJvFooterBtn
       Left = 8
@@ -488,13 +490,14 @@ object frm_ManifestoList: Tfrm_ManifestoList
       SpaceInterval = 6
     end
     object btn_Close: TJvFooterBtn
-      Left = 706
+      Left = 930
       Top = 5
       Width = 80
       Height = 30
       Anchors = [akRight, akBottom]
       Caption = 'Fechar'
       TabOrder = 0
+      OnClick = btn_CloseClick
       ButtonIndex = 2
       SpaceInterval = 6
     end
@@ -528,8 +531,21 @@ object frm_ManifestoList: Tfrm_ManifestoList
       ButtonIndex = 4
       SpaceInterval = 6
     end
-    object btn_Cons: TJvFooterBtn
+    object btn_Detalh: TJvFooterBtn
       Left = 360
+      Top = 5
+      Width = 80
+      Height = 30
+      Anchors = [akLeft, akBottom]
+      Caption = 'Detalhar'
+      TabOrder = 8
+      OnClick = btn_DetalhClick
+      Alignment = taLeftJustify
+      ButtonIndex = 5
+      SpaceInterval = 6
+    end
+    object btn_Cons: TJvFooterBtn
+      Left = 446
       Top = 5
       Width = 80
       Height = 30
@@ -541,11 +557,11 @@ object frm_ManifestoList: Tfrm_ManifestoList
       TabOrder = 6
       OnClick = btn_ConsClick
       Alignment = taLeftJustify
-      ButtonIndex = 5
+      ButtonIndex = 6
       SpaceInterval = 6
     end
     object btn_Send: TJvFooterBtn
-      Left = 446
+      Left = 532
       Top = 5
       Width = 80
       Height = 30
@@ -557,30 +573,17 @@ object frm_ManifestoList: Tfrm_ManifestoList
       TabOrder = 3
       OnClick = btn_SendClick
       Alignment = taLeftJustify
-      ButtonIndex = 6
+      ButtonIndex = 7
       SpaceInterval = 6
     end
     object btn_Canc: TJvFooterBtn
-      Left = 532
+      Left = 618
       Top = 5
       Width = 80
       Height = 30
       Anchors = [akLeft, akBottom]
       Caption = 'Cancelar'
       TabOrder = 7
-      Alignment = taLeftJustify
-      ButtonIndex = 7
-      SpaceInterval = 6
-    end
-    object btn_Detalh: TJvFooterBtn
-      Left = 618
-      Top = 5
-      Width = 80
-      Height = 30
-      Anchors = [akLeft, akBottom]
-      Caption = 'Detalhar'
-      TabOrder = 8
-      OnClick = btn_DetalhClick
       Alignment = taLeftJustify
       ButtonIndex = 8
       SpaceInterval = 6

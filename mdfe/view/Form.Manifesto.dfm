@@ -192,6 +192,8 @@ object frm_Manifesto: Tfrm_Manifesto
         TreeOptions.MiscOptions = [toAcceptOLEDrop, toCheckSupport, toInitOnSave, toToggleOnDblClick, toWheelPanning]
         TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
         TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
+        OnGetText = vst_GridNFEGetText
+        ExplicitTop = -2
         Columns = <
           item
             CheckBox = True
@@ -305,8 +307,6 @@ object frm_Manifesto: Tfrm_Manifesto
         StatusBar.Color = 14606046
         StatusBar.ColorTo = 11119017
         StatusBar.GradientDirection = gdVertical
-        ExplicitLeft = -6
-        ExplicitTop = -2
         DesignSize = (
           239
           522)
@@ -356,8 +356,8 @@ object frm_Manifesto: Tfrm_Manifesto
           end
         end
         object btn_Find: TJvImgBtn
-          Left = 122
-          Top = 471
+          Left = 134
+          Top = 477
           Width = 100
           Height = 30
           Anchors = [akRight, akBottom]
@@ -553,7 +553,7 @@ object frm_Manifesto: Tfrm_Manifesto
         Top = 70
         Width = 786
         Height = 454
-        ActivePage = tab_Rodo
+        ActivePage = tab_Mun
         ActiveFont.Charset = DEFAULT_CHARSET
         ActiveFont.Color = clWindowText
         ActiveFont.Height = -11
@@ -579,7 +579,6 @@ object frm_Manifesto: Tfrm_Manifesto
           Highlighted = True
           TabColor = clInactiveCaption
           TabColorTo = clNone
-          ExplicitHeight = 420
           object vst_GridMun: TVirtualStringTree
             Left = 0
             Top = 0
@@ -660,7 +659,6 @@ object frm_Manifesto: Tfrm_Manifesto
           Highlighted = True
           TabColor = clInactiveCaption
           TabColorTo = clNone
-          ExplicitHeight = 420
           object edt_VeiCod: TAdvEditBtn
             Left = 121
             Top = 0
@@ -747,7 +745,7 @@ object frm_Manifesto: Tfrm_Manifesto
             StatusBar.GradientDirection = gdVertical
             StatusBar.Visible = True
             Styler = dm_Styles.AdvPanelStyler1
-            ExplicitTop = 102
+            ExplicitTop = 109
             FullHeight = 200
             object vst_GridCdtVinc: TVirtualStringTree
               Left = 433
@@ -844,7 +842,7 @@ object frm_Manifesto: Tfrm_Manifesto
               Top = 266
               Width = 75
               Height = 30
-              Caption = 'Incluir'
+              Caption = 'Cadastro'
               TabOrder = 2
               OnClick = btn_CdtCadClick
               HotTrackFont.Charset = DEFAULT_CHARSET
@@ -900,7 +898,6 @@ object frm_Manifesto: Tfrm_Manifesto
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitTop = 551
     DesignSize = (
       794
       40)
