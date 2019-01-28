@@ -141,11 +141,11 @@ if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf02n
     md2_chvnfe char(44) not null ,
     md2_codbar varchar(14) null  ,
     md2_indree smallint null ,
-    md2_codntf int not null ,
+    --md2_codntf int not null ,
     md2_vlrntf numeric (15,2) null ,
     md2_volpsob numeric (12,3) null 
     ,constraint fk__md2_codmun foreign key (md2_codmun) references manifestodf01mun(md1_codseq) 
-    ,constraint fk__md2_codntf foreign key (md2_codntf) references notfis00(nf0_codseq) 
+    --,constraint fk__md2_codntf foreign key (md2_codntf) references notfis00(nf0_codseq) 
   )
 go
 
@@ -159,6 +159,6 @@ if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf03c
     ,constraint fk__md3_codmdf foreign key (md3_codmdf) references manifestodf00(md0_codseq)
     ,constraint fk__md3_codvei foreign key (md3_codvei) references cadveiculo(vei_codseq)   
     ,constraint fk__md3_codcdt foreign key (md3_codcdt) references cadcondutor(cdt_codseq) 
-    ,constraint pk__manifestodf03cond primary key (md3_codmdf, md3_codvei) 
+    ,constraint pk__manifestodf03cond primary key (md3_codmdf, md3_codvei, md3_codcdt) 
   )
 go
