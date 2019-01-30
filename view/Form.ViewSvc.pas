@@ -17,6 +17,10 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+30.01.2019
+[*] Removido o timer <tm_Alert>. O contrele da alerta agora esta na Thread.NFE,
+    com o método CallOnCertif()
+
 09.01.2019
 [+] Novo timer <tm_Alert> que ativa o alerta conforme data de vencimento do
     certificado
@@ -49,7 +53,6 @@ type
     AppInstances1: TJvAppInstances;
     pnl_Status: TPanel;
     chk_Conting: TAdvOfficeCheckBox;
-    tm_Alert: TTimer;
     Image1: TImage;
     procedure FormCreate(Sender: TObject);
     procedure btn_StartClick(Sender: TObject);
@@ -58,25 +61,21 @@ type
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure tm_MLogTimer(Sender: TObject);
     procedure chk_ContingClick(Sender: TObject);
-    procedure tm_AlertTimer(Sender: TObject);
   private
     { Private declarations }
     m_MySvc: TMySvcThread;
-    m_reg: TRegNFE ;
-    m_rep: Tdm_nfe ;
-    m_CertifDaysUse: SmallInt;
     procedure doStart();
     procedure doStop();
 
-    //SvcStop: Boolean ;
     procedure UpdateStatus(const AStr: string);
     procedure OnINI(Sender: TObject);
     procedure OnEND(Sender: TObject);
+    procedure OnAlert(const aCNPJ: string; const aDays: Word);
+    procedure OnContingOffLine(const aFlag: Boolean) ;
 
     procedure setConting(const aValue: Boolean) ;
   protected
     procedure Loaded; override;
-    procedure doShowAlert(const aDays: SmallInt);
   public
     { Public declarations }
   end;
@@ -135,107 +134,62 @@ end;
 procedure Tfrm_ViewSvc.chk_ContingClick(Sender: TObject);
 var
   msg: string ;
+  m_rep: Tdm_nfe ;
+  confirm: Boolean;
 begin
-    if chk_Conting.Checked then
-    begin
-        msg:='';
-        msg:='ATENÇÃO !!!'#13#10;
-        msg:=msg +'Ativando a contigência Offline, as notas geradas ficam indisponível para consulta no site da SEFAZ!'#13#10;
-        msg:=msg +'Portanto, as mesmas devem ser transmitidas seguinte a legislação!';
-        if CMsgDlg.Warning(msg, True) then
+    if ConnectionADO = nil then
+        ConnectionADO :=NewADOConnFromIniFile(
+            ExtractFilePath(ParamStr(0)) +'Configuracoes.ini'
+            ) ;
+    try
+        ConnectionADO.Connected :=True ;
+        try
+        //
+        // carga filial
+        Empresa :=TCEmpresa.Instance ;
+        Empresa.DoLoad(1);
+
+        //
+        // carga conteiner do ACBr
+        m_rep :=Tdm_nfe.getInstance;
+
+        if chk_Conting.Checked then
         begin
-            if CMsgDlg.Confirm('Deseja mesmo ativar a contingência offline?') then
+            msg:='';
+            msg:='ATENÇÃO !!!'#13#10;
+            msg:=msg +'Ativando a contigência Offline, as notas geradas ficam indisponível para consulta no site da SEFAZ!'#13#10;
+            msg:=msg +'Portanto, as mesmas devem ser transmitidas seguinte a legislação!';
+            confirm :=CMsgDlg.Warning(msg, True) ;
+            if confirm then
             begin
-                m_reg.conting_offline.Value :=True ;
-                m_reg.Save ;
+                msg :='Deseja mesmo ativar a contingência offline?';
+                confirm :=CMsgDlg.Confirm(msg);
             end;
+            chk_Conting.Checked :=confirm;
+        end
+        else begin
+            msg :='Deseja desativar a contingência offline?';
+            confirm :=CMsgDlg.Confirm(msg) ;
+            chk_Conting.Checked :=not confirm ;
         end;
-    end
-    else begin
-        if CMsgDlg.Confirm('Deseja desativar a contingência offline?') then
+
+        //
+        //
+        if confirm then
         begin
-            m_reg.conting_offline.Value :=False ;
-            m_reg.Save ;
+            m_rep.Parametro.setContingOffLine(chk_Conting.Checked) ;
+            setConting(chk_Conting.Checked);
+        end;
+        finally
+          ConnectionADO.Connected :=False ;
+        end;
+    except
+        on E:Exception do
+        begin
+            CMsgDlg.Error('Erro: %s',[E.Message]);
         end;
     end;
-    setConting(m_reg.conting_offline.Value);
-end;
 
-procedure Tfrm_ViewSvc.doShowAlert(const aDays: SmallInt);
-var
-  msg: string;
-  DA: TJvDesktopAlert ;
-begin
-    //
-    // format msg padrão
-    msg :=Format('Faltam %d (dias) para vercer o Certificado vinculado ao CNPJ:%s!',[m_CertifDaysUse,Empresa.CNPJ]);
-
-    //
-    // certificado já venceu
-    if m_CertifDaysUse <= 0 then
-        msg :=Format('O Certificado vinculado ao CNPJ:%s, já venceu! Providênciar outro do tipo A1 (preferencial).',[Empresa.CNPJ])
-    //
-    // certificado vence hj
-    else if m_CertifDaysUse = 1 then
-        msg :=Format('Hoje vence o Certificado vinculado ao CNPJ:%s! E não será mais possível emissão de novas NFE.',[Empresa.CNPJ]);
-
-    //
-    //
-    DA :=TJvDesktopAlert.Create(Self);
-    DA.AutoFree :=True;
-    DA.Font.Size:=12;
-    DA.Colors.CaptionFrom :=clActiveCaption;
-    DA.Colors.CaptionTo :=clInactiveCaption;
-    DA.Colors.WindowFrom :=clInfoBk ;
-    if aDays > 3 then
-    begin
-        DA.Colors.WindowTo :=clYellow ;
-    end
-    else begin
-        DA.Colors.WindowTo :=clRed ;
-    end;
-//    DA.Images :=ImageList1;
-    DA.Image :=Image1.Picture;
-//    DA.OnMessageClick := DoMessageClick;
-//    DA.OnShow := DoAlertShow;
-//    DA.OnClose := DoAlertClose;
-    DA.Options := []; //FOptions;
-    DA.Location.AlwaysResetPosition := false;
-    DA.Location.Position :=dapBottomRight; // TJvDesktopAlertPosition(cbLocation.ItemIndex);
-    DA.Location.Width :=380 ;
-    DA.Location.Height:=240;
-    if DA.Location.Position = dapCustom then
-    begin
-      DA.Location.Left := Random(Screen.Width - 200);
-      DA.Location.Top :=  Random(Screen.Height - 100);
-    end;
-    DA.AlertStyle :=asFade; // TJvAlertStyle(cmbStyle.ItemIndex);
-    DA.StyleHandler.StartInterval :=25;
-    DA.StyleHandler.StartSteps :=10;
-    DA.StyleHandler.DisplayDuration  :=1400;
-    DA.StyleHandler.EndInterval :=50;
-    DA.StyleHandler.EndSteps :=10;
-    {if chkClickable.Checked then
-      Include(FOptions,daoCanClick);
-    if chkMovable.Checked then
-      Include(FOptions, daoCanMove);
-    if chkClose.Checked then
-      Include(FOptions, daoCanClose);
-    DA.Options := FOptions;
-    if chkShowDropDown.Checked then
-      DA.DropDownMenu := PopupMenu1;
-    for j := 0 to udButtons.Position-1 do
-    begin
-      with DA.Buttons.Add do
-      begin
-        ImageIndex := Random(ImageList1.Count);
-        Tag := j;
-        OnClick := DoButtonClick;
-      end;
-    end;}
-    DA.HeaderText :='** Serviço de alerta da Atac Sistemas, informa **';
-    DA.MessageText :=msg;
-    DA.Execute;
 end;
 
 procedure Tfrm_ViewSvc.doStart;
@@ -243,6 +197,8 @@ begin
     m_MySvc :=TMySvcThread.Create ;
     m_MySvc.OnBeforeExecute :=OnINI;
     m_MySvc.OnTerminate :=OnEND;
+    m_MySvc.OnCertif :=OnAlert;
+    m_MySvc.OnBooProc :=OnContingOffLine;
     m_MySvc.Start  ;
 end;
 
@@ -278,40 +234,6 @@ begin
                                                   TCExeInfo.getInstance.ReleaseNumber,
                                                   TCExeInfo.getInstance.BuildNumber
                                                  ]);
-
-    ConnectionADO :=NewADOConnFromIniFile(
-        ExtractFilePath(ParamStr(0)) +'Configuracoes.ini'
-
-                          ) ;
-    while not ConnectionADO.Connected do
-    try
-        ConnectionADO.Connected :=True ;
-        //
-        // carga filial
-        Empresa :=TCEmpresa.Instance ;
-        Empresa.DoLoad(1);
-
-        //
-        // carga params da NFE
-        m_reg.Load ;
-        setConting(m_reg.conting_offline.Value);
-
-        //
-        // carga conteiner do ACBr
-        m_rep :=Tdm_nfe.getInstance;
-        m_CertifDaysUse :=m_rep.getDaysUseCertif;
-
-        btn_Start.Enabled :=True ;
-        chk_Conting.Enabled :=True;
-        tm_Alert.Enabled :=true ;
-    except
-        on E:Exception do
-        begin
-            Caption :=Format('Erro de banco: %s',[E.Message]);
-            btn_Start.Enabled :=False;
-            chk_Conting.Enabled :=False;
-        end;
-    end;
 end;
 
 procedure Tfrm_ViewSvc.Loaded;
@@ -320,6 +242,99 @@ begin
     AppInstances1.Active :=True;
     TrayIcon1.Active :=True;
     tm_MLog.Enabled :=True;
+end;
+
+procedure Tfrm_ViewSvc.OnAlert(const aCNPJ: string; const aDays: Word);
+var
+  msg: string;
+  DA: TJvDesktopAlert ;
+begin
+    //
+    //
+//    if(m_IntervalAlert >= MSecsPerDay div HoursPerDay) then
+//    begin
+//        m_IntervalAlert :=0 ;
+//    end
+//    else begin
+//        Inc(m_IntervalAlert) ;
+//        Exit;
+//    end;
+
+    //
+    // format msg padrão
+    msg :=Format('Faltam %d (dias) para vercer o Certificado vinculado ao CNPJ:%s!',[aDays,aCNPJ]);
+
+    //
+    // certificado já venceu
+    if aDays <= 0 then
+        msg :=Format('O Certificado vinculado ao CNPJ:%s, já venceu! Providênciar outro do tipo A1 (preferencial).',[aCNPJ])
+    //
+    // certificado vence hj
+    else if aDays = 1 then
+        msg :=Format('Hoje vence o Certificado vinculado ao CNPJ:%s! E não será mais possível emissão de novas NFE.',[aCNPJ]);
+
+    //
+    //
+    DA :=TJvDesktopAlert.Create(Self);
+    DA.AutoFree :=True;
+    DA.Font.Size:=12;
+    DA.Colors.CaptionFrom :=clActiveCaption;
+    DA.Colors.CaptionTo :=clInactiveCaption;
+    DA.Colors.WindowFrom :=clInfoBk ;
+    if aDays > 3 then
+    begin
+        DA.Colors.WindowTo :=clYellow ;
+    end
+    else begin
+        DA.Colors.WindowTo :=clRed ;
+    end;
+//    DA.Images :=ImageList1;
+    DA.Image :=Image1.Picture;
+//    DA.OnMessageClick := DoMessageClick;
+//    DA.OnShow := DoAlertShow;
+//    DA.OnClose := DoAlertClose;
+    DA.Options := []; //FOptions;
+    DA.Location.AlwaysResetPosition := false;
+    DA.Location.Position :=dapBottomRight; // TJvDesktopAlertPosition(cbLocation.ItemIndex);
+    DA.Location.Width :=380 ;
+    DA.Location.Height:=240;
+    if DA.Location.Position = dapCustom then
+    begin
+      DA.Location.Left := Random(Screen.Width - 200);
+      DA.Location.Top :=  Random(Screen.Height - 100);
+    end;
+    DA.AlertStyle :=asFade; // TJvAlertStyle(cmbStyle.ItemIndex);
+    DA.StyleHandler.StartInterval :=25;
+    DA.StyleHandler.StartSteps :=10;
+    DA.StyleHandler.DisplayDuration  :=4000;
+    DA.StyleHandler.EndInterval :=50;
+    DA.StyleHandler.EndSteps :=10;
+    {if chkClickable.Checked then
+      Include(FOptions,daoCanClick);
+    if chkMovable.Checked then
+      Include(FOptions, daoCanMove);
+    if chkClose.Checked then
+      Include(FOptions, daoCanClose);
+    DA.Options := FOptions;
+    if chkShowDropDown.Checked then
+      DA.DropDownMenu := PopupMenu1;
+    for j := 0 to udButtons.Position-1 do
+    begin
+      with DA.Buttons.Add do
+      begin
+        ImageIndex := Random(ImageList1.Count);
+        Tag := j;
+        OnClick := DoButtonClick;
+      end;
+    end;}
+    DA.HeaderText :='** Serviço de alerta da Atac Sistemas, informa **';
+    DA.MessageText :=msg;
+    DA.Execute;
+end;
+
+procedure Tfrm_ViewSvc.OnContingOffLine(const aFlag: Boolean);
+begin
+    Self.setConting(aFlag);
 end;
 
 procedure Tfrm_ViewSvc.OnEND(Sender: TObject);
@@ -338,8 +353,6 @@ begin
     pnl_Status.Caption :='Serviço em Operação';
     pnl_Status.Font.Color :=clGreen ;
     chk_Conting.Enabled :=False;
-    if m_CertifDaysUse <= 0 then
-      doShowAlert(m_CertifDaysUse);
 end;
 
 procedure Tfrm_ViewSvc.setConting(const aValue: Boolean);
@@ -381,29 +394,6 @@ begin
         // start auto, apos 24h (00:00 da manhã)
         doStart();
     end;
-end;
-
-procedure Tfrm_ViewSvc.tm_AlertTimer(Sender: TObject);
-begin
-    if m_CertifDaysUse <=7 then
-    begin
-        //
-        // certificado já venceu
-        if m_CertifDaysUse <= 0 then
-            doStop;
-
-        //
-        // mostra alert
-        doShowAlert(m_CertifDaysUse) ;
-
-        //
-        // reconfigura o time de alert
-        tm_Alert.Enabled :=False ;
-        tm_Alert.Interval:=MSecsPerDay div HoursPerDay;
-        tm_Alert.Enabled :=True ;
-    end
-    else
-        tm_Alert.Enabled :=False ;
 end;
 
 procedure Tfrm_ViewSvc.UpdateStatus(const AStr: string);

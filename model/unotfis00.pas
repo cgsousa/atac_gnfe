@@ -3031,6 +3031,8 @@ begin
             if sttConting in afilter.sttSet then
             Q.AddCmd('or    (nf0_codstt =9)   --//contingencia         ');
             Q.AddCmd('or    (nf0_codstt =44)  --//pendente de retorno  ');
+            Q.AddCmd('or    (nf0_codstt =77)  --//erro de schema       ');
+            Q.AddCmd('or    (nf0_codstt =88)  --//erro nas regras de negocio');
             Q.AddCmd('--//Rejeição 204: Duplicidade de NF-e            ');
             Q.AddCmd('or    (nf0_codstt =204)                          ');
             Q.AddCmd('--//Rejeição 217: NFe não consta na base de dados');

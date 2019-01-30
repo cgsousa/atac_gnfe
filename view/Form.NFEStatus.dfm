@@ -55,6 +55,13 @@ object frm_NFEStatus: Tfrm_NFEStatus
     Align = alBottom
     BevelStyle = bsRaised
     BevelVisible = True
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Trebuchet MS'
+    Font.Style = []
+    ParentFont = False
+    ExplicitTop = 82
     DesignSize = (
       508
       40)

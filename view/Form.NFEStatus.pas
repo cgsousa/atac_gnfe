@@ -8,8 +8,9 @@ uses
   //TMS
   HTMLabel,
   //JVCL
-  JvExStdCtrls, JvButton, JvCtrls, JvFooter, JvExExtCtrls, JvExtComponent
+  JvExStdCtrls, JvButton, JvCtrls, JvFooter, JvExExtCtrls, JvExtComponent,
   //lib
+  pcnConversaoNFe, pcnEnvEventoNFe
   ;
 
 type
@@ -22,6 +23,7 @@ type
     { Private declarations }
     m_H1: string ;
     m_Msg: string;
+    m_CertCNPJ, m_CertVenc: string ;
     procedure setMsg(const Avalue: string) ;
     procedure OnLOG(Sender: TObject; const StrLog: string);
   public
@@ -29,7 +31,9 @@ type
     property H1: string read m_H1 write m_H1;
     property Msg: string read m_Msg write setMsg;
   public
-    class procedure DoShow(const AMsg: string);
+    class procedure DoShow(const AMsg: string); overload ;
+    class procedure DoShow(const aStatus: TStatusACBrNFe;
+      const aCNPJ: string =''; const aVenc: string =''); overload ;
     class function NewStatus(const Atitle: string): Tfrm_NFEStatus;
   end;
 
@@ -66,6 +70,58 @@ begin
     frm_Status.Show ;
     frm_Status.BringToFront ;
     //frm_Status.Refresh;
+end;
+
+class procedure Tfrm_NFEStatus.DoShow(const aStatus: TStatusACBrNFe;
+  const aCNPJ, aVenc: string);
+var
+  msg: string;
+begin
+    if frm_Status = nil then
+    begin
+        Application.CreateForm(Tfrm_NFEStatus, frm_Status);
+        frm_Status.pnl_Footer.Visible :=False ;
+        frm_Status.m_CertCNPJ :=aCNPJ ;
+        frm_Status.m_CertVenc :=aVenc ;
+    end;
+
+    case aStatus of
+      stNFeStatusServico: msg :='Verificando Status do servico...';
+      stNFeRecepcao: msg :='Enviando dados da NFe...';
+      stNfeRetRecepcao: msg :='Recebendo dados da NFe...';
+      stNfeConsulta: msg :='Consultando NFe...';
+      stNfeCancelamento: msg :='Enviando cancelamento de NFe...';
+      stNfeInutilizacao: msg :='Enviando pedido de Inutilização...';
+      stNFeRecibo: msg :='Consultando Recibo de Lote...';
+      stNFeCadastro: msg :='Consultando Cadastro...';
+      stNFeEmail: msg :='Enviando Email...';
+      stNFeCCe: msg :='Enviando Carta de Correção...';
+      stNFeEvento: msg :='Enviando Evento...';
+    end;
+
+    frm_Status.html_Status.HTMLText.Clear;
+
+    frm_Status.html_Status.HTMLText.Add(
+      '<p align="left"> <font face="Arial" size="10" >*** Informações do certificado ***</font></p>'
+      ) ;
+
+    frm_Status.html_Status.HTMLText.Add(
+      Format('<p align="left"> <font face="Trebuchet MS" size="10" >CNPJ......:<b>%s</b></font></p>',[aCNPJ]
+      )) ;
+    frm_Status.html_Status.HTMLText.Add(
+      Format('<p align="left"> <font face="Trebuchet MS" size="10" >Vencimento:<b>%s</b></font></p>',[aVenc]
+      )) ;
+
+    frm_Status.html_Status.HTMLText.Add(
+      Format('<p/p>',[aVenc]
+      )) ;
+
+    frm_Status.html_Status.HTMLText.Add(
+      Format('<p align="center"> <font face="Verdana" color="#008000" size="12" ><b>%s</b></font></p>',[msg]
+      )) ;
+
+    frm_Status.Show ;
+    frm_Status.BringToFront ;
 end;
 
 class function Tfrm_NFEStatus.NewStatus(const Atitle: string): Tfrm_NFEStatus;

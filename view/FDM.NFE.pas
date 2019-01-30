@@ -95,6 +95,7 @@ type
     send_maxnfelot: TPair<string, Int16>;
     procedure Load() ;
     procedure Save() ;
+    procedure setContingOffLine(const aFlag: Boolean);
   end;
 
 
@@ -177,6 +178,7 @@ type
       ano, codmod, nserie, numini, numfin: Integer): Boolean;
 
     function getDaysUseCertif: Smallint ;
+    //procedure getInfCertif(out aCNPJ: string; out aVenc: TDatetime) ;
 
   public
     { somente chamadas dos serviços, sem checa status }
@@ -1016,7 +1018,8 @@ begin
     if Empresa.DateServ > m_NFE.SSL.CertDataVenc then
         Result :=-DaysBetween(Empresa.DateServ, m_NFE.SSL.CertDataVenc)
     else begin
-        if DayOf(Empresa.DateServ) =DayOf(m_NFE.SSL.CertDataVenc) then
+        if(DayOf(Empresa.DateServ) =DayOf(m_NFE.SSL.CertDataVenc))and
+          (MonthOf(Empresa.DateServ) =MonthOf(m_NFE.SSL.CertDataVenc))then
             Result :=1
         else
             Result :=DaysBetween(Empresa.DateServ, m_NFE.SSL.CertDataVenc);
@@ -1253,7 +1256,13 @@ begin
     if m_StatusChange then
     begin
       case m_NFE.Status of
-        stIdle: if frm_Status <> nil then frm_Status.Hide;
+          stIdle: if frm_Status <> nil then frm_Status.Hide;
+//      else
+//          Tfrm_NFEStatus.DoShow(m_NFE.Status,
+//                                m_NFE.SSL.CertCNPJ,
+//                                FormatDateTime('dd/mm/yyyy',m_NFE.SSL.CertDataVenc)
+//                                );
+//      end;
 
         stNFeStatusServico: Tfrm_NFEStatus.DoShow('Verificando Status do servico...');
 
@@ -2064,6 +2073,18 @@ begin
     if p.Load() then
     begin
         p.xValor :=IntToStr(Ord(conting_offline.Value)) ;
+        p.Save ;
+    end;
+end;
+
+procedure TRegNFE.setContingOffLine(const aFlag: Boolean);
+var
+  p: TCParametro ;
+begin
+    p :=TCParametro.NewParametro(conting_offline.Key, ftUnknown) ;
+    if p.Load() then
+    begin
+        p.xValor :=IntToStr(Ord(aFlag)) ;
         p.Save ;
     end;
 end;

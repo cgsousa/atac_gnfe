@@ -18,6 +18,11 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+30.01.2019
+[+] Novos métodos para sincronizar com a view (Form.ViewSvc.*):
+    CallOnCertif() para info do cetificado;
+    CallOnContingOffLine() para info do parametro <conting_offline>.
+
 09.01.2019
 [+] Condição de checagem da data de vencimento do certificado
 
@@ -61,21 +66,35 @@ uses SysUtils ,
   uclass, ulog, unotfis00, FDM.NFE;
 
 type
+  TGetCertifProc = procedure(const aCNPJ: String; const aDays: Word) of object;
   TMySvcThread = class(TCThreadProcess)
   private
     { Private declarations }
     m_Log: TCLog;
     m_Rep: Tdm_nfe;
     procedure runContingOffLine(NF: TCNotFis00) ;
-//    procedure runNormal;
+  private
+    m_OnCertif: TGetCertifProc;
+    m_OnBooProc: TGetBooProc;
+    m_AlertCount: Word ;
+    procedure CallOnCertif(const aCNPJ: string; const aDays: Word);
+    procedure CallOnContingOffLine(const aFlag: Boolean);
   protected
     procedure Execute; override;
     procedure RunProc; override;
   public
     property Log: TCLog read m_Log;
+
+    property OnCertif: TGetCertifProc
+        read m_OnCertif
+        write m_OnCertif;
+
+    property OnBooProc: TGetBooProc
+        read m_OnBooProc
+        write m_OnBooProc;
+
     constructor Create;
     destructor Destroy; override;
-    //function getTerminated: Boolean ;
   end;
 
 
@@ -87,6 +106,38 @@ uses Windows, ActiveX, WinInet, DateUtils ,
 
 
 { TMySvcThread }
+
+procedure TMySvcThread.CallOnCertif(const aCNPJ: string; const aDays: Word);
+begin
+    if GetCurrentThreadId = MainThreadID then
+    begin
+        if Assigned(m_OnCertif) then
+            m_OnCertif(aCNPJ, aDays);
+    end
+    else begin
+        Synchronize(
+            procedure
+            begin
+                CallOnCertif(aCNPJ, aDays);
+            end);
+    end;
+end;
+
+procedure TMySvcThread.CallOnContingOffLine(const aFlag: Boolean);
+begin
+    if GetCurrentThreadId = MainThreadID then
+    begin
+        if Assigned(m_OnBooProc) then
+            m_OnBooProc(aFlag);
+    end
+    else begin
+        Synchronize(
+            procedure
+            begin
+                CallOnContingOffLine(aFlag);
+            end);
+    end;
+end;
 
 constructor TMySvcThread.Create;
 //Create the thread Suspended so that properties can be set before resuming the thread.
@@ -120,6 +171,7 @@ begin
     end
     else
         inherited Execute;
+    m_AlertCount :=0;
 end;
 
 procedure TMySvcThread.runContingOffLine(NF: TCNotFis00) ;
@@ -170,14 +222,11 @@ end;
 
 procedure TMySvcThread.RunProc;
 var
-//  nfe: Tdm_nfe;
-//  N: NotaFiscal ;
   F: TNotFis00Filter;
   L: TCNotFis00Lote;
   NF: TCNotFis00;
 var
   err_db: string;
-  days_use: Word;
 begin
     //
     // m_Log.AddSec('%s.RunProc',[Self.ClassName]);
@@ -204,13 +253,32 @@ begin
 
     //
     // check validade do certificado
-    m_Rep.m_NFE.SSL.CarregarCertificadoSeNecessario ;
-    if m_Rep.getDaysUseCertif <= 0 then
+    if m_Rep.getDaysUseCertif <= 7 then
     begin
-        m_Log.AddSec('Certificado vinculado ao CNPJ:%s já vencido.',[Empresa.CNPJ]);
-        Self.Terminate ;
-        Exit;
+        if(m_AlertCount =0)or(m_Interval >= MSecsPerDay div HoursPerDay) then
+        begin
+            //
+            // sincroniza o alert aqui
+            CallOnCertif(m_Rep.m_NFE.SSL.CertCNPJ, m_Rep.getDaysUseCertif);
+            //
+            // reset o intervalo
+            m_Interval :=0 ;
+            Inc(m_AlertCount);
+        end;
+
+        //
+        // caso o certificado venceu, termina a thread
+        if m_Rep.getDaysUseCertif <= 0 then
+        begin
+            m_Log.AddSec('Certificado vinculado ao CNPJ:%s já vencido.',[Empresa.CNPJ]);
+            Self.Terminate ;
+            Exit;
+        end;
     end;
+
+    //
+    // atualiza a view
+    CallOnContingOffLine(m_Rep.Parametro.conting_offline.Value);
 
     //
     // preenche filtro

@@ -360,11 +360,15 @@ end;
 procedure Tfrm_Princ00.btn_ConsSvcClick(Sender: TObject);
 var
   nfe: Tdm_nfe ;
+  S: string;
 begin
     if CMsgDlg.Confirm('Deseja consultar o status do serviço da NFE?') then
     begin
         DoUpdateStatus('Aguarde...');
         nfe :=Tdm_nfe.getInstance ;
+        nfe.m_NFE.SSL.CarregarCertificadoSeNecessario ;
+        S :=FormatDateTime('"Certificado[CNPJ:%s Vencimento:"dd/mm/yyyy"]"', nfe.m_NFE.SSL.CertDataVenc) ;
+        S :=Format(S,[nfe.m_NFE.SSL.CertCNPJ]);
         if nfe.OnlyStatusSvc() then
         begin
             CMsgDlg.Info(nfe.StatusServico.Msg) ;
@@ -372,7 +376,8 @@ begin
         else begin
             CMsgDlg.Warning(nfe.ErrMsg) ;
         end;
-        DoUpdateStatus('');
+        DoUpdateStatus(S);
+        Screen.Cursor :=crDefault;
     end;
     ActiveControl :=vst_Grid1;
 end;

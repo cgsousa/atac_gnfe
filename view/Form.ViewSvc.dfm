@@ -1525,10 +1525,4 @@ object frm_ViewSvc: Tfrm_ViewSvc
     Left = 88
     Top = 8
   end
-  object tm_Alert: TTimer
-    Enabled = False
-    OnTimer = tm_AlertTimer
-    Left = 24
-    Top = 136
-  end
 end
