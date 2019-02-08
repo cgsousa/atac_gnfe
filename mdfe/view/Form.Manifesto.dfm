@@ -151,6 +151,7 @@ object frm_Manifesto: Tfrm_Manifesto
     TabOrder = 1
     TabWidth = 250
     OnChange = pag_Control00Change
+    ExplicitTop = -1
     object tab_Browse: TAdvTabSheet
       Caption = 'Busca de NFE para vincular ao Manifesto'
       Color = clWindow
@@ -193,7 +194,6 @@ object frm_Manifesto: Tfrm_Manifesto
         TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
         TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
         OnGetText = vst_GridNFEGetText
-        ExplicitTop = -2
         Columns = <
           item
             CheckBox = True
@@ -356,8 +356,8 @@ object frm_Manifesto: Tfrm_Manifesto
           end
         end
         object btn_Find: TJvImgBtn
-          Left = 134
-          Top = 477
+          Left = 132
+          Top = 475
           Width = 100
           Height = 30
           Anchors = [akRight, akBottom]
@@ -553,7 +553,7 @@ object frm_Manifesto: Tfrm_Manifesto
         Top = 70
         Width = 786
         Height = 454
-        ActivePage = tab_Mun
+        ActivePage = tab_Rodo
         ActiveFont.Charset = DEFAULT_CHARSET
         ActiveFont.Color = clWindowText
         ActiveFont.Height = -11
@@ -616,7 +616,6 @@ object frm_Manifesto: Tfrm_Manifesto
             TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
             OnChange = vst_GridMunChange
             OnGetText = vst_GridMunGetText
-            ExplicitTop = 2
             Columns = <
               item
                 Color = clWindow
@@ -745,7 +744,6 @@ object frm_Manifesto: Tfrm_Manifesto
             StatusBar.GradientDirection = gdVertical
             StatusBar.Visible = True
             Styler = dm_Styles.AdvPanelStyler1
-            ExplicitTop = 109
             FullHeight = 200
             object vst_GridCdtVinc: TVirtualStringTree
               Left = 433

@@ -1,7 +1,6 @@
 use comercio
 go
 
-
 if exists (select *from dbo.sysobjects where id = object_id(N'sp_manifestodf00_add') and objectproperty(id, N'IsProcedure') = 1)
   drop procedure sp_manifestodf00_add
 go
@@ -72,67 +71,88 @@ as
     return @ret_noemit;
   end;
 
-  --//      
-  --// gera numeração do doc. fiscal
-  --// conforme cnpj/modelo/serie
-  set @ser_ident =stuff(@ser_ident,4-len(@md0_nserie),len(@md0_nserie),@md0_nserie);  
-  set @ser_ident ='mdfe.'+@emi_cnpj+'.nserie.'+ @ser_ident
-  if not exists (select *from genserial where ser_ident =@ser_ident)
-    exec sp_setval @ser_ident
-  exec sp_nextval @ser_ident, @md0_numdoc out, 0;
+  --//
+  --// altera manifesto
+  if exists(select 1 from manifestodf00 with(readpast) where md0_codseq =@codseq)
+    update manifestodf00 set 
+      md0_tipamb =@tipamb ,
+      md0_tpemit =@tpemit ,
+      md0_tptransp =@tptransp,
+      md0_dhemis =@md0_dhemis,
+      md0_tpemis =@tpemis,
+      md0_dhviagem =@md0_dhemis,
+      --//
+      --// especifico p/ rodoviario
+      md0_rntrc  =@rntrc  ,
+      md0_codvei =@codvei
+    where md0_codseq =@codseq
 
   --//
-  --// se não gerou número do doc. fiscal
-  if @md0_numdoc = 0 
-  begin
-    raiserror(N'Não foi possível gerar uma numeração para [%s]!', 16, 1, @ser_ident);
-    return @ret_nondoc
-  end;
+  --// emite novo manifesto
+  else begin
+    --//      
+    --// gera numeração do doc. fiscal
+    --// conforme cnpj/modelo/serie
+    set @ser_ident =stuff(@ser_ident,4-len(@md0_nserie),len(@md0_nserie),@md0_nserie);  
+    set @ser_ident ='mdfe.'+@emi_cnpj+'.nserie.'+ @ser_ident
+    --if not exists (select *from genserial where ser_ident =@ser_ident)
+    set @ser_ident ='[MDFE]'+@ser_ident ;
+    exec sp_setval @ser_ident 
+    exec sp_nextval @ser_ident, @md0_numdoc out, 0;
 
-  --//
-  --// emite um novo manifesto
-  insert into manifestodf00(md0_codemp,
-                            --md0_versao varchar(20) null ,
-                            md0_codufe ,
-                            md0_tipamb ,
-                            md0_tpemit ,
-                            md0_tptransp ,
-                            md0_codmod ,
-                            md0_nserie ,
-                            md0_numdoc ,
-                            md0_modal ,
-                            md0_dhemis ,
-                            md0_tpemis ,
-                            md0_procemi ,
-                            md0_verproc ,
-                            md0_ufeini ,
-                            md0_ufefim ,
-                            md0_dhviagem ,
-                            md0_indcnlvrd ,
-                            --//
-                            --// especifico p/ rodoviario
-                            md0_rntrc ,
-                            md0_codvei)
-  values                  ( @codemp ,
-                            @codufe ,
-                            @tipamb ,
-                            @tpemit ,
-                            @tptransp ,
-                            @md0_codmod ,
-                            @md0_nserie ,
-                            @md0_numdoc ,
-                            @modal ,
-                            @md0_dhemis ,
-                            @tpemis ,
-                            @md0_procemi,
-                            @verproc,
-                            @ufeini ,
-                            @ufefim ,
-                            @md0_dhemis ,
-                            null  ,
-                            @rntrc  ,
-                            @codvei );
-  set @codseq =ident_current('manifestodf00');
+    --//
+    --// se não gerou número do doc. fiscal
+    if @md0_numdoc = 0 
+    begin
+      raiserror(N'Não foi possível gerar uma numeração para [%s]!', 16, 1, @ser_ident);
+      return @ret_nondoc
+    end;
+
+    --//
+    --// emite um novo manifesto
+    insert into manifestodf00(md0_codemp,
+                              --md0_versao varchar(20) null ,
+                              md0_codufe ,
+                              md0_tipamb ,
+                              md0_tpemit ,
+                              md0_tptransp ,
+                              md0_codmod ,
+                              md0_nserie ,
+                              md0_numdoc ,
+                              md0_modal ,
+                              md0_dhemis ,
+                              md0_tpemis ,
+                              md0_procemi ,
+                              md0_verproc ,
+                              md0_ufeini ,
+                              md0_ufefim ,
+                              md0_dhviagem ,
+                              md0_indcnlvrd ,
+                              --//
+                              --// especifico p/ rodoviario
+                              md0_rntrc ,
+                              md0_codvei)
+    values                  ( @codemp ,
+                              @codufe ,
+                              @tipamb ,
+                              @tpemit ,
+                              @tptransp ,
+                              @md0_codmod ,
+                              @md0_nserie ,
+                              @md0_numdoc ,
+                              @modal ,
+                              @md0_dhemis ,
+                              @tpemis ,
+                              @md0_procemi,
+                              @verproc,
+                              @ufeini ,
+                              @ufefim ,
+                              @md0_dhemis ,
+                              null  ,
+                              @rntrc  ,
+                              @codvei );
+    set @codseq =ident_current('manifestodf00');
+  end
   --//
   return @ret_codigo;
   --//  

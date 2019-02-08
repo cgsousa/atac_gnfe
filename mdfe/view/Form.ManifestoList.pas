@@ -12,7 +12,8 @@ uses
   JvExStdCtrls, JvButton, JvCtrls, JvExMask, JvToolEdit,
 
   FormBase, uStatusBar, VirtualTrees, uVSTree,
-  uIntf, uManifestoCtr, JvFooter, JvExExtCtrls, JvExtComponent
+  uIntf, uManifestoCtr, JvFooter, JvExExtCtrls, JvExtComponent, Menus, AdvMenus,
+  ActnList
   ;
 
 type
@@ -38,6 +39,12 @@ type
     btn_Cons: TJvFooterBtn;
     btn_Canc: TJvFooterBtn;
     btn_Detalh: TJvFooterBtn;
+    ActionList1: TActionList;
+    act_ConsStt: TAction;
+    act_ConsProt: TAction;
+    AdvPopupMenu1: TAdvPopupMenu;
+    ConsultarServio1: TMenuItem;
+    ConsularProtocolo1: TMenuItem;
     procedure FormShow(Sender: TObject);
     procedure btn_FindClick(Sender: TObject);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -47,11 +54,12 @@ type
     procedure btn_FilterClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btn_SendClick(Sender: TObject);
-    procedure btn_ConsClick(Sender: TObject);
     procedure btn_DetalhClick(Sender: TObject);
     procedure btn_ConfigClick(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
     procedure vst_Grid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
+    procedure act_ConsSttExecute(Sender: TObject);
+    procedure act_ConsProtExecute(Sender: TObject);
   private
     { Private declarations }
     m_Ctrl: TCManifestoCtr;
@@ -83,6 +91,64 @@ uses StrUtils, DateUtils,
 
 { Tfrm_ManifestoList }
 
+procedure Tfrm_ManifestoList.act_ConsProtExecute(Sender: TObject);
+var
+  M: IManifestoDF;
+  rep: Tdm_nfe ;
+  ret: Boolean ;
+begin
+    if CMsgDlg.Confirm('Deseja consultar o Protocolo de autorização?') then
+    begin
+        M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
+
+        setStatus('Processando...',crHourGlass);
+        try
+          rep :=Tdm_nfe.getInstance ;
+          ret :=rep.OnlyConsMDFe(M) ;
+          setStatus(rep.ErrMsg);
+
+          if ret then
+          begin
+              CMsgDlg.Info(M.motivo) ;
+//              setStatus('Carregando a grade de dados');
+//              LoadGrid ;
+          end
+          else begin
+              CMsgDlg.Warning(Format('%d-%s',[Tdm_nfe.getInstance.ErrCod,Tdm_nfe.getInstance.ErrMsg])) ;
+          end;
+
+        finally
+          setStatus('');
+        end;
+
+    end;
+    ActiveControl :=vst_Grid1;
+end;
+
+procedure Tfrm_ManifestoList.act_ConsSttExecute(Sender: TObject);
+var
+  rep: Tdm_nfe ;
+begin
+    if CMsgDlg.Confirm('Deseja consultar o status do serviço?') then
+    begin
+        setStatus('Cominucando, aguarde...',crHourGlass);
+        rep :=Tdm_nfe.getInstance ;
+        try
+          if rep.OnlyStatusSvc(58) then
+          begin
+              CMsgDlg.Info(rep.m_MDFE.WebServices.StatusServico.Msg) ;
+          end
+          else begin
+              CMsgDlg.Warning(rep.ErrMsg) ;
+          end;
+        finally
+          setStatus('');
+          //Tdm_nfe.do
+        end;
+    end;
+    ActiveControl :=vst_Grid1;
+end;
+
 procedure Tfrm_ManifestoList.btn_CloseClick(Sender: TObject);
 begin
     Self.Close ;
@@ -110,30 +176,6 @@ begin
     //
     //
     Tfrm_ParametroList.lp_Show('MDFE') ;
-end;
-
-procedure Tfrm_ManifestoList.btn_ConsClick(Sender: TObject);
-var
-  rep: Tdm_nfe ;
-begin
-    if CMsgDlg.Confirm('Deseja consultar o status do serviço?') then
-    begin
-        setStatus('Cominucando, aguarde...',crHourGlass);
-        rep :=Tdm_nfe.getInstance ;
-        try
-          if rep.OnlyStatusSvc(58) then
-          begin
-              CMsgDlg.Info(rep.m_MDFE.WebServices.StatusServico.Msg) ;
-          end
-          else begin
-              CMsgDlg.Warning(rep.ErrMsg) ;
-          end;
-        finally
-          setStatus('');
-          //Tdm_nfe.do
-        end;
-    end;
-    ActiveControl :=vst_Grid1;
 end;
 
 procedure Tfrm_ManifestoList.btn_DetalhClick(Sender: TObject);
@@ -257,18 +299,27 @@ procedure Tfrm_ManifestoList.btn_SendClick(Sender: TObject);
 var
   rep: Tdm_nfe;
   ret: Boolean;
+  F: TManifestoFilter;
 begin
     if CMsgDlg.Confirm('Deseja enviar o MDFe?')then
     begin
         rep :=Tdm_nfe.getInstance ;
         setStatus('Processando o MDF-e'#13#10'Aguarde...', crHourGlass);
         try
-            ret :=rep.OnlySendMDFE(m_Ctrl.Model) ;
-            setStatus('');
-            if ret then
-                CMsgDlg.Info('%d-%s',[m_Ctrl.Model.Status,m_Ctrl.Model.motivo])
-            else
-                CMsgDlg.Warning(rep.ErrMsg);
+            //
+            // ler/atualiza manifesto selecionado
+            m_Ctrl.Model :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
+            if(m_Ctrl.Model <> nil)and(m_Ctrl.Model.Merge =mukModify) then
+            begin
+                F.Create(m_Ctrl.Model.id);
+                m_Ctrl.Model.cmdFind(F)  ;
+                ret :=rep.OnlySendMDFE(m_Ctrl.Model) ;
+                setStatus('');
+                if ret then
+                    CMsgDlg.Info('%d-%s',[m_Ctrl.Model.Status,m_Ctrl.Model.motivo])
+                else
+                    CMsgDlg.Warning(rep.ErrMsg);
+            end;
         finally
             setStatus('');
         end;
@@ -334,11 +385,36 @@ procedure Tfrm_ManifestoList.vst_Grid1Change(Sender: TBaseVirtualTree;
   Node: PVirtualNode);
 var
   M: IManifestoDF ;
+  process, cancel: Boolean ;
 begin
     if Assigned(Node) then
     begin
+        //
+        // extract manifesto
         M :=m_Ctrl.ModelList.Items[Node.Index] ;
-        btn_Edit.Enabled :=M.Status
+
+        //
+        // ckk doc processado
+        process :=M.Status in[CSTT_AUTORIZADO_USO, 110, 150];
+        process :=process or
+                  (M.Status =301)or
+                  (M.Status =302)or
+                  (M.Status =303);
+        //
+        // ckk doc cancelado
+        cancel  :=M.Status in[101, 151, 155];
+
+        //
+        // send
+        btn_Send.Enabled := ((not process)and(not cancel) )or
+                            (M.Status in[0,1,9,77,88]   );
+
+        if (not M.Status in[0,1,9,77,88]   ) then
+        begin
+            btn_Send.Enabled :=True;
+        end;
+
+        //btn_Edit.Enabled :=M.Status
     end;
 end;
 
@@ -357,7 +433,13 @@ begin
           01: CellText :=M.chMDFE ;
           02: CellText :=TpEmitenteToStr(TTpEmitenteMDFe(m.tpAmbiente)) ;
           03: CellText :=IntToStr(M.numeroDoc) ;
-          04: CellText :=Format('%d|%s',[M.Status,M.motivo]) ;
+          04: if M.Status = 0 then
+              begin
+                  CellText :='Não gerado XML';
+              end
+              else begin
+                  CellText :=Format('%d|%s',[M.Status,M.motivo]) ;
+              end;
           05: CellText :=FormatDateTime('dd/MM/yyyy HH:NN', M.dhEmissao);
           06: CellText :=TpEmisToStr(TpcnTipoEmissao(m.tpEmissao)) ;
           07: CellText :=M.ufeIni ;

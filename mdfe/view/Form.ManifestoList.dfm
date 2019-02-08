@@ -125,7 +125,6 @@ object frm_ManifestoList: Tfrm_ManifestoList
     SimplePanel = False
     Styler = dm_Styles.AdvOfficeStatusBarOfficeStyler1
     Version = '1.5.2.2'
-    ExplicitWidth = 794
   end
   object vst_Grid1: TVirtualStringTree
     Left = 200
@@ -164,7 +163,6 @@ object frm_ManifestoList: Tfrm_ManifestoList
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnChange = vst_Grid1Change
     OnGetText = vst_Grid1GetText
-    ExplicitTop = -1
     Columns = <
       item
         Alignment = taRightJustify
@@ -177,7 +175,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
       end
       item
         Position = 1
-        Width = 315
+        Width = 325
         WideText = 'Chave de acesso'
       end
       item
@@ -453,7 +451,6 @@ object frm_ManifestoList: Tfrm_ManifestoList
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitWidth = 794
     DesignSize = (
       1018
       40)
@@ -552,10 +549,10 @@ object frm_ManifestoList: Tfrm_ManifestoList
       Hint = 'Consulta status do servi'#231'o'
       Anchors = [akLeft, akBottom]
       Caption = 'Consultar'
+      DropDownMenu = AdvPopupMenu1
       ParentShowHint = False
       ShowHint = True
       TabOrder = 6
-      OnClick = btn_ConsClick
       Alignment = taLeftJustify
       ButtonIndex = 6
       SpaceInterval = 6
@@ -587,6 +584,31 @@ object frm_ManifestoList: Tfrm_ManifestoList
       Alignment = taLeftJustify
       ButtonIndex = 8
       SpaceInterval = 6
+    end
+  end
+  object ActionList1: TActionList
+    Left = 408
+    Top = 328
+    object act_ConsStt: TAction
+      Caption = 'Consultar Servi'#231'o'
+      Hint = 'Consultar status do servi'#231'o'
+      OnExecute = act_ConsSttExecute
+    end
+    object act_ConsProt: TAction
+      Caption = 'Consular Protocolo'
+      Hint = 'Consular Protocolo'
+      OnExecute = act_ConsProtExecute
+    end
+  end
+  object AdvPopupMenu1: TAdvPopupMenu
+    Version = '2.5.4.3'
+    Left = 408
+    Top = 384
+    object ConsultarServio1: TMenuItem
+      Action = act_ConsStt
+    end
+    object ConsularProtocolo1: TMenuItem
+      Action = act_ConsProt
     end
   end
 end

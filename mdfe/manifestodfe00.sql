@@ -1,6 +1,12 @@
 use comercio
 go
 
+if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_codmdf')
+  alter table notfis00 add 
+    nf0_codmdf int null,
+    constraint fk__nf0_codmdf foreign key (nf0_codmdf) references manifestodf00(md0_codseq) 
+go
+
 --//
 --// cadastro de condutor 
 --//

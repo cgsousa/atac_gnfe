@@ -29,6 +29,7 @@ type
     codseq: Int32 ;
     datini,datfin: TDateTime ;
     status: (mfsDoneSend, mfsConting, mfsProcess, mfsCancel, mfsError, mfsNone);
+    constructor Create(const codseq: Int32);
   end;
 
   //
@@ -388,6 +389,7 @@ type
     function isValid: Boolean ;
     procedure Insert;
     procedure Edit ;
+    function Load: Boolean ;
     function Merge(): TModelUpdateKind;
 
   public
@@ -426,6 +428,8 @@ type
       const ret_dhreceb: Tdatetime) ;
   public
     class function CLoad(const aFilter: TManifestoFilter): TDataSet;
+  public
+    const CSTT_DUPL = 577;
   end;
 
   TCmanifestodf01mun = class(TInterfacedObject, Imanifestodf01mun, IManifestodf02nfeList)
@@ -707,7 +711,8 @@ begin
     Q.AddCmd('  md0_rntrc ,                                 ');
     Q.AddCmd('  md0_codvei,                                 ');
     Q.AddCmd('  md0_codstt,                                 ');
-    Q.AddCmd('  md0_motivo                                  ');
+    Q.AddCmd('  md0_motivo,                                 ');
+    Q.AddCmd('  md0_chmdfe                                  ');
     Q.AddCmd('from manifestodf00                            ');
     if aFilter.codseq > 0 then
         Q.AddCmd('where md0_codseq = @codseq                ')
@@ -766,7 +771,6 @@ begin
             Self.loadCondutores ;
 
             Self.State :=msBrowse ;
-
         end
         else
             Self.Inicialize
@@ -808,37 +812,40 @@ begin
     //
     // command para registrar as notas vinculadas ao manifesto
     C2:=TADOCommand.NewADOCommand();
-    C2.AddCmd('declare @md2_codmun int            ;set @md2_codmun =?;');
-    C2.AddCmd('declare @md2_chvnfe char(44)       ;set @md2_chvnfe =?;');
-    C2.AddCmd('declare @md2_codbar varchar(14)    ;                   ');
-    C2.AddCmd('declare @md2_indree smallint       ;                   ');
-    C2.AddCmd('declare @md2_vlrntf numeric (15,2) ;set @md2_vlrntf =?;');
-    C2.AddCmd('declare @md2_volpsob numeric (12,3);set @md2_volpsob=?;');
-    C2.AddCmd('insert into manifestodf02nfe( md2_codmun ,            ');
-    C2.AddCmd('                              md2_chvnfe ,            ');
-    C2.AddCmd('                              md2_codbar ,            ');
-    C2.AddCmd('                              md2_indree ,            ');
-    C2.AddCmd('                              md2_vlrntf ,            ');
-    C2.AddCmd('                              md2_volpsob)            ');
-    C2.AddCmd('values                      ( @md2_codmun ,           ');
-    C2.AddCmd('                              @md2_chvnfe ,           ');
-    C2.AddCmd('                              @md2_codbar ,           ');
-    C2.AddCmd('                              @md2_indree ,           ');
-    C2.AddCmd('                              @md2_vlrntf ,           ');
-    C2.AddCmd('                              @md2_volpsob);          ');
-    C2.AddParamWithValue('@md2_codmun', ftInteger, 0) ;
-    C2.AddParamWithValue('@md2_chvnfe', ftString, DupeString('*', 44)) ;
-    C2.AddParamWithValue('@md2_vlrntf', ftCurrency, 0) ;
-    C2.AddParamWithValue('@md2_volpsob', ftFloat, 0.000);
+    C2.AddCmd('declare @codmdf int            ;set @codmdf =?;    ');
+    C2.AddCmd('declare @codmun int            ;set @codmun =?;    ');
+    C2.AddCmd('declare @chvnfe char(44)       ;set @chvnfe =?;    ');
+    C2.AddCmd('declare @codbar varchar(14)    ;                   ');
+    C2.AddCmd('declare @indree smallint       ;                   ');
+    C2.AddCmd('declare @vlrntf numeric (15,2) ;set @vlrntf =?;    ');
+    C2.AddCmd('declare @volpsob numeric (12,3);set @volpsob=?;    ');
+    C2.AddCmd('insert into manifestodf02nfe( md2_codmun ,         ');
+    C2.AddCmd('                              md2_chvnfe ,         ');
+    C2.AddCmd('                              md2_codbar ,         ');
+    C2.AddCmd('                              md2_indree ,         ');
+    C2.AddCmd('                              md2_vlrntf ,         ');
+    C2.AddCmd('                              md2_volpsob)         ');
+    C2.AddCmd('values                      ( @md2_codmun ,        ');
+    C2.AddCmd('                              @md2_chvnfe ,        ');
+    C2.AddCmd('                              @md2_codbar ,        ');
+    C2.AddCmd('                              @md2_indree ,        ');
+    C2.AddCmd('                              @md2_vlrntf ,        ');
+    C2.AddCmd('                              @md2_volpsob);       ');
+    C2.AddCmd('--//                                               ');
+    C2.AddCmd('--// registra na notfis00                          ');
+    C2.AddCmd('update notfis00 set nf0_codmdf =@codmdf            ');
+    C2.AddCmd('where nf0_chvnfe =@chvnfe                          ');
+
+    C2.AddParamWithValue('@codmdf', ftInteger, Self.m_codseq) ;
+    C2.AddParamWithValue('@codmun', ftInteger, 0) ;
+    C2.AddParamWithValue('@chvnfe', ftString, DupeString('*', 44)) ;
+    C2.AddParamWithValue('@vlrntf', ftCurrency, 0) ;
+    C2.AddParamWithValue('@volpsob', ftFloat, 0.000);
 
     //
     // command geral
     C :=TADOCommand.NewADOCommand();
     try
-        //
-        // begin trans
-        C.Connection.BeginTrans ;
-
         //
         // emite um MDF-e
         // respectivo para o modalidade rodoviário
@@ -858,6 +865,13 @@ begin
             sp.AddParamWithValue('@codvei', ftSmallint, Self.m_codvei);
             sp.AddParamOut('@codseq', ftInteger);
             try
+                //
+                // begin trans
+                if not C.Connection.InTransaction then
+                begin
+                    C.Connection.BeginTrans ;
+                end;
+
                 sp.ExecProc ;
                 //
                 // obtem o cod.seq para posterior process..
@@ -915,10 +929,10 @@ begin
                     //
                     for N in M.nfeList.getDataList do
                     begin
-                        C2.Param('@md2_codmun').Value :=codseq ;
-                        C2.Param('@md2_chvnfe').Value :=N.chvNFE;
-                        C2.Param('@md2_vlrntf').Value :=N.vlrNtf;
-                        C2.Param('@md2_volpsob').Value :=N.volPsoB;
+                        C2.Param('@codmun').Value :=codseq ;
+                        C2.Param('@chvnfe').Value :=N.chvNFE;
+                        C2.Param('@vlrntf').Value :=N.vlrNtf;
+                        C2.Param('@volpsob').Value :=N.volPsoB;
 //                        C2.Param('@md2_codntf').Value :=N.codNtf ;
                         try
                             C2.Execute ;
@@ -983,12 +997,73 @@ begin
         end;
         C.Free ;
     end;
-
 end;
 
 procedure TCManifestoDF.cmdUpdate;
+var
+  sp: TADOStoredProc;
+  C,C2: TADOCommand ;
+var
+  M: TCManifestodf01mun ;
+  N: IManifestodf02nfe ;
+  P: ICondutor ;
+var
+  codseq: Int32 ;
 begin
+    //
+    // command geral
+    C :=TADOCommand.NewADOCommand();
+    try
+        //
+        // atualiza manifesto
+        // respectivo para o modalidade rodoviário
+        sp :=TADOStoredProc.NewADOStoredProc('sp_manifestodf00_add');
+        try
+            sp.AddParamWithValue('@codemp', ftSmallint, Self.m_codemp);
+            sp.AddParamWithValue('@codufe', ftSmallint, Self.m_codufe);
+            sp.AddParamWithValue('@tipamb', ftSmallint, Self.m_tipamb);
+            sp.AddParamWithValue('@tpemit', ftSmallint, Self.m_tpemit);
+            sp.AddParamWithValue('@tptransp', ftSmallint, Self.m_tptransp);
+            sp.AddParamWithValue('@modal', ftSmallint, Self.m_modal);
+            sp.AddParamWithValue('@tpemis', ftSmallint, Self.m_tpemis);
+            sp.AddParamWithValue('@verproc', ftString, Self.m_verproc);
+            sp.AddParamWithValue('@ufeini', ftString, Self.m_ufeini);
+            sp.AddParamWithValue('@ufefim', ftString, Self.m_ufefim);
+            sp.AddParamWithValue('@rntrc', ftString, Self.m_rntrc);
+            sp.AddParamWithValue('@codvei', ftSmallint, Self.m_codvei);
+            sp.AddParamWithValue('@codseq', ftInteger, Self.m_codseq);
+            try
+                //
+                // begin trans
+                if not C.Connection.InTransaction then
+                begin
+                    C.Connection.BeginTrans ;
+                end;
+                sp.ExecProc ;
+            except
+                if C.Connection.InTransaction then
+                begin
+                    C.Connection.RollbackTrans;
+                end;
+                raise;
+            end;
+        finally
+            sp.Free ;
+        end;
 
+        //
+        //...
+
+
+    finally
+        //
+        // commit trans
+        if C.Connection.InTransaction then
+        begin
+            C.Connection.CommitTrans;
+        end;
+        C.Free ;
+    end;
 end;
 
 constructor TCManifestoDF.Create;
@@ -1227,6 +1302,17 @@ begin
     Result :=True ;
 end;
 
+function TCManifestoDF.Load: Boolean;
+var
+  F: TManifestoFilter;
+begin
+    F.codseq :=Self.m_codseq ;
+    F.datini :=0;
+    F.datfin :=0;
+    F.status :=mfsNone;
+    Result :=Self.cmdFind(F) ;
+end;
+
 procedure TCManifestoDF.loadCondutores;
 var
   Q: TADOQuery ;
@@ -1291,6 +1377,7 @@ begin
     m_codvei :=ds.FieldByName('md0_codvei').AsInteger;
     m_codstt :=ds.FieldByName('md0_codstt').AsInteger;
     m_motivo :=ds.FieldByName('md0_motivo').AsString ;
+    m_chmdfe :=ds.FieldByName('md0_chmdfe').AsString ;
     //
     //
     Self.loadMunDocs ;
@@ -1907,6 +1994,7 @@ var
 begin
     ds :=TCManifestoDF.CLoad(aFilter) ;
     try
+        Self.clearItems ;
         Result :=not ds.IsEmpty;
         while not ds.Eof do
         begin
@@ -1917,6 +2005,16 @@ begin
     finally
         TADOQuery(ds).Free ;
     end;
+end;
+
+{ TManifestoFilter }
+
+constructor TManifestoFilter.Create(const codseq: Int32);
+begin
+    Self.codseq :=codseq ;
+    Self.datini :=0;
+    Self.datfin :=0;
+    Self.status :=mfsNone;
 end;
 
 end.

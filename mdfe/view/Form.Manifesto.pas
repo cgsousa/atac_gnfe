@@ -482,12 +482,16 @@ begin
                                       m_Ctrl.Model.modalRodo.veiculo.placa ,
                                       m_Ctrl.Model.modalRodo.veiculo.tara]) ;
             edt_VeiCod.formatReadOnly(True);
-        end;
+            pnl_Condutor.Enabled :=True ;
+        end
+        else
+            pnl_Condutor.Enabled :=False ;
     except
         on E: EBuscaIsEmpty do
         begin
             CMsgDlg.Error(E.Message);
             edt_VeiCod.SetFocus ;
+            pnl_Condutor.Enabled :=False ;
         end;
     end;
 end;
@@ -610,6 +614,7 @@ begin
         begin
             edt_VeiCod.formatReadOnly(False) ;
             m_Ctrl.Model.modalRodo.veiculo.Inicialize ;
+            pnl_Condutor.Enabled :=False ;
         end;
     else
         inherited;

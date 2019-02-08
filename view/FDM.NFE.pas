@@ -208,9 +208,21 @@ type
     property regMDFe: TRegMDFe read m_RegMDFe;
     function AddMDFe(mdf: IManifestoDF;
       out codStt: Int16; out motivo: string): Manifesto ;
-    function OnlySendMDFE(mdf: IManifestoDF): Boolean;
-    function OnlyCancMDFE(mdf: IManifestoDF; const just: String): Boolean;
+    function OnlySendMDFe(mdf: IManifestoDF): Boolean;
+    function OnlyConsMDFe(mdf: IManifestoDF): Boolean;
+    function OnlyCancMDFe(mdf: IManifestoDF; const just: String): Boolean;
   end;
+
+const
+  CSTT_DONE_SEND = 1;
+  CSTT_EMIS_CONTINGE = 9;
+  CSTT_PENDENTE_RETURNO = 44;
+  CSTT_ERROR_SCHEMA = 77;
+  CSTT_ERROR_REGRAS = 88;
+  CSTT_AUTORIZADO_USO =100 ;
+  CSTT_IN_PROCESS = 103;
+  CSTT_PROCESS = 104;
+
 
 implementation
 
@@ -219,7 +231,7 @@ implementation
 uses StrUtils, DateUtils, TypInfo, WinInet, DB,
   uadodb, uparam,
   ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp ,
-  pcnConversaoNFe, pcnEnvEventoNFe, pmdfeEnvEventoMDFe,
+  pcnConversaoNFe, pcnEnvEventoNFe, pmdfeEnvEventoMDFe, pcnProcNFe,
   RLPrinters ,
   Form.NFEStatus,
   uCondutor
@@ -1790,6 +1802,26 @@ begin
     end ;
 end;
 
+function Tdm_nfe.OnlyConsMDFe(mdf: IManifestoDF): Boolean;
+var
+  ws: TMDFeConsulta ;
+begin
+    m_MDFE.Manifestos.Clear;
+    Result :=m_MDFE.Consultar(mdf.chMDFE);
+    Result :=Result and(Self.m_ErrCod =0);
+    if Result then
+    begin
+        ws :=m_MDFE.WebServices.Consulta ;
+        mdf.setRet( ws.protMDFe.cStat ,
+                    ws.protMDFe.xMotivo ,
+                    ws.protMDFe.verAplic,
+                    m_MDFE.WebServices.Retorno.Recibo,
+                    ws.protMDFe.nProt,
+                    ws.protMDFe.digVal,
+                    ws.protMDFe.dhRecbto );
+    end ;
+end;
+
 function Tdm_nfe.OnlySend(NF: TCNotFis00): Boolean;
 var
   N: NotaFiscal ;
@@ -1901,7 +1933,7 @@ var
   cod: Int16;
   mot: string;
 var
-  ret: TMDFeRetRecepcao ;
+  ws_ret: TMDFeRetRecepcao ;
 begin
 
     //
@@ -1935,13 +1967,13 @@ begin
     Result :=Result and(Self.m_ErrCod =0);
     if Result then
     begin
-        ret :=m_MDFE.WebServices.Retorno ;
-        mdf.tpAmbiente :=Ord(ret.TpAmb) ;
-        mdf.setRet( ret.cStat ,
-                    ret.xMotivo ,
-                    ret.verAplic,
-                    ret.Recibo  ,
-                    ret.Protocolo,
+        ws_ret :=m_MDFE.WebServices.Retorno ;
+        mdf.tpAmbiente :=Ord(ws_ret.TpAmb) ;
+        mdf.setRet( ws_ret.cStat ,
+                    ws_ret.xMotivo ,
+                    ws_ret.verAplic,
+                    ws_ret.Recibo  ,
+                    ws_ret.Protocolo,
                     '',
                     now         );
     end ;
