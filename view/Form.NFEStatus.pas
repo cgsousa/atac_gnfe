@@ -145,9 +145,20 @@ begin
 end;
 
 procedure Tfrm_NFEStatus.setMsg(const Avalue: string);
+var
+  P: Integer ;
+  S: string;
 begin
-    html_Status.HTMLText.Clear;
-    if Self.H1 <> '' then
+    P :=Pos(#0, Avalue) ;
+    if P > 0 then
+    begin
+        S :=Copy(Avalue, P+1, length(Avalue) );
+    end
+    else begin
+        html_Status.HTMLText.Clear;
+        S :=Avalue ;
+    end;
+    if(Self.H1 <> '')and(P=0) then
     begin
         html_Status.HTMLText.Add(
                               Format('<P align="left"><B>%s</B></P>',[Self.H1])
@@ -155,9 +166,14 @@ begin
         html_Status.HTMLText.Add('<P></P>');
         html_Status.HTMLText.Add('<P></P>');
     end;
-    html_Status.HTMLText.Add(
-      Format('<P align="center"><B>%s</B></P>',[Avalue]
-      )) ;
+    if Pos('Erro', S) > 0 then
+        html_Status.HTMLText.Add(
+          Format('<P align="center"><font color="#FF0000"><B>%s</B></P></font>',[S]
+          ))
+    else
+        html_Status.HTMLText.Add(
+          Format('<P align="center"><B>%s</B></P>',[S]
+          )) ;
    // html_Status.Refresh ;
 end;
 

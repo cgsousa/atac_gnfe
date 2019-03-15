@@ -63,9 +63,6 @@
 			<DCCReference Include="view\Form.Princ00.pas">
 				<Form>frm_Princ00</Form>
 			</DCCReference>
-			<DCCReference Include="view\Form.Config.pas">
-				<Form>frm_Config</Form>
-			</DCCReference>
 			<DCCReference Include="view\Form.RelNFRL00.pas">
 				<Form>frm_RelNFRL00</Form>
 			</DCCReference>
@@ -74,9 +71,6 @@
 			</DCCReference>
 			<DCCReference Include="view\Form.EnvioLote.pas">
 				<Form>frm_EnvLote</Form>
-			</DCCReference>
-			<DCCReference Include="view\Form.ConfigGSerial.pas">
-				<Form>frm_ConfigGSerial</Form>
 			</DCCReference>
 			<DCCReference Include="view\Form.Items.pas">
 				<Form>frm_Items</Form>
@@ -87,6 +81,10 @@
 			</DCCReference>
 			<DCCReference Include="view\Form.CCE.pas">
 				<Form>frm_CCE</Form>
+			</DCCReference>
+			<DCCReference Include="model\uACBrNFe.pas"/>
+			<DCCReference Include="view\Form.GenSerialNFE.pas">
+				<Form>frm_GenSerialNFE</Form>
 			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
@@ -120,7 +118,7 @@
 						<VersionInfo Name="MajorVer">2</VersionInfo>
 						<VersionInfo Name="MinorVer">5</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">498</VersionInfo>
+						<VersionInfo Name="Build">518</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -132,7 +130,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Atac Sistemas Ltda</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">App de gerenciamento da NF-e</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">2.5.1.498</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">2.5.1.518</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">ATAC_APP_NFE</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">(C)</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">Todos os direitos reservados</VersionInfoKeys>

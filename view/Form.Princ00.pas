@@ -81,13 +81,16 @@ type
   end;
 
 
-{type
-  TCCertifAlert =class(TCThreadProcess)
+type
+  TRunProcTyp = (rtExport);
+  TCRunProc = class(TCThreadProcess)
   private
+    m_RunTyp: TRunProcTyp;
   protected
-    procedure RunProc; override;
   public
-  end;}
+    constructor Create(aRunTyp: TRunProcTyp);
+  end;
+
 
 type
   Tfrm_Princ00 = class(TBaseForm)
@@ -162,7 +165,7 @@ type
     m_Filter: TNotFis00Filter;
     m_Lote: TCNotFis00Lote;
     m_bSelCodSeq: Int32;
-
+    m_proDescri, m_proCodInt: Boolean ;
 //    procedure OnButtonDraw(Sender: TObject;
 //      const DrawItemStruct: tagDRAWITEMSTRUCT);
 
@@ -173,32 +176,29 @@ type
       const TargetCanvas: TCanvas; Node: PVirtualNode; Column: TColumnIndex;
       TextType: TVSTTextType);
 
-    procedure OnINI(Sender: TObject);
-    procedure OnEND(Sender: TObject);
-    procedure OnLOG(Sender: TObject; const StrLog: string);
-
-    procedure DoRun() ;
-
     function LoadGrid(): Boolean;
 
     procedure DoUpdateStatus(const AText: string);
 
-    procedure SalveXML(const local: string);
+    procedure OnGenSerial(Sender: TObject);
 
   private
-    { Thread form }
-    CRec       : TCThreadProcRec;
-    CStop      : Boolean;
-    procedure DoStart();
+    { Thread }
+//    CRec       : TCThreadProcRec;
+//    CStop      : Boolean;
+    m_Run: TCRunProc;
+    m_Local: string ;
+    m_totSucess, m_totError: Integer ;
     procedure DoStop;
-
+    procedure OnINI(Sender: TObject);
+    procedure OnFIN(Sender: TObject);
+    procedure OnRunExportXML(Sender: TObject);
   protected
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     function ChkPwd(const aInput: string): Boolean; override ;
   public
     { Public declarations }
     m_Log: TCLog ;
-    property Stop: Boolean read CStop write CStop;
     procedure DoExecute ;
   end;
 
@@ -216,11 +216,13 @@ uses StrUtils, DateUtils, IOUtils , DB, Clipbrd ,
   ACBrUtil, ACBrNFeNotasFiscais, pcnConversao, pcnConversaoNFe, pcnNFe,
   pcnAuxiliar ,
   uadodb ,
-  FDM.NFE,
+  //FDM.NFE,
+  uACBrNFE,
   //Form.Config,
   Form.ParametroList, Form.NFEStatus,
   Form.Justifica, Form.Inutiliza,
-  Form.RelNFRL00, Form.Ajuda, Form.EnvioLote, Form.Items, Form.CCEList ;
+  Form.RelNFRL00, Form.Ajuda, Form.EnvioLote, Form.Items, Form.CCEList,
+  Form.GenSerialNFE ;
 
 const
   Alignments: array [TAlignment] of Word = (DT_LEFT, DT_RIGHT, DT_CENTER);
@@ -230,9 +232,8 @@ const
   COL_NUM_SER =3;
   COL_NUM_DOC =4;
 
-var
-  rep_nfe: Tdm_nfe ;
-
+//var
+//  rep_nfe: Tdm_nfe ;
 
 
 { Tfrm_Princ00 }
@@ -241,39 +242,31 @@ procedure Tfrm_Princ00.act_CancNFEExecute(Sender: TObject);
 var
   N: TCNotFis00 ;
   just: Tfrm_Justif;
+  rep: IBaseACBrNFE;
   ret: Boolean ;
 begin
-
-    //
-    N :=nil;
-    //
-
     just :=NewJustifica(svCancel);
     try
         if just.Execute then
         begin
             N :=m_Lote.Items[vst_Grid1.IndexItem] ;
-
-            DoUpdateStatus('Processando...');
-            ret :=Tdm_nfe.getInstance.OnlyCanc(N, just.Text) ;
-            DoUpdateStatus('');
-
-            if ret then
+            setStatus('Processando...');
+            rep :=TCBaseACBrNFE.New() ;
+            if rep.OnlyCanc(N, just.Text) then
             begin
-                CMsgDlg.Info(N.m_motivo) ;
-                DoUpdateStatus('Gravando status...');
+                setStatus(Format('%d|%s'#13#10'Gravando Status...',[N.m_codstt,N.m_motivo]));
                 N.setStatus();
+                CMsgDlg.Info(N.m_motivo) ;
                 LoadGrid ;
             end
             else begin
-                CMsgDlg.Warning(Format('%d-%s',[Tdm_nfe.getInstance.ErrCod,Tdm_nfe.getInstance.ErrMsg])) ;
+                CMsgDlg.Warning(Format('%d-%s',[rep.ErrCod,rep.ErrMsg])) ;
             end;
-
         end;
     finally
         FreeAndNil(just);
+        setStatus('');
     end;
-
     ActiveControl :=vst_Grid1 ;
 end;
 
@@ -315,56 +308,69 @@ end;
 
 procedure Tfrm_Princ00.btn_ConsClick(Sender: TObject);
 var
-  N: TCNotFis00 ;
+  N: TCNotFis00;
+  rep: IBaseACBrNFE;
   ret: Boolean ;
 begin
-    N :=m_Lote.Items[vst_Grid1.IndexItem] ;
-    if N <> nil then
+    if(vst_Grid1.IndexItem >-1)and CMsgDlg.Confirm('Deseja consultar o Protocolo?')then
     begin
-        if CMsgDlg.Confirm('Deseja consultar o Protocolo?') then
+        N :=m_Lote.Items[vst_Grid1.IndexItem] ;
+
+        //DoUpdateStatus('Processando...');
+
+        //
+        // se NF ja existe com dif. de chave
+        // reset. contingencia
+        {if(N.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
+        ((N.m_tipemi =teContingencia)or(N.m_tipemi =teOffLine))then
         begin
-
-            DoUpdateStatus('Processando...');
-
-            //
-            // se NF ja existe com dif. de chave
-            // reset. contingencia
-            if(N.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
-            ((N.m_tipemi =teContingencia)or(N.m_tipemi =teOffLine))then
+            setStatus('Resetando contingência...');
+            N.setContinge('', True);
+            if Tdm_nfe.getInstance.AddNotaFiscal(N, True) <> nil then
             begin
-                N.setContinge('', True);
-                if Tdm_nfe.getInstance.AddNotaFiscal(N, True) <> nil then
-                begin
-                    N.setXML() ;
-                end ;
-            end;
-
-            ret :=Tdm_nfe.getInstance.OnlyCons(N) ;
-            DoUpdateStatus('');
-
-            if ret then
-            begin
-                CMsgDlg.Info(N.m_motivo) ;
-                DoUpdateStatus('Gravando protocolo...');
-                N.setStatus();
-                LoadGrid ;
-            end
-            else begin
-                CMsgDlg.Warning(Format('%d-%s',[Tdm_nfe.getInstance.ErrCod,Tdm_nfe.getInstance.ErrMsg])) ;
-            end;
+                N.setXML() ;
+            end ;
         end;
+
+        ret :=Tdm_nfe.getInstance.OnlyCons(N) ;
+        DoUpdateStatus('');
+        if ret then
+        begin
+            CMsgDlg.Info(N.m_motivo) ;
+            DoUpdateStatus('Gravando protocolo...');
+            N.setStatus();
+            LoadGrid ;
+        end
+        else begin
+            CMsgDlg.Warning(Format('%d-%s',[Tdm_nfe.getInstance.ErrCod,Tdm_nfe.getInstance.ErrMsg])) ;
+        end;}
+
+        setStatus('Processando...');
+        rep :=TCBaseACBrNFE.New() ;
+        if rep.OnlyCons(N) then
+        begin
+            setStatus(Format('%d|%s'#13#10'Gravando Status...',[N.m_codstt,N.m_motivo]));
+            N.setStatus();
+            CMsgDlg.Info(N.m_motivo) ;
+            LoadGrid ;
+        end
+        else begin
+            CMsgDlg.Warning(Format('%d-%s',[rep.ErrCod,rep.ErrMsg])) ;
+        end;
+        setStatus('');
     end;
     ActiveControl :=vst_Grid1;
 end;
 
 procedure Tfrm_Princ00.btn_ConsSvcClick(Sender: TObject);
 var
-  nfe: Tdm_nfe ;
+//  nfe: Tdm_nfe;
   S: string;
+  rep: IBaseACBrNFE ;
 begin
     if CMsgDlg.Confirm('Deseja consultar o status do serviço da NFE?') then
     begin
-        DoUpdateStatus('Aguarde...');
+        {DoUpdateStatus('Aguarde...');
         nfe :=Tdm_nfe.getInstance ;
         nfe.m_NFE.SSL.CarregarCertificadoSeNecessario ;
         S :=FormatDateTime('"Certificado[CNPJ:%s Vencimento:"dd/mm/yyyy"]"', nfe.m_NFE.SSL.CertDataVenc) ;
@@ -377,7 +383,22 @@ begin
             CMsgDlg.Warning(nfe.ErrMsg) ;
         end;
         DoUpdateStatus(S);
-        Screen.Cursor :=crDefault;
+        Screen.Cursor :=crDefault;}
+        setStatus('Aguarde'#13#10'Consultando...');
+        try
+            rep :=TCBaseACBrNFE.New() ;
+            if rep.OnlyStatusSvc() then
+            begin
+                if rep.ErrCod =107 then
+                    CMsgDlg.Info(rep.ErrMsg)
+                else
+                    CMsgDlg.Warning(rep.ErrMsg) ;
+            end
+            else
+                CMsgDlg.Error(rep.ErrMsg) ;
+        finally
+            setStatus('');
+        end;
     end;
     ActiveControl :=vst_Grid1;
 end;
@@ -385,19 +406,25 @@ end;
 procedure Tfrm_Princ00.btn_DanfeClick(Sender: TObject);
 var
   N: TCNotFis00 ;
+  rep: IBaseACBrNFE;
 begin
     if CMsgDlg.Confirm('Deseja imprimir o DANFE?') then
     begin
-        DoUpdateStatus('Imprimindo...');
-        N :=m_Lote.Items[vst_Grid1.IndexItem] ;
-        if Tdm_nfe.getInstance.PrintDANFE(N) then
-        begin
-            CMsgDlg.Info('DANFE impresso com sucesso.') ;
-        end
-        else begin
-            CMsgDlg.Error('DANFE não impresso!') ;
+        setStatus('Imprimindo...');
+        try
+            N :=m_Lote.Items[vst_Grid1.IndexItem] ;
+            rep :=TCBaseACBrNFE.New() ;
+            //if Tdm_nfe.getInstance.PrintDANFE(N) then
+            if rep.PrintDANFE(N) then
+            begin
+                CMsgDlg.Info('DANFE impresso com sucesso.') ;
+            end
+            else begin
+                CMsgDlg.Error('DANFE não impresso!') ;
+            end;
+        finally
+            setStatus('');
         end;
-        DoUpdateStatus('');
     end;
     ActiveControl :=vst_Grid1;
 end;
@@ -499,11 +526,16 @@ procedure Tfrm_Princ00.btn_exportClick(Sender: TObject);
 begin
     if CMsgDlg.Confirm('Somente as Notas processadas serão exportadas! Deseja continuar?') then
     begin
-        m_Service :=False;
+        {m_Service :=False;
         CRec.OnIni :=OnINI;
         CRec.OnEnd :=OnEND;
         CRec.CProc :=DoRun;
-        CRec.CExec :=TCThreadProc.Create(CRec);
+        CRec.CExec :=TCThreadProc.Create(CRec);}
+        m_Run :=TCRunProc.Create(rtExport);
+        m_Run.OnBeforeExecute :=OnINI;
+        m_Run.OnTerminate :=OnFIN;
+        m_Run.OnExecute :=OnRunExportXML;
+        m_Run.Start  ;
     end;
 end;
 
@@ -553,9 +585,11 @@ end;
 procedure Tfrm_Princ00.btn_SendClick(Sender: TObject);
 var
   N: TCNotFis00 ;
-  rep: Tdm_nfe ;
+  rep: IBaseACBrNFE; //Tdm_nfe ;
   S: string;
   ret: Boolean ;
+var
+  proDescri, proCodInt: Boolean ;
 begin
     N :=nil;
 
@@ -574,9 +608,8 @@ begin
     //
     // envio do lote com uma NF (sincrono)
     else begin
-
         N :=m_Lote.Items[vst_Grid1.IndexItem] ;
-        rep :=Tdm_nfe.getInstance ;
+        {rep :=Tdm_nfe.getInstance ;
         DoUpdateStatus('Atualizando Nota Fiscal...');
         if N.UpdateNFe(now, ord(rep.ProdDescrRdz),ord(rep.ProdCodInt), S) then
         begin
@@ -596,9 +629,29 @@ begin
         end
         else
             CMsgDlg.Warning(S);
+        DoUpdateStatus('');}
+        try
+            rep :=TCBaseACBrNFE.New() ;
+            setStatus(Format('Atualizando NF(%d)',[N.m_codped]));
+            if N.UpdateNFe(now, ord(rep.param.xml_prodescri_rdz.Value),ord(rep.param.xml_procodigo_int.Value), S) then
+            begin
+                setStatus('Processando NF...');
+                if rep.OnlySend(N) then
+                begin
+                    setStatus(Format('%d|%s'#13#10'Gravando Status...',[N.m_codstt,N.m_motivo]));
+                    N.setStatus();
+                    CMsgDlg.Info(N.m_motivo) ;
+                    LoadGrid ;
+                end
+                else
+                    CMsgDlg.Warning(rep.ErrMsg);
+            end
+            else
+                CMsgDlg.Warning(S);
+        finally
+            setStatus('');
+        end;
     end;
-
-    DoUpdateStatus('');
     ActiveControl :=vst_Grid1 ;
 end;
 
@@ -655,88 +708,15 @@ begin
     m_Log.AddSec('%s.DoExec',[Self.ClassName]) ;
     m_Service :=True ;
     //m_Filter.status:=sttService;
-    Tdm_nfe.getInstance.setStatusChange(false);
-    DoRun() ;
-end;
-
-procedure Tfrm_Princ00.DoRun();
-var
-  NF: TCNotFis00;
-  N: NotaFiscal ;
-var
-  yy,mm,dd: Word ;
-  root,local,F: string ;
-
-begin
-
-    yy :=0;
-    mm :=0;
-
-    root :=ExcludeTrailingPathDelimiter( ExtractFilePath(Application.ExeName)) ;
-    root :=root +Format('\NFe\%s', [Empresa.CNPJ]) ;
-
-    frm_Status.H1 :=Format('Local: %s',[root]);
-
-    for NF in m_Lote.Items do
-    begin
-        if NF.CStatProcess or NF.CstatCancel then
-        begin
-
-            if yy = 0 then
-            begin
-                DecodeDate(NF.m_dtemis, yy, mm, dd);
-                local :=root +FormatDateTime('"\"yyyy"\"mm"_"mmm', NF.m_dtemis, LocalFormatSettings) ;
-                if not DirectoryExists(local) then
-                    ForceDirectories(local) ;
-                //Sleep(1000);
-            end;
-
-            frm_Status.Msg :=Format('Processando...'#13#10'NFe: %s',[NF.m_chvnfe]);
-
-            if NF.LoadXML() then
-            begin
-                N :=Tdm_nfe.getInstance.AddNotaFiscal(NF, True) ;
-                if N <> nil then
-                begin
-                    N.LerXML(NF.m_xml) ;
-                    N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
-                    N.NFe.procNFe.verAplic:=NF.m_verapp ;
-                    N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
-                    N.NFe.procNFe.dhRecbto:=NF.m_dhreceb;
-                    N.NFe.procNFe.nProt   :=NF.m_numprot;
-                    N.NFe.procNFe.digVal  :=NF.m_digval ;
-                    N.NFe.procNFe.cStat   :=NF.m_codstt ;
-                    N.NFe.procNFe.xMotivo :=NF.m_motivo ;
-
-                    N.GerarXML ;
-                    F :=Format('%s-procNFe.XML',[NF.m_chvnfe]);
-                    N.GravarXML(F, local);
-                end;
-            end;
-        end;
-    end;
-end;
-
-procedure Tfrm_Princ00.DoStart;
-begin
-    //m_Filter.status :=sttService;
-    Tdm_nfe.getInstance.setStatusChange(false);
-
-    m_Log :=TCLog.Create('', True);
-
-    CRec.OnIni :=Self.OnINI;
-    CRec.OnEnd :=Self.OnEND;
-    CRec.CProc :=Self.DoRun;
-    CRec.CExec :=TCThreadProc.Create(CRec);
-    CStop :=False ;
-
+//    Tdm_nfe.getInstance.setStatusChange(false);
+//    DoRun() ;
 end;
 
 procedure Tfrm_Princ00.DoStop;
 begin
-    CRec.CExec :=nil ;
-    CStop :=True ;
-
+    m_Run.Terminate;
+    m_Run.WaitFor;
+    FreeAndNil(m_Run);
 end;
 {
 procedure Tfrm_Princ00.DoUpdateProcess(const AText: string);
@@ -865,7 +845,7 @@ begin
     Empresa :=TCEmpresa.Instance ;
     Empresa.DoLoad(1);
 
-    rep_nfe :=Tdm_nfe.getInstance;
+//    rep_nfe :=Tdm_nfe.getInstance;
 
 
 end;
@@ -873,6 +853,7 @@ end;
 procedure Tfrm_Princ00.KeyDown(var Key: Word; Shift: TShiftState);
 var
   N: TCNotFis00 ;
+  rep: IBaseACBrNFE;
   nfe: NotaFiscal;
   chave,conf: string;
 begin
@@ -883,12 +864,18 @@ begin
         VK_F5: if btn_Exec.Visible then btn_Exec.Click ;
     end;
 
+    // Alt press
+    // cria um serial (sequencia) da NFe/NFCe
+    if (ssAlt in Shift)and(Key =Ord('K'))or(Key =Ord('k'))then
+    begin
+        OnGenSerial(nil);
+    end;
+
     //
-    // Cntrl presss
+    // Ctrl presss
     //
     if (ssCtrl in Shift)then
     begin
-
         if vst_Grid1.IndexItem < 0 then
         begin
             CMsgDlg.Warning('Selecione uma NF') ;
@@ -920,7 +907,8 @@ begin
                 Exit;
             end;
 
-            nfe :=Tdm_nfe.getInstance.AddNotaFiscal(N) ;
+            rep :=TCBaseACBrNFE.New() ;
+            nfe :=rep.AddNotaFiscal(N,True,True) ;
             if nfe <> nil then
             begin
                 nfe.GerarXML ;
@@ -934,7 +922,8 @@ begin
         //
         if(Key =Ord('K'))or(Key =Ord('k')) then
         begin
-            nfe :=Tdm_nfe.getInstance.AddNotaFiscal(N, True, False) ;
+            rep :=TCBaseACBrNFE.New() ;
+            nfe :=rep.AddNotaFiscal(N,True,True) ;
             try
                 nfe.Assinar ;
                 N.m_chvnfe :=OnlyNumber(nfe.NFe.infNFe.ID)  ;
@@ -974,11 +963,11 @@ begin
         begin
             if N.CStatProcess then
             begin
-
-                if Tdm_nfe.getInstance.SendMail(N, '') then
-                    CMsgDlg.Info(Tdm_nfe.getInstance.ErrMsg)
+                rep :=TCBaseACBrNFE.New() ;
+                if rep.SendMail(N, '') then
+                    CMsgDlg.Info(rep.ErrMsg)
                 else
-                    CMsgDlg.Warning(Tdm_nfe.getInstance.ErrMsg) ;
+                    CMsgDlg.Warning(rep.ErrMsg) ;
             end;
         end;
 
@@ -1030,10 +1019,12 @@ begin
     end;
 end;
 
-procedure Tfrm_Princ00.OnEND(Sender: TObject);
+procedure Tfrm_Princ00.OnFIN(Sender: TObject);
 begin
-    frm_Status.Msg :='Exportação de dados terminou.';
-
+    setStatus('');
+    btn_export.Enabled :=True ;
+    CMsgDlg.Info('%s'#13#10'Total de NF(s) exportadas: %d'#13#10'Total de NF(s) não exportadas: %d',
+    [m_Local,m_totSucess,m_totError]);
 end;
 
 procedure Tfrm_Princ00.OnFormatText(Sender: TBaseVirtualTree;
@@ -1060,9 +1051,9 @@ begin
         12: CellText :=CFrmtStr.Cur(N.m_icmstot.vBC) ;
         13: CellText :=CFrmtStr.Cur(N.m_icmstot.vICMS) ;
         14: CellText :=CFrmtStr.Cur(N.m_icmstot.vProd) ;
-        15: CellText :=CFrmtStr.Cur(N.m_icmstot.vFrete) ;
+        15: CellText :=CFrmtStr.Cur(N.m_icmstot.vFrete);
         16: CellText :=CFrmtStr.Cur(N.m_icmstot.vSeg) ;
-        17: CellText :=CFrmtStr.Cur(N.m_icmstot.vDesc) ;
+        17: CellText :=CFrmtStr.Cur(N.m_icmstot.vDesc);
         18: CellText :=CFrmtStr.Cur(N.m_icmstot.vIPI) ;
         19: CellText :=CFrmtStr.Cur(N.m_icmstot.vPIS) ;
         20: CellText :=CFrmtStr.Cur(N.m_icmstot.vCOFINS) ;
@@ -1070,21 +1061,24 @@ begin
     end;
 end;
 
-procedure Tfrm_Princ00.OnINI(Sender: TObject);
+procedure Tfrm_Princ00.OnGenSerial(Sender: TObject);
 begin
-    Tfrm_NFEStatus.NewStatus('Exportação do XML leiaute NFe');
-
+    if Tfrm_GenSerialNFE.Execute then
+    begin
+        CMsgDlg.Info('Serial criado com sucesso.') ;
+    end;
 end;
 
-procedure Tfrm_Princ00.OnLOG(Sender: TObject; const StrLog: string);
+procedure Tfrm_Princ00.OnINI(Sender: TObject);
 begin
-    TThread.Queue(nil,
-    procedure // sincroniza a escrita no memo1 - previne chamada multi-thread
-    begin
-      html_Status.HTMLText.Clear ;
-      html_Status.HTMLText.Add(Format('<P align="center"><B>%s</B></P>',[StrLog]));
-      html_Status.Refresh ;
-    end);
+    case TCRunProc(Sender).m_RunTyp of
+        rtExport:
+        begin
+            btn_export.Enabled :=False ;
+            m_totSucess:=0;
+            m_totError :=0;
+        end;
+    end;
 end;
 
 procedure Tfrm_Princ00.OnPaintText(Sender: TBaseVirtualTree;
@@ -1114,17 +1108,82 @@ begin
     end;
 end;
 
+procedure Tfrm_Princ00.OnRunExportXML(Sender: TObject);
+var
+  NF: TCNotFis00;
+  rep: IBaseACBrNFE;
+  N: NotaFiscal ;
+var
+  yy,mm,dd: Word ;
+  root,local,F: string ;
+begin
+
+    yy :=0;
+    mm :=0;
+
+    root :=ExcludeTrailingPathDelimiter( ExtractFilePath(Application.ExeName)) ;
+    root :=root +Format('\arquivos\DFe\NFe\%s', [Empresa.CNPJ]) ;
+
+    setStatus(Format('Local: %s',[root]));
+
+    rep :=TCBaseACBrNFE.New(False) ;
+
+    for NF in m_Lote.Items do
+    begin
+        if NF.CStatProcess or NF.CstatCancel then
+        begin
+            if yy = 0 then
+            begin
+                DecodeDate(NF.m_dtemis, yy, mm, dd);
+                local :=root +FormatDateTime('"\"yyyy"\"mm"_"mmm', NF.m_dtemis, LocalFormatSettings) ;
+                if not DirectoryExists(local) then
+                    ForceDirectories(local) ;
+                //Sleep(1000);
+                m_Local :=local ;
+            end;
+
+            if NF.m_chvnfe <> '' then
+            begin
+                setStatus(Format('Carregando NFe[Mod:%d,Série:%.3d,Número:%d]',[
+                                NF.m_codmod,NF.m_nserie,NF.m_numdoc]));
+                if NF.LoadXML() then
+                begin
+                    N :=rep.AddNotaFiscal(NF, True, True) ;
+                    if N <> nil then
+                    begin
+                        N.LerXML(NF.m_xml) ;
+                        N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
+                        N.NFe.procNFe.verAplic:=NF.m_verapp ;
+                        N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
+                        N.NFe.procNFe.dhRecbto:=NF.m_dhreceb;
+                        N.NFe.procNFe.nProt   :=NF.m_numprot;
+                        N.NFe.procNFe.digVal  :=NF.m_digval ;
+                        N.NFe.procNFe.cStat   :=NF.m_codstt ;
+                        N.NFe.procNFe.xMotivo :=NF.m_motivo ;
+                        setStatus(Format('Exportando NFe:%s'#13#10'Aguarde...',[NF.m_chvnfe]));
+                        N.GerarXML ;
+                        F :=Format('%s-procNFe.XML',[NF.m_chvnfe]);
+                        N.GravarXML(F, local);
+                    end;
+                end;
+                Inc(m_totSucess) ;
+            end
+            else begin
+                setStatus(Format('NFe[Mod:%d,Série:%.3d,Número:%d]'#13#10'Error',[
+                                NF.m_codmod,NF.m_nserie,NF.m_numdoc]));
+                Inc(m_totError) ;
+            end;
+        end;
+        //Sleep(1000);
+    end;
+end;
+
 procedure Tfrm_Princ00.rgx_StatusClick(Sender: TObject);
 begin
     if rgx_Status.ItemIndex =4 then
         chk_EnvLote.Checked :=True
     else
         chk_EnvLote.Checked :=False;
-end;
-
-procedure Tfrm_Princ00.SalveXML(const local: string);
-begin
-
 end;
 
 procedure Tfrm_Princ00.vst_Grid1Change(Sender: TBaseVirtualTree;
@@ -1323,5 +1382,13 @@ begin
   DrawButtonFocusRect(RectContent);
 end;
 
+
+{ TCRunProc }
+
+constructor TCRunProc.Create(aRunTyp: TRunProcTyp);
+begin
+    m_RunTyp :=aRunTyp;
+    inherited Create(True, False);
+end;
 
 end.

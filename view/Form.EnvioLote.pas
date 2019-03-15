@@ -114,7 +114,7 @@ implementation
 uses StrUtils, DateUtils, DB,
   uTaskDlg, uparam ,
   ACBrUtil, pcnNFe, pcnConversao,
-  FDM.NFE ;
+  FDM.NFE, uACBrNFE ;
 
 
 { Tfrm_EnvLote }
@@ -591,7 +591,8 @@ end;
 
 procedure TCSendLote.RunProc;
 var
-  rep: Tdm_nfe ;
+  //rep: Tdm_nfe ;
+  rep: IBaseACBrNFE ;
   N: TCNotFis00;
   nfe: TNFe;
 var
@@ -604,9 +605,10 @@ begin
 //        Exit ;
 //    end;
 
-    rep :=Tdm_nfe.getInstance ;
-    rep.setStatusChange(false); //desabilita status de processamento
-    rep.m_NFE.NotasFiscais.Clear; //reset
+    //rep :=Tdm_nfe.getInstance ;
+    //rep.setStatusChange(false); //desabilita status de processamento
+    //rep.m_NFE.NotasFiscais.Clear; //reset
+    rep :=TCBaseACBrNFE.New(False) ;
 
     //
     // RESET MOD
@@ -664,7 +666,7 @@ begin
         if N.m_codstt <>TCNotFis00.CSTT_EMIS_CONTINGE then
         begin
             CallOnStrProc('Atualizando...');
-            if not N.UpdateNFe(now, Ord(rep.ProdDescrRdz), Ord(rep.ProdCodInt), S) then
+            if not N.UpdateNFe(now, Ord(rep.param.xml_prodescri_rdz.Value), Ord(rep.param.xml_procodigo_int.Value), S) then
             begin
                 CallOnStrProc(S);
                 N.Checked :=False;
@@ -673,7 +675,7 @@ begin
         end;
 
         CallOnStrProc('Gerando...');
-        if rep.AddNotaFiscal(N) = nil then
+        if rep.AddNotaFiscal(N, true, true) = nil then
         begin
             N.Checked :=False ;
             CallOnStrProc('NFE não gerada: %s',[rep.ErrMsg]);
@@ -690,14 +692,14 @@ begin
         if Terminated then Exit;
     end;
 
-    if (codlot = 0)or(rep.m_NFE.NotasFiscais.Count =0) then
+    if (codlot = 0)or(rep.nfe.NotasFiscais.Count =0) then
     begin
         CallOnStrProc('Nenhuma NFE adicionada ao Lote!');
         Self.Terminate ;
         Exit;
     end;
 
-    if rep.m_NFE.NotasFiscais.Count > 50 then
+    if rep.nfe.NotasFiscais.Count > 50 then
     begin
         CallOnStrProc('Excedeu o limite máximo de 50 NFE´s!');
         Self.Terminate ;
@@ -716,14 +718,14 @@ begin
         //
         // lote processado
         //
-        if rep.Retorno.NFeRetorno.cStat =TCNotFis00.CSTT_PROCESS then
+        if rep.nfe.WebServices.Retorno.NFeRetorno.cStat =TCNotFis00.CSTT_PROCESS then
         begin
             //
             // lopp para reset cada nfe
             //
-            for I :=0 to rep.m_NFE.NotasFiscais.Count -1 do
+            for I :=0 to rep.nfe.NotasFiscais.Count -1 do
             begin
-                nfe :=rep.m_NFE.NotasFiscais.Items[I].NFe ;
+                nfe :=rep.nfe.NotasFiscais.Items[I].NFe ;
                 N :=m_Lote.IndexOf(OnlyNumber(NFe.infNFe.ID) ) ;
                 if N <> nil then
                 begin
@@ -739,7 +741,7 @@ begin
                     N.m_motivo :=nfe.procNFe.xMotivo;
                     N.m_verapp :=nfe.procNFe.verAplic;
                     N.m_dhreceb:=nfe.procNFe.dhRecbto;
-                    N.m_numreci:=rep.Retorno.NFeRetorno.nRec ;
+                    N.m_numreci:=rep.nfe.WebServices.Retorno.NFeRetorno.nRec ;
                     N.m_numprot:=nfe.procNFe.nProt ;
                     N.m_digval :=nfe.procNFe.digVal;
                     CallOnStrProc('%d|%s',[N.m_codstt,N.m_motivo]);
@@ -758,7 +760,7 @@ begin
                 if Terminated then Exit;
             end;
         end ;
-        CallOnStrProc('%d|%s',[rep.Retorno.NFeRetorno.cStat,rep.Retorno.NFeRetorno.xMotivo]);
+        CallOnStrProc('%d|%s',[rep.nfe.WebServices.Retorno.NFeRetorno.cStat,rep.nfe.WebServices.Retorno.NFeRetorno.xMotivo]);
 
         //
         // check NF com duplicidade
@@ -791,7 +793,7 @@ begin
                                 CallOnStrProc('Desfazendo contingência (NFE:%s)',[N.m_chvnfe]);
                                 N.setContinge('', True);
                                 N.Load() ;
-                                if rep.AddNotaFiscal(N, True) <> nil then
+                                if rep.AddNotaFiscal(N, True, True) <> nil then
                                 begin
                                     N.setXML() ;
                                     //

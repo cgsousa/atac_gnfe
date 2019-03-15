@@ -1,11 +1,11 @@
 {***
-* Classes/Tipos customizados do ACBR para tratar a Nota Fiscal (NF-e/NFC-e)
+* Interfaces/Classes para as chamadas do ACBr especificos da NFe/NFCe
 * Atac Sistemas
 * Todos os direitos reservados
 * Autor: Carlos Gonzaga
-* Data: 29.01.2018
+* Data: 27.02.2019
 *}
-unit FDM.NFE;
+unit uACBrNFe;
 
 {*
 ******************************************************************************
@@ -18,66 +18,20 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
-11.03.2019
-[*] As chamadas do pacote ACBrNFE, foram removidas para a uACBrNFE
-[*] Remoção da instancia global do dm_nfe para evitar confritos com a thread
-[*] Atualizações do pacote ACBr
-
-15.02.2019
-[+] Novo parametro <msg.devol_me_epp_acontribuinte_nao_sn> para indicar
-    nos termos (artigos xx lei xx)
-[*] Extende as infCpl para destacar o ICMS de crédito, conforme parametro
-
-18.12.2018
-[*] Impressão do DANFE agora atende a config. do ini e não o (notfis00.nf0_tipimp)
-
-04.12.2018
-[+] Novo parametro [conting_offline] para tratar a contingencia offline;
-
-03.12.2018
-[+] Novo codigo de erro: ERROR_SERVICE_DOES_NOT_EXIST
-
-24.08.2018
-[+] Novo membro de classe (Tdm_nfe.OnlyCCE)
-    para chamada da Carta de Correção Eletronica (CC-e)
-
-20.08.2018
-[-] Adiciona o troco em valor recebido somente na versão >= 4.0
-
-02.08.2018
-[*] Grupo a ser informado nas vendas interestaduais para consumidor final,
-    não contribuinte do ICMS. (NT.2016.002_v150)
-
-24.07.2018
-[*] Grupo opcional para informações do ICMS Efetivo (NT.2016.002_v160)
-
-20.06.2018
-[*] Adic. novos campo membro notfis01(m_codanp, m_descamp) referente:
-    02.8 cProdANP (L102) – Valores tabelas para o Código do Combustível da ANP (NT2012.003d)
-
-11.05.2018
-[+] Envio de e-mail (SendMail)
-
 *}
-
 
 interface
 
-
-uses
-  Windows, SysUtils, Classes, Forms, IniFiles,
-  Generics.Collections ,
-  //ACBr
-  ACBrValidador,
+uses Classes, Generics.Collections ,
   ACBrNFe, ACBrDANFCeFortesFr, ACBrMail, ACBrPosPrinter,
   ACBrNFeDANFEClass, ACBrNFeDANFeRLClass,
   ACBrBase, ACBrDFe, ACBrNFeDANFeESCPOS,
   ACBrNFeNotasFiscais, ACBrNFeWebServices,
-  pcnConversao, pcnNFe, pcnEventoNFe,
-  blcksock,
-  unotfis00, ucce, ACBrDFeReport, ACBrDFeDANFeReport;
-
-{$I ACBr.inc}
+  ACBrDFeReport, ACBrDFeDANFeReport,
+  ACBrValidador,
+  pcnEventoNFe, pcnEnvEventoNFe,
+  FDM.NFE,
+  unotfis00, ucce ;
 
 
 type
@@ -94,6 +48,7 @@ type
     tipimp: TPair<string, Int16>;
     tpemis: TPair<string, Int16>;
     tipamb: TPair<string, Int16>;
+
     //
     // servidor smtp
 
@@ -105,15 +60,88 @@ type
     // nos termos
     devol_me_epp_acontribuinte_nao_sn: TPair<string, string>;
 
-    procedure Load() ;
-    procedure Save() ;
+    //
+    // certif
+    cert_chkvalid: TPair<string, Boolean>;
+
+    //
+    // usa produto descri reduzida/ cod.interno
+    xml_prodescri_rdz: TPair<string, Boolean>;
+    xml_procodigo_int: TPair<string, Boolean>;
+
+    //
+    // local dos arquivos grados
+    {numero_serie: TPair<string, string>;
+    arquivos_Salva: TPair<string, Boolean>;
+    arquivos_SeparaPorMes: TPair<string, Boolean>;
+    arquivos_SalvaEvento: TPair<string, Boolean>;
+    arquivos_SeparaPorCNPJ: TPair<string, Boolean>;
+    arquivos_SeparaPorModelo: TPair<string, Boolean>;
+    arquivos_RootPath: TPair<string, string>;
+    arquivos_PathSchemas: TPair<string, string>;
+    arquivos_PathNFe: TPair<string, string>;
+    arquivos_PathInut: TPair<string, string>;
+    arquivos_PathEvento: TPair<string, string>;}
+
+    procedure Load(const aSendSync: Boolean; const aNumSer: SmallInt) ;
     procedure setContingOffLine(const aFlag: Boolean);
+    //procedure setParam(const ) ;
   end;
 
 
-
 type
-  Tdm_nfe = class(TDataModule)
+  IBaseACBrNFE = interface
+    ['{123B1C2D-4EBA-48AB-B300-4E135422AB3C}']
+    procedure LoadConfig() ;
+    function getErrCod: Integer;
+    property ErrCod: Integer read getErrCod;
+    function getErrMsg: string ;
+    property ErrMsg: string read getErrMsg;
+    //
+    function getCodMod: Word ;
+    property CodMod: Word read getCodMod;
+    function getNSerie: Word ;
+    property nSerie: Word read getNSerie;
+    //
+    function getNFe: TACBrNFe;
+    property nfe: TACBrNFe read getNFe;
+    //
+    function getParam: TRegNFE ;
+    property param: TRegNFE read getParam;
+    //
+    function AddNotaFiscal(NF: TCNotFis00;
+      const Clear, InfProt: Boolean): NotaFiscal ;
+    function SendMail(NF: TCNotFis00; const dest_email: string =''): Boolean;
+    //
+    function OnlyStatusSvc(): Boolean;
+    function OnlySend(NF: TCNotFis00): Boolean; overload ;
+    function OnlySend(const aNumLot: Integer): Boolean; overload ;
+    function OnlyCons(NF: TCNotFis00): Boolean;
+    function OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
+    function OnlyCCE(NF: TCNotFis00; const aCorrecao: String;
+      const aNumSeq: SmallInt): Boolean;
+    function OnlyInutiliza(const cnpj, just: String;
+      const ano, codmod, nserie, numini, numfin: Integer): Boolean;
+    //
+    function PrintDANFE(NF: TCNotFis00): Boolean ;
+    //
+    function getRetInfEvento: TRetInfEvento ;
+    property retInfEvento: TRetInfEvento read getRetInfEvento;
+    //
+    function getRetInutiliza: TNFeInutilizacao ;
+    property retInutiliza: TNFeInutilizacao read getRetInutiliza ;
+    //
+    function getDaysUseCertif: Smallint ;
+  end;
+
+  TCBaseACBrNFE = class(TInterfacedObject, IBaseACBrNFE)
+  private
+    m_ErrCod: Integer;
+    m_ErrMsg: string ;
+    function getErrCod: Integer;
+    function getErrMsg: string ;
+  private
+    m_DM: Tdm_nfe ;
     m_NFE: TACBrNFe;
     m_PP: TACBrPosPrinter;
     m_Mail: TACBrMail;
@@ -121,77 +149,39 @@ type
     m_DRL: TACBrNFeDANFeRL;
     m_DF: TACBrNFeDANFCeFortes;
     m_Val: TACBrValidador;
-    procedure m_NFEStatusChange(Sender: TObject);
-    procedure m_NFEGerarLog(const ALogLine: string; var Tratado: Boolean);
-    procedure m_NFETransmitError(const HttpError, InternalError: Integer;
+    m_StatusChange: Boolean ;
+    m_CodMod, m_NSerie: Word ;
+    m_reg: TRegNFE ;
+    function getNFe: TACBrNFe;
+    function getCodMod: Word ;
+    function getNSerie: Word ;
+    function getParam: TRegNFE ;
+    procedure LoadConfig() ;
+    procedure OnTransmitError(const HttpError, InternalError: Integer;
       const URL, DadosEnviados, SoapAction: string; var Retentar,
       Tratado: Boolean);
   private
-    { Private declarations }
-    class var _Instance: Tdm_nfe;
-  private
-    m_Ini: TMemIniFile ;
-    m_IsGlobalOffline: Boolean;
-    m_EnvSinc: Boolean;
-    m_StatusChange: Boolean ;
-    m_StatusServico: TNFeStatusServico ;
-    m_Envio: TNFeRecepcao;
-    m_Retorno: TNFeRetRecepcao ;
-    m_Inutiliza: TNFeInutilizacao ;
-    m_RetEvento: TRetInfEvento ;
-    m_reg: TRegNFE ;
-  private
-//    m_prmFormaEmissao: TpcnTipoEmissao ;
-    m_CodMod, m_NSerie: Word ;
-    m_ProdDscRdz, m_ProdCodInt: Boolean ;
-    m_ErrCod: Integer;
-    m_ErrMsg: string ;
-    procedure LoadConfig() ;
+    { retorno }
+    m_RetInfEvento: TRetInfEvento ;
+    m_RetInutiliza: TNFeInutilizacao ;
+    function getRetInfEvento: TRetInfEvento ;
+    function getRetInutiliza: TNFeInutilizacao ;
   protected
-    function CheckConnInternet(): Boolean ;
-    function CheckConnectedStateInternet(): Boolean ;
+    { utilidades }
+    function IsGTIN(const aNum: string): Boolean ;
   public
-    { Public declarations }
-    property Sincrono: Boolean read m_EnvSinc;
-    property StatusServico: TNFeStatusServico read m_StatusServico ;
-    property Envio: TNFeRecepcao read m_Envio;
-    property Retorno: TNFeRetRecepcao read m_Retorno;
-    property Inutiliza: TNFeInutilizacao read m_Inutiliza;
-    property RetEvento: TRetInfEvento read m_RetEvento;
-
-    property CodMod: Word read m_CodMod;
-    property NSerie: Word read m_NSerie;
-    property ProdDescrRdz: Boolean read m_ProdDscRdz;
-    property ProdCodInt: Boolean read m_ProdCodInt;
-
-    property ErrCod: Integer read m_ErrCod;
-    property ErrMsg: string read m_ErrMsg;
-
-    property Parametro: TRegNFE read m_reg;
-
+    property nfe: TACBrNFe read getNFe;
+    property ErrCod: Integer read getErrCod;
+    property ErrMsg: string read getErrMsg;
+    property CodMod: Word read getCodMod;
+    property nSerie: Word read getNSerie;
+    property param: TRegNFE read getParam;
+    constructor Create(const aStatusChange: Boolean);
     function AddNotaFiscal(NF: TCNotFis00;
-      const Clear: Boolean = false;
-      const InfProt: Boolean = True): NotaFiscal ;
-
+      const Clear, InfProt: Boolean): NotaFiscal ;
     function PrintDANFE(NF: TCNotFis00): Boolean ;
-    function PrintCCE(NF: TCNotFis00; CC: TCEventoCCE): Boolean ;
-    function CStatProcess(const codstt: Int32): Boolean;
-    function CStatCancel(const codstt: Int32): Boolean;
-
-    procedure setStatusChange(const value: Boolean) ;
-  public
-    function CheckStatusServico(): Boolean;
-
-    function IsCNPJ(const doc: string): Boolean ;
-    function IsCPF(const doc: string): Boolean ;
-    function IsGTIN(const doc: string): Boolean ;
-
-    function InutNum(const cnpj, just: String;
-      ano, codmod, nserie, numini, numfin: Integer): Boolean;
-
-    function getDaysUseCertif: Smallint ;
-    //procedure getInfCertif(out aCNPJ: string; out aVenc: TDatetime) ;
-
+    function SendMail(NF: TCNotFis00; const dest_email: string =''): Boolean;
+    class function New(const aStatusChange: Boolean =True): IBaseACBrNFE;
   public
     { somente chamadas dos serviços, sem checa status }
     function OnlyStatusSvc(): Boolean;
@@ -199,31 +189,31 @@ type
     function OnlySend(const aNumLot: Integer): Boolean; overload ;
     function OnlyCons(NF: TCNotFis00): Boolean;
     function OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
-    function OnlyCCE(NF: TCNotFis00; const aCorrecao: String): Boolean;
-
-    function SendMail(NF: TCNotFis00; const dest_email: string =''): Boolean;
+    function OnlyCCE(NF: TCNotFis00; const aCorrecao: String;
+      const aNumSeq: SmallInt): Boolean;
+    function OnlyInutiliza(const cnpj, just: String;
+      const ano, codmod, nserie, numini, numfin: Integer): Boolean;
   public
-    constructor Create(aRemoveDataModule: Boolean); reintroduce;
-    class function getInstance: Tdm_nfe; static;
-    class procedure doFreeAndNil;
+    { retorno das chamadas }
+    property retInfEvento: TRetInfEvento read getRetInfEvento;
+    property retInutiliza: TNFeInutilizacao read getRetInutiliza ;
+    function getDaysUseCertif: Smallint ;
   end;
+
 
 implementation
 
-{$R *.dfm}
-
-uses StrUtils, DateUtils, TypInfo, WinInet, DB,
+uses Windows, SysUtils, StrUtils, DateUtils, IniFiles, TypInfo, DB, WinInet,
   uadodb, uparam ,
-  ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp ,
-  pcnConversaoNFe, pcnEnvEventoNFe ,
-  RLPrinters ,
-  Form.NFEStatus
-  ;
+  ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp,
+  pcnConversao, pcnConversaoNFe, pcnNFe,
+  blcksock;
 
-{ Tdm_nfe }
 
-function Tdm_nfe.AddNotaFiscal(NF: TCNotFis00;
-  const Clear, InfProt: Boolean): NotaFiscal ;
+{ TCBaseACBrNFE }
+
+function TCBaseACBrNFE.AddNotaFiscal(NF: TCNotFis00; const Clear,
+  InfProt: Boolean): NotaFiscal;
 var
   N: NotaFiscal ;
   det: TDetCollectionItem;
@@ -235,8 +225,6 @@ var
   cofins: TCOFINS;
   ufdest: TICMSUFDest ;
   tot: TICMSTot ;
-  //
-  p0,p1: TpagCollectionItem ;
   I: Integer ;
 var
   nf1: TCNotFis01 ;
@@ -261,6 +249,11 @@ var
   tot_FCPUFDest,
   tot_ICMSUFDest,
   tot_ICMSUFRemet: Currency ;
+var
+  V: TVolCollectionItem;
+  //
+  D: TDupCollectionItem;
+  p0,p1: TpagCollectionItem ;
 var
   nos_termos: string;
 begin
@@ -823,13 +816,38 @@ begin
     begin
         N.NFe.Transp.Transporta.Assign(NF.m_transp.Transporta) ;
         //
-        // NT 2016_002.v130
-//        if N.NFe.Ide.idDest <> doInterestadual then
-//        begin
-            N.NFe.Transp.veicTransp.Assign(NF.m_transp.veicTransp) ;
-            N.NFe.Transp.Vol.Assign(NF.m_transp.Vol) ;
-//        end;
-        N.NFe.Cobr.Assign(NF.m_cobr);//cobrança (NF-e)
+        N.NFe.Transp.veicTransp.Assign(NF.m_transp.veicTransp) ;
+        //
+        // volumes
+        if NF.m_transp.Vol.Count > 0 then
+        begin
+            //
+            // evita o Assign para corrigir o AV dentro do ACBr
+            // N.NFe.Transp.Vol.Assign(NF.m_transp.Vol) ;
+            V :=NF.m_transp.Vol.Items[0] ;
+            with N.NFe.Transp.Vol.New do
+            begin
+                qVol :=V.qVol;
+                esp  :=V.esp  ;
+                marca:=V.marca;
+                nVol :=V.nVol ;
+                pesoL:=V.pesoL;
+                pesoB:=V.pesoB;
+            end;
+        end;
+        N.NFe.Cobr.Fat.Assign(NF.m_cobr.Fat);
+        // evita o Assign da Cobr
+        // N.NFe.Cobr.Assign(NF.m_cobr);//cobrança (NF-e)
+        for I :=0 to NF.m_cobr.Dup.Count -1 do
+        begin
+            D :=NF.m_cobr.Dup.Items[I] ;
+            with NF.m_cobr.Dup.New do
+            begin
+                nDup :=D.nDup ;
+                dVenc:=D.dVenc ;
+                vDup :=D.vDup ;
+            end;
+        end;
     end;
 
     //
@@ -840,6 +858,7 @@ begin
     begin
         //
         // pagamentos tbm para NFE
+
         //N.NFe.pag.Assign(NF.m_pag);
         //if N.NFe.pag.Count =0 then pag :=N.NFe.pag.Add
         //else                       pag :=N.NFe.pag.Items[0] ;
@@ -847,7 +866,8 @@ begin
         for I :=0 to NF.m_pag.Count -1 do
         begin
             p0 :=NF.m_pag.Items[I] ;
-            p1 :=N.NFe.pag.Add ;
+            //p1 :=N.NFe.pag.Add ;
+            p1 :=N.NFe.pag.New ;
             p1.indPag :=p0.indPag ;
             p1.tPag :=p0.tPag ;
             p1.vPag :=p0.vPag ;
@@ -974,96 +994,30 @@ begin
         Self.m_ErrCod :=66;
         Self.m_ErrMsg :=N.ErroValidacao;
     end;
-
 end;
 
-function Tdm_nfe.CheckConnectedStateInternet: Boolean;
-var
-  stt: DWORD;
+constructor TCBaseACBrNFE.Create(const aStatusChange: Boolean);
 begin
-    if not InternetGetConnectedState(@stt, 0) then
-    begin
-        m_IsGlobalOffline :=False
-    end
-    else begin
-        if(stt and INTERNET_CONNECTION_LAN <> 0) or
-          (stt and INTERNET_CONNECTION_MODEM <> 0)or
-          (stt and INTERNET_CONNECTION_PROXY <> 0)then
-        m_IsGlobalOffline :=True;
-    end;
-    Result :=m_IsGlobalOffline ;
+    m_DM :=Tdm_nfe.Create(True) ;
+    m_DM.setStatusChange(aStatusChange);
+    m_NFE :=m_DM.m_NFE ;
+    m_NFE.OnTransmitError :=OnTransmitError;
+    m_PP  :=m_DM.m_PP ;
+    m_Mail:=m_DM.m_Mail;
+    m_DEP :=m_DM.m_DEP ;
+    m_DRL :=m_DM.m_DRL ;
+    m_DF  :=m_DM.m_DF ;
+    m_Val :=m_DM.m_Val;
+    m_StatusChange :=aStatusChange ;
 end;
 
-function Tdm_nfe.CheckConnInternet: Boolean;
-var
-  w: DWORD;
+function TCBaseACBrNFE.getCodMod: Word;
 begin
-    Result :=CheckConnectedStateInternet ;
-    if not Result then
-    begin
-        Result :=InternetCheckConnection('www.google.com.br', w, 0) ;
-    end;
-end;
-
-function Tdm_nfe.CheckStatusServico(): Boolean;
-var
-  w: DWORD;
-begin
-    {Result :=CheckConnInternet();
-    if Result then
-    begin
-        if m_StatusServico = nil then
-        begin
-            m_NFE.WebServices.StatusServico.Executar ;
-            Self.m_ErrCod :=m_NFE.WebServices.StatusServico.cStat ;
-            Self.m_ErrMsg :=m_NFE.WebServices.StatusServico.xMotivo ;
-            Result :=Self.m_ErrCod =107;
-            m_StatusServico :=m_NFE.WebServices.StatusServico;
-        end;
-    end
-    else begin
-        Self.m_ErrCod :=99;
-        Self.m_ErrMsg :='Conexão com a Internet não disponível!';
-    end;}
-
-    if m_StatusServico = nil then
-    begin
-        m_StatusServico :=m_NFE.WebServices.StatusServico;
-    end;
-    Result :=m_StatusServico.Executar ;
-end;
-
-constructor Tdm_nfe.Create(aRemoveDataModule: Boolean);
-begin
-    inherited Create(nil);
-    if aRemoveDataModule then
-    begin
-        RemoveDataModule(Self);
-    end;
-end;
-
-function Tdm_nfe.CStatCancel(const codstt: Int32): Boolean;
-begin
-    Result :=Self.m_NFE.CstatCancelada(codstt);
-    Result :=Result or (codstt =135);
+    Result :=m_CodMod ;
 
 end;
 
-function Tdm_nfe.CStatProcess(const codstt: Int32): Boolean;
-begin
-    Result :=Self.m_NFE.CstatProcessado(codstt);
-
-end;
-
-class procedure Tdm_nfe.doFreeAndNil;
-begin
-    if _Instance <> nil then
-    begin
-        FreeAndNil(_Instance);
-    end;
-end;
-
-function Tdm_nfe.getDaysUseCertif: Smallint;
+function TCBaseACBrNFE.getDaysUseCertif: Smallint;
 var
   yy,mm,dd: Word;
 begin
@@ -1079,80 +1033,69 @@ begin
     end;
 end;
 
-class function Tdm_nfe.getInstance: Tdm_nfe;
+function TCBaseACBrNFE.getErrCod: Integer;
 begin
-    if _Instance = nil then
-    begin
-        //_Instance :=Tdm_nfe.Create ;
-        Application.CreateForm(Tdm_nfe, _Instance);
-        _Instance.LoadConfig();
-    end;
-    Result :=_Instance ;
-end;
-
-function Tdm_nfe.InutNum(const cnpj, just: String; ano, codmod, nserie,
-  numini, numfin: Integer): Boolean;
-begin
-    Result :=CheckStatusServico() ;
-    if Result then
-    begin
-        Self.m_NFE.WebServices.Inutiliza(cnpj, just, ano,
-                                        codmod, nserie,
-                                        numini, numfin) ;
-        Result := (Self.m_NFE.WebServices.Inutilizacao.cStat =102)or
-                  (Self.m_NFE.WebServices.Inutilizacao.cStat =563);
-        if Result then
-            m_Inutiliza :=Self.m_NFE.WebServices.Inutilizacao
-        else begin
-//            m_ErrCod :=Self.m_NFE.WebServices.Inutilizacao.cStat;
-            m_ErrMsg :=Self.m_NFE.WebServices.Inutilizacao.xMotivo;
-        end;
-    end;
-end;
-
-function Tdm_nfe.IsCNPJ(const doc: string): Boolean;
-begin
-    //
-    //
-    m_Val.TipoDocto :=docCNPJ ;
-    m_Val.Documento :=doc ;
-    Result :=m_Val.Validar ;
+    Result :=m_ErrCod ;
 
 end;
 
-function Tdm_nfe.IsCPF(const doc: string): Boolean;
+function TCBaseACBrNFE.getErrMsg: string;
 begin
-    //
-    //
-    m_Val.TipoDocto :=docCPF ;
-    m_Val.Documento :=doc ;
-    Result :=m_Val.Validar ;
+    Result :=m_ErrMsg ;
 
 end;
 
-function Tdm_nfe.IsGTIN(const doc: string): Boolean;
+function TCBaseACBrNFE.getNFe: TACBrNFe;
+begin
+    Result :=m_NFE ;
+
+end;
+
+function TCBaseACBrNFE.getNSerie: Word;
+begin
+    Result :=m_NSerie ;
+
+end;
+
+function TCBaseACBrNFE.getParam: TRegNFE;
+begin
+    Result :=m_reg ;
+
+end;
+
+function TCBaseACBrNFE.getRetInfEvento: TRetInfEvento;
+begin
+    Result :=m_RetInfEvento ;
+
+end;
+
+function TCBaseACBrNFE.getRetInutiliza: TNFeInutilizacao;
+begin
+    m_RetInutiliza :=m_NFE.WebServices.Inutilizacao;
+
+end;
+
+function TCBaseACBrNFE.IsGTIN(const aNum: string): Boolean;
 begin
     //
     //
     m_Val.TipoDocto :=docGTIN ;
-    m_Val.Documento :=doc ;
+    m_Val.Documento :=aNum ;
     Result :=m_Val.Validar ;
-
 end;
 
-
-procedure Tdm_nfe.LoadConfig;
+procedure TCBaseACBrNFE.LoadConfig;
+var
+  m_Ini: TMemIniFile ;
 begin
-
     //
     //
     m_ErrCod :=0;
     m_ErrMsg :='';
     //
-    m_StatusChange :=True ;
-    m_StatusServico:=m_NFE.WebServices.StatusServico ;
     //
     m_Ini :=TMemIniFile.Create(ApplicationPath +'Configuracoes.ini') ;
+    try
 
     //certificado
     m_NFE.Configuracoes.Certificados.ArquivoPFX :=m_Ini.ReadString('Certificado','Caminho','') ;
@@ -1269,14 +1212,14 @@ begin
         end;
 
         //
-        //m_NFE.DANFE.ViaConsumidor :=True;
-        //m_NFE.DANFE.ImprimirItens :=True;
+//        m_NFE.DANFE.ViaConsumidor :=True;
+//        m_NFE.DANFE.ImprimirItens :=True;
 
         m_PP.Modelo           := TACBrPosPrinterModelo(m_Ini.ReadInteger('CONFIG', 'Modelo', 0));
         m_PP.Device.Porta     := m_Ini.ReadString('CONFIG', 'Porta', 'COM1');
         m_PP.Device.Baud      := StrToInt(m_Ini.ReadString('CONFIG', 'Baud', '9600'));
         m_PP.IgnorarTags      := m_Ini.ReadBool('CONFIG', 'IgnorarTagsFormatacao', False);
-        m_PP.LinhasEntreCupons     := m_Ini.ReadInteger('CONFIG', 'Linhas', 5);
+        m_PP.LinhasEntreCupons:= m_Ini.ReadInteger('CONFIG', 'Linhas', 5);
     end
     else begin
         m_NFE.DANFE :=m_DRL;
@@ -1285,68 +1228,289 @@ begin
     m_NFE.DANFE.TipoDANFE  := TpcnTipoImpressao(m_Ini.ReadInteger( 'DANFE','Tipo'       ,0));
     m_NFE.DANFE.Logo       := m_Ini.ReadString( 'DANFE','LogoMarca'   ,'') ;
 
-    m_EnvSinc :=m_Ini.ReadInteger('Certificado', 'TipoEnvio', 0) =0;
+    //m_EnvSinc :=m_Ini.ReadInteger('Certificado', 'TipoEnvio', 0) =0;
 
-    m_ProdDscRdz :=m_Ini.ReadString('NFEProduto','Danfe Nome Reduzido','') = 'S';
-    m_ProdCodInt :=m_Ini.ReadString('NFEProduto','Danfe Codigo Interno','') = 'S';
+    //m_ProdDscRdz :=m_Ini.ReadString('NFEProduto','Danfe Nome Reduzido','') = 'S';
+    //m_ProdCodInt :=m_Ini.ReadString('NFEProduto','Danfe Codigo Interno','') = 'S';
 
 
     // *********************
     // ler parametros da NFE
     // *********************
-    m_reg.Load();
+    m_reg.Load(m_Ini.ReadInteger('Certificado', 'TipoEnvio', 0) =0, m_NSerie);
+    m_NFE.Configuracoes.Certificados.VerificarValidade :=m_reg.cert_chkvalid.Value ;
+    m_reg.xml_prodescri_rdz.Value :=m_Ini.ReadString('NFEProduto','Danfe Nome Reduzido','') = 'S';
+    m_reg.xml_procodigo_int.Value :=m_Ini.ReadString('NFEProduto','Danfe Codigo Interno','') = 'S';
+
+    finally
+      m_Ini.Free ;
+    end;
 
 end;
 
-procedure Tdm_nfe.m_NFEGerarLog(const ALogLine: string; var Tratado: Boolean);
+class function TCBaseACBrNFE.New(const aStatusChange: Boolean): IBaseACBrNFE;
 begin
-    Tratado :=True ;
-    m_ErrMsg:=ALogLine;
+    Result :=TCBaseACBrNFE.Create(aStatusChange);
+    Result.LoadConfig ;
 
 end;
 
-procedure Tdm_nfe.m_NFEStatusChange(Sender: TObject);
+function TCBaseACBrNFE.OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
+var
+  N: NotaFiscal ;
+  E: TInfEventoCollectionItem;
 begin
-    if m_StatusChange then
+    //check nota processada
+    {if not m_NFE.CstatProcessado(NF.m_codstt)then;
     begin
-      case m_NFE.Status of
-          stIdle: if frm_Status <> nil then frm_Status.Hide;
-//      else
-//          Tfrm_NFEStatus.DoShow(m_NFE.Status,
-//                                m_NFE.SSL.CertCNPJ,
-//                                FormatDateTime('dd/mm/yyyy',m_NFE.SSL.CertDataVenc)
-//                                );
-//      end;
+        if NF.m_codmod = 55 then
+            m_ErrMsg :='NFe não processada!'
+        else
+            m_ErrMsg :='NFCe não processada!';
+        Exit(False);
+    end;}
 
-        stNFeStatusServico: Tfrm_NFEStatus.DoShow('Verificando Status do servico...');
+    N :=AddNotaFiscal(NF, True, True) ;
 
-        stNFeRecepcao: Tfrm_NFEStatus.DoShow('Enviando dados da NFe...');
+    m_NFE.EventoNFe.Evento.Clear;
 
-        stNfeRetRecepcao: Tfrm_NFEStatus.DoShow('Recebendo dados da NFe...');
+    E :=m_NFE.EventoNFe.Evento.Add ;
+    E.infEvento.CNPJ      :=OnlyNumber(NF.m_emit.CNPJCPF);
+    E.infEvento.cOrgao    :=NF.m_codufe;
+    E.infEvento.dhEvento  :=now;
+    E.infEvento.tpEvento  :=teCancelamento;
+    E.infEvento.nSeqEvento:=1;
+    E.infEvento.chNFe     :=NF.m_chvnfe;
+    E.infEvento.detEvento.nProt :=NF.m_numprot;
+    E.infEvento.detEvento.xJust :=Just;
 
-        stNfeConsulta: Tfrm_NFEStatus.DoShow('Consultando NFe...');
+    Result :=m_NFE.EnviarEvento(NF.m_codseq) ;
+    if Result then
+    begin
+        m_ErrCod :=E.RetInfEvento.cStat;
+        m_ErrMsg :=E.RetInfEvento.xMotivo;
+        Result :=m_ErrCod in [135, 136, 155] ;
+        if Result then
+        begin
+            NF.m_codstt :=E.RetInfEvento.cStat ;
+            NF.m_motivo :=E.RetInfEvento.xMotivo;
+            NF.m_dhreceb:=E.RetInfEvento.dhRegEvento;
+            NF.m_verapp :=E.RetInfEvento.verAplic;
+            NF.m_numprot:=E.RetInfEvento.nProt;
+            NF.m_digval :=''; //E.RetInfEvento.digVal;
+        end ;
+    end
+    else
+        m_ErrMsg :=m_NFE.WebServices.EnvEvento.xMotivo;
+end;
 
-        stNfeCancelamento: Tfrm_NFEStatus.DoShow('Enviando cancelamento de NFe...');
+function TCBaseACBrNFE.OnlyCCE(NF: TCNotFis00;
+  const aCorrecao: String;
+  const aNumSeq: SmallInt): Boolean;
+var
+  N: NotaFiscal ;
+  E: TInfEventoCollectionItem;
+begin
+    //check nota processada
+    {if not m_NFE.CstatProcessado(NF.m_codstt)then;
+    begin
+        if NF.m_codmod = 55 then
+            m_ErrMsg :='NFe não processada!'
+        else
+            m_ErrMsg :='NFCe não processada!';
+        Exit(False);
+    end;}
 
-        stNfeInutilizacao: Tfrm_NFEStatus.DoShow('Enviando pedido de Inutilização...');
+    N :=AddNotaFiscal(NF, True, True) ;
 
-        stNFeRecibo: Tfrm_NFEStatus.DoShow('Consultando Recibo de Lote...');
+    m_NFE.EventoNFe.Evento.Clear;
+    E :=m_NFE.EventoNFe.Evento.Add ;
+    E.infEvento.cOrgao    :=NF.m_codufe;
+    E.infEvento.CNPJ      :=OnlyNumber(NF.m_emit.CNPJCPF);
+    E.infEvento.chNFe     :=NF.m_chvnfe;
+    E.infEvento.dhEvento  :=now;
+    E.infEvento.tpEvento  :=teCCe;
+    E.infEvento.nSeqEvento:=aNumSeq;
+    E.infEvento.detEvento.xCorrecao :=aCorrecao;
+    E.infEvento.detEvento.xCondUso :='';
 
-        stNFeCadastro: Tfrm_NFEStatus.DoShow('Consultando Cadastro...');
+    Result :=m_NFE.EnviarEvento(NF.m_codseq) ;
+    if Result then
+    begin
+        m_ErrCod :=E.RetInfEvento.cStat;
+        m_ErrMsg :=E.RetInfEvento.xMotivo;
+        Result :=m_ErrCod in [135, 136] ;
+        if Result then
+        begin
+            m_RetInfEvento :=E.RetInfEvento ;
+        end ;
+    end
+    else
+        m_ErrMsg :=m_NFE.WebServices.EnvEvento.xMotivo;
+end;
 
-        stNFeEmail: Tfrm_NFEStatus.DoShow('Enviando Email...');
+function TCBaseACBrNFE.OnlyCons(NF: TCNotFis00): Boolean;
+begin
+    //
+    // se NF ja existe com dif. de chave
+    // reset. contingencia
+    if(NF.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
+      ((NF.m_tipemi =teContingencia)or(NF.m_tipemi =teOffLine))then
+    begin
+        //setStatus('Resetando contingência...');
+        NF.setContinge('', True);
+        if AddNotaFiscal(NF, True, False) <> nil then
+        begin
+            NF.setXML() ;
+        end ;
+    end;
 
-        stNFeCCe: Tfrm_NFEStatus.DoShow('Enviando Carta de Correção...');
+    m_NFE.NotasFiscais.Clear;
+    m_ErrCod :=0;
+    Result :=m_NFE.Consultar(NF.m_chvnfe) ;
+    Result :=Result and(m_ErrCod =0);
+    if Result then
+    begin
+        NF.m_codstt :=m_NFE.WebServices.Consulta.cStat ;
+        NF.m_motivo :=m_NFE.WebServices.Consulta.XMotivo ;
+        NF.m_dhreceb:=m_NFE.WebServices.Consulta.DhRecbto;
+        NF.m_verapp :=m_NFE.WebServices.Consulta.verAplic;
+        NF.m_numprot:=m_NFE.WebServices.Consulta.Protocolo;
+        NF.m_digval :=m_NFE.WebServices.Consulta.protNFe.digVal;
+    end ;
+end;
 
-        stNFeEvento: Tfrm_NFEStatus.DoShow('Enviando Evento...');
-      end;
-      //
-      Application.ProcessMessages;
-      //
+function TCBaseACBrNFE.OnlyInutiliza(const cnpj, just: String; const ano,
+  codmod, nserie, numini, numfin: Integer): Boolean;
+begin
+    m_NFE.WebServices.Inutiliza(cnpj, just, ano,
+                                    codmod, nserie,
+                                    numini, numfin) ;
+    Result := (m_NFE.WebServices.Inutilizacao.cStat =102)or
+              (m_NFE.WebServices.Inutilizacao.cStat =563);
+    if Result then
+        m_RetInutiliza :=m_NFE.WebServices.Inutilizacao
+    else begin
+        m_ErrCod :=m_NFE.WebServices.Inutilizacao.cStat;
+        m_ErrMsg :=m_NFE.WebServices.Inutilizacao.xMotivo;
     end;
 end;
 
-procedure Tdm_nfe.m_NFETransmitError(const HttpError, InternalError: Integer;
+function TCBaseACBrNFE.OnlySend(NF: TCNotFis00): Boolean;
+var
+  N: NotaFiscal ;
+begin
+    //
+    // gera, assina e valida XML
+    //
+    N :=AddNotaFiscal(NF, True, True) ;
+    if N <> nil then
+    begin
+        //
+        // grava xml, chave e status
+        //
+        NF.setXML();
+
+        //
+        // chk status de erros (assinatura,validaçao e regras de negocio)
+        //
+        if NF.m_codstt in[66,77,88] then
+        begin
+            Exit(false);
+        end;
+    end
+    else begin
+        Self.m_ErrMsg :='Não foi possível gerar a NFE!';
+        Exit(false);
+    end;
+
+    m_ErrCod :=0;
+    m_ErrMsg :='';
+
+    Result :=m_NFE.Enviar(NF.m_codseq, False, m_reg.send_sincrono.Value);
+    Result :=Result and(Self.m_ErrCod =0);
+    if Result then
+    begin
+        //sincrono
+        if m_reg.send_sincrono.Value then
+        begin
+            NF.m_indsinc:=Ord(m_NFE.WebServices.Enviar.Sincrono);
+            NF.m_tipamb :=m_NFE.WebServices.Enviar.TpAmb ;
+            NF.m_codstt :=m_NFE.WebServices.Enviar.cStat ;
+            NF.m_motivo :=m_NFE.WebServices.Enviar.xMotivo ;
+            NF.m_verapp :=m_NFE.WebServices.Enviar.verAplic ;
+            NF.m_dhreceb:=m_NFE.WebServices.Enviar.dhRecbto ;
+        end
+        //assincrono
+        else begin
+            NF.m_tipamb :=m_NFE.WebServices.Retorno.NFeRetorno.TpAmb ;
+            NF.m_codstt :=m_NFE.WebServices.Retorno.NFeRetorno.cStat ;
+            NF.m_motivo :=m_NFE.WebServices.Retorno.NFeRetorno.xMotivo ;
+            NF.m_verapp :=m_NFE.WebServices.Retorno.NFeRetorno.verAplic;
+            NF.m_numreci:=m_NFE.WebServices.Retorno.Recibo ;
+            NF.m_dhreceb:=now ;
+        end;
+
+        //lote processado
+        if(NF.m_codstt =TCNotFis00.CSTT_AUTORIZADO_USO)or
+          (NF.m_codstt =TCNotFis00.CSTT_PROCESS       )then
+        begin
+            //N :=Self.m_NFE.NotasFiscais.Items[NF.ItemIndex] ;
+            N :=Self.m_NFE.NotasFiscais.Items[0] ;
+            NF.m_codstt :=N.NFe.procNFe.cStat ;
+            NF.m_motivo :=N.NFe.procNFe.xMotivo;
+            NF.m_dhreceb:=N.NFe.procNFe.dhRecbto;
+            NF.m_verapp :=N.NFe.procNFe.verAplic;
+            NF.m_numprot:=N.NFe.procNFe.nProt ;
+            NF.m_digval :=N.NFe.procNFe.digVal;
+        end;
+    end ;
+end;
+
+function TCBaseACBrNFE.OnlySend(const aNumLot: Integer): Boolean;
+var
+  nf: TCNotFis00 ;
+  nfe: TNFe;
+var
+  I: Integer ;
+  chv: string;
+begin
+    m_ErrCod :=0;
+    m_NFE.Configuracoes.Certificados.VerificarValidade :=True ;
+    try
+    Result :=m_NFE.Enviar(aNumLot, False, False, True);
+    Result :=Result and(m_ErrCod =0);
+    if not Result then
+    begin
+        m_ErrMsg :='Erro ao enviar o lote!' ;
+    end;
+    finally
+      m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
+    end;
+end;
+
+function TCBaseACBrNFE.OnlyStatusSvc(): Boolean;
+var
+  ws: TNFeStatusServico ;
+begin
+    ws :=m_NFE.WebServices.StatusServico ;
+    Result :=ws.Executar;
+    m_ErrCod :=ws.cStat ;
+    m_ErrMsg :=Format('%d|%s'#13#10,[ws.cStat,ws.xMotivo]);
+    m_ErrMsg :=m_ErrMsg +Format('Versão: %s'#13#10,[ws.versao]);
+    if ws.tpAmb =taProducao then
+        m_ErrMsg :=m_ErrMsg +'Ambiente: Produção'#13#10
+    else
+        m_ErrMsg :=m_ErrMsg +'Ambiente: Homologação'#13#10;
+    m_ErrMsg :=m_ErrMsg +Format('UF: %d'#13#10,[ws.cUF]);
+    m_ErrMsg :=m_ErrMsg +Format('Tempo Med: %d',[ws.TMed]);
+    if ws.xObs <> '' then
+    begin
+        m_ErrMsg :=m_ErrMsg +Format(#13#10'Obs: %s',[ws.xObs]);
+    end;
+end;
+
+procedure TCBaseACBrNFE.OnTransmitError(const HttpError, InternalError: Integer;
   const URL, DadosEnviados, SoapAction: string; var Retentar, Tratado: Boolean);
 begin
     Tratado :=True ;
@@ -1397,360 +1561,22 @@ begin
           // 3.12.2018
           ERROR_SERVICE_DOES_NOT_EXIST:
             m_ErrMsg := 'O serviço especificado não existe como um serviço instalado';
-
         end;
     end;
 end;
 
-function Tdm_nfe.OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
+function TCBaseACBrNFE.PrintDANFE(NF: TCNotFis00): Boolean;
 var
-  N: NotaFiscal ;
-  E: TInfEventoCollectionItem;
+  m_Ini: TMemIniFile ;
 begin
-    //check nota ja cancelada (101, 135, 151, 155)
-    if Tdm_nfe.getInstance.CStatCancel(NF.m_codstt) then
-    begin
-        if NF.m_codmod = 55 then
-            m_ErrMsg :='NFe já cancelada!'
-        else
-            m_ErrMsg :='NFCe já cancelada!';
-        Exit(False);
-    end;
-
-    N :=Self.AddNotaFiscal(NF, True) ;
-
-    m_NFE.EventoNFe.Evento.Clear;
-
-    E :=m_NFE.EventoNFe.Evento.Add ;
-    E.infEvento.CNPJ      :=OnlyNumber(NF.m_emit.CNPJCPF);
-    E.infEvento.cOrgao    :=NF.m_codufe;
-    E.infEvento.dhEvento  :=now;
-    E.infEvento.tpEvento  :=teCancelamento;
-    E.infEvento.nSeqEvento:=1;
-    E.infEvento.chNFe     :=NF.m_chvnfe;
-    E.infEvento.detEvento.nProt :=NF.m_numprot;
-    E.infEvento.detEvento.xJust :=Just;
-
-    Result :=Self.m_NFE.EnviarEvento(NF.m_codseq) ;
-    if Result then
-    begin
-        m_ErrCod :=E.RetInfEvento.cStat;
-        m_ErrMsg :=E.RetInfEvento.xMotivo;
-        Result :=m_ErrCod in [135, 136, 155] ;
-        if Result then
-        begin
-            NF.m_codstt :=E.RetInfEvento.cStat ;
-            NF.m_motivo :=E.RetInfEvento.xMotivo;
-            NF.m_dhreceb:=E.RetInfEvento.dhRegEvento;
-            NF.m_verapp :=E.RetInfEvento.verAplic;
-            NF.m_numprot:=E.RetInfEvento.nProt;
-            NF.m_digval :=''; //E.RetInfEvento.digVal;
-        end ;
-    end
-    else
-        m_ErrMsg :=m_NFE.WebServices.EnvEvento.xMotivo;
-end;
-
-function Tdm_nfe.OnlyCCE(NF: TCNotFis00; const aCorrecao: String): Boolean;
-var
-  N: NotaFiscal ;
-  E: TInfEventoCollectionItem;
-begin
-    //check nota ja cancelada (101, 135, 151, 155)
-    if CStatCancel(NF.m_codstt) then
-    begin
-        if NF.m_codmod = 55 then
-            m_ErrMsg :='NFe já cancelada!'
-        else
-            m_ErrMsg :='NFCe já cancelada!';
-        Exit(False);
-    end;
-
-    m_RetEvento :=nil ;
-
-    N :=AddNotaFiscal(NF, True) ;
-
-    m_NFE.EventoNFe.Evento.Clear;
-    E :=m_NFE.EventoNFe.Evento.Add ;
-    E.infEvento.cOrgao    :=NF.m_codufe;
-    E.infEvento.CNPJ      :=OnlyNumber(NF.m_emit.CNPJCPF);
-    E.infEvento.chNFe     :=NF.m_chvnfe;
-    E.infEvento.dhEvento  :=now;
-    E.infEvento.tpEvento  :=teCCe;
-    E.infEvento.nSeqEvento:=1;
-    E.infEvento.detEvento.xCorrecao :=aCorrecao;
-    E.infEvento.detEvento.xCondUso :='';
-
-    Result :=Self.m_NFE.EnviarEvento(NF.m_codseq) ;
-    if Result then
-    begin
-        m_ErrCod :=E.RetInfEvento.cStat;
-        m_ErrMsg :=E.RetInfEvento.xMotivo;
-        Result :=m_ErrCod in [135, 136] ;
-        if Result then
-        begin
-            m_RetEvento :=E.RetInfEvento ;
-        end ;
-    end
-    else
-        m_ErrMsg :=m_NFE.WebServices.EnvEvento.xMotivo;
-end;
-
-function Tdm_nfe.OnlyCons(NF: TCNotFis00): Boolean;
-begin
-    Self.m_NFE.NotasFiscais.Clear;
-    Self.m_ErrCod :=0;
-    Result :=Self.m_NFE.Consultar(NF.m_chvnfe) ;
-    Result :=Result and(Self.m_ErrCod =0);
-    if Result then
-    begin
-        NF.m_codstt :=m_NFE.WebServices.Consulta.cStat ;
-        NF.m_motivo :=m_NFE.WebServices.Consulta.XMotivo ;
-        NF.m_dhreceb:=m_NFE.WebServices.Consulta.DhRecbto;
-        NF.m_verapp :=m_NFE.WebServices.Consulta.verAplic;
-        NF.m_numprot:=m_NFE.WebServices.Consulta.Protocolo;
-        NF.m_digval :=m_NFE.WebServices.Consulta.protNFe.digVal;
-    end ;
-end;
-
-function Tdm_nfe.OnlySend(NF: TCNotFis00): Boolean;
-var
-  N: NotaFiscal ;
-begin
-
-    //
-    // gera, assina e valida XML
-    //
-    m_NFE.Configuracoes.Certificados.VerificarValidade :=True ;
+    m_Ini :=TMemIniFile.Create(ApplicationPath +'Configuracoes.ini') ;
     try
-
-    N :=AddNotaFiscal(NF, True) ;
-    if N <> nil then
-    begin
-        //
-        // grava xml, chave e status
-        //
-        NF.setXML();
-
-        //
-        // chk status de erros (assinatura,validaçao e regras de negocio)
-        //
-        if NF.m_codstt in[66,77,88] then
-        begin
-            Exit(false);
-        end;
-    end
-    else begin
-        Self.m_ErrMsg :='Não foi possível gerar a NFE!';
-        Exit(false);
-    end;
-
-    m_ErrCod :=0;
-    m_ErrMsg :='';
-
-    Result :=m_NFE.Enviar(NF.m_codseq, False, m_EnvSinc);
-    Result :=Result and(Self.m_ErrCod =0);
-    if Result then
-    begin
-        //sincrono
-        if m_EnvSinc then
-        begin
-            Self.m_Envio :=m_NFE.WebServices.Enviar ;
-            NF.m_indsinc:=Ord(Self.Envio.Sincrono);
-            NF.m_tipamb :=Self.Envio.TpAmb ;
-            NF.m_codstt :=Self.Envio.cStat ;
-            NF.m_motivo :=Self.Envio.xMotivo ;
-            NF.m_verapp :=Self.Envio.verAplic ;
-            NF.m_dhreceb:=Self.Envio.dhRecbto ;
-        end
-        //assincrono
-        else begin
-            Self.m_Retorno :=m_NFE.WebServices.Retorno ;
-            NF.m_tipamb :=Self.Retorno.NFeRetorno.TpAmb ;
-            NF.m_codstt :=Self.Retorno.NFeRetorno.cStat ;
-            NF.m_motivo :=Self.Retorno.NFeRetorno.xMotivo ;
-            NF.m_verapp :=Self.Retorno.NFeRetorno.verAplic;
-            NF.m_numreci:=Self.Retorno.Recibo ;
-            NF.m_dhreceb:=now ;
-        end;
-
-        //lote processado
-        if(NF.m_codstt =TCNotFis00.CSTT_AUTORIZADO_USO)or
-          (NF.m_codstt =TCNotFis00.CSTT_PROCESS       )then
-        begin
-            //N :=Self.m_NFE.NotasFiscais.Items[NF.ItemIndex] ;
-            N :=Self.m_NFE.NotasFiscais.Items[0] ;
-            NF.m_codstt :=N.NFe.procNFe.cStat ;
-            NF.m_motivo :=N.NFe.procNFe.xMotivo;
-            NF.m_dhreceb:=N.NFe.procNFe.dhRecbto;
-            NF.m_verapp :=N.NFe.procNFe.verAplic;
-            NF.m_numprot:=N.NFe.procNFe.nProt ;
-            NF.m_digval :=N.NFe.procNFe.digVal;
-        end;
-    end ;
-    finally
-      m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
-    end;
-end;
-
-function Tdm_nfe.OnlySend(const aNumLot: Integer): Boolean;
-var
-  nf: TCNotFis00 ;
-  nfe: TNFe;
-var
-  I: Integer ;
-  chv: string;
-begin
-    Self.m_ErrCod :=0;
-    m_NFE.Configuracoes.Certificados.VerificarValidade :=True ;
-    try
-    Result :=m_NFE.Enviar(aNumLot, False, False, True);
-    Result :=Result and(Self.m_ErrCod =0);
-    if Result then
-    begin
-        Self.m_Retorno :=m_NFE.WebServices.Retorno ;
-    end
-    else begin
-        m_ErrMsg :='Erro ao enviar o lote!' ;
-    end;
-    finally
-      m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
-    end;
-end;
-
-function Tdm_nfe.OnlyStatusSvc(): Boolean;
-begin
-    m_NFE.Configuracoes.Certificados.VerificarValidade :=True;
-    try
-        Result :=StatusServico.Executar ;
-    finally
-        m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
-    end;
-end;
-
-function Tdm_nfe.PrintCCE(NF: TCNotFis00; CC: TCEventoCCE): Boolean;
-var
-  ptr: TRLPrinterWrapper;
-  E: TInfEventoCollectionItem;
-begin
-
-    if(not Assigned(NF))or(not Assigned(CC))then
-    begin
-        Exit(False);
-    end;
-
-    if NF.m_codmod <> 55 then
-    begin
-        if TpcnTipoImpressao(NF.m_tipimp) = tiMsgEletronica then
-        begin
-            ptr :=RLPrinter ;
-
-            m_df.Sistema :='.';
-            m_df.MostraPreview :=m_Ini.ReadBool('DANFE','Exibir NFCE Tela', False);
-            m_df.MostraStatus  :=True ;
-            m_DF.Impressora :=m_Ini.ReadString('DANFE', 'Impressora Padrao NFCE', '');
-            m_DF.LarguraBobina :=Trunc((m_Ini.ReadFloat('DANFE', 'Largura Bobina NFCE', 302)*100)/2.54);
-            m_DF.ImprimeEmUmaLinha :=m_Ini.ReadBool('CONFIG', 'ImprimirItem1Linha', False);
-            m_DF.ImprimeDescAcrescItem :=m_Ini.ReadBool('CONFIG', 'ImprimirDescAcresItem', True);
-            //m_DF.Impressora :=ptr.PrinterName;
-
-            m_NFE.DANFE :=m_DF;
-        end
-        else begin
-            m_NFE.DANFE :=m_DEP;
-            m_DEP.Sistema :='.';
-            m_DEP.ImprimeEmUmaLinha     :=m_Ini.ReadBool('CONFIG', 'ImprimirItem1Linha', False);
-            m_DEP.ImprimeDescAcrescItem :=m_Ini.ReadBool('CONFIG', 'ImprimirDescAcresItem', True);
-
-            m_PP.Modelo           :=TACBrPosPrinterModelo(m_Ini.ReadInteger('CONFIG', 'Modelo', 0));
-            m_PP.Device.Porta     :=m_Ini.ReadString('CONFIG', 'Porta', 'COM1');
-            m_PP.Device.Baud      :=StrToInt(m_Ini.ReadString('CONFIG', 'Baud', '9600'));
-            m_PP.IgnorarTags      :=m_Ini.ReadBool('CONFIG', 'IgnorarTagsFormatacao', False);
-            m_PP.LinhasEntreCupons:=m_Ini.ReadInteger('CONFIG', 'Linhas', 5);
-        end;
-
-        //m_NFE.DANFE.vTroco :=NF.Troco ;
-        //
-//        m_NFE.DANFE.ViaConsumidor :=True;
-//        m_NFE.DANFE.ImprimirItens :=True;
-    end
-    else begin
-        m_DRL.Sistema :='.';
-        m_NFE.DANFE :=m_DRL;
-    end;
-
-    m_NFE.DANFE.TipoDANFE :=TpcnTipoImpressao(NF.m_tipimp);
-
-    Result :=m_NFE.DANFE <> nil ;
-    if Result then
-    begin
-        try
-          AddNotaFiscal(NF, True) ;
-
-          m_NFE.EventoNFe.Evento.Clear;
-          m_NFE.EventoNFe.Versao :='1.00';
-
-          E :=m_NFE.EventoNFe.Evento.Add ;
-          E.infEvento.cOrgao    :=CC.m_codorg;
-          E.infEvento.tpAmb     :=m_NFE.Configuracoes.WebServices.Ambiente;
-          E.infEvento.CNPJ      :=CC.m_cnpj;
-          E.infEvento.chNFe     :=CC.m_chvnfe;
-          E.infEvento.dhEvento  :=CC.m_dhevento;
-          E.infEvento.tpEvento  :=teCCe;
-          E.infEvento.nSeqEvento:=CC.m_numseq;
-          E.infEvento.versaoEvento :='1.00';
-          E.infEvento.detEvento.xCorrecao :=CC.m_xcorrecao;
-          E.infEvento.detEvento.xCondUso :='';
-
-          E.RetInfEvento.cStat  :=CC.m_codstt ;
-          E.RetInfEvento.xMotivo:=CC.m_motivo ;
-          E.RetInfEvento.dhRegEvento :=CC.m_dhreceb ;
-          E.RetInfEvento.nProt :=CC.m_numprot ;
-
-          if m_NFE.EventoNFe.GerarXML then
-          begin
-              m_NFE.ImprimirEvento
-          end
-          else begin
-              m_ErrMsg :=m_NFE.EventoNFe.Gerador.ListaDeAlertas.CommaText
-          end;
-
-          if m_Ini.ReadString('Impressora Caixa', 'Guilhotina', '') = 'S' then
-          begin
-              m_DEP.PosPrinter.CortarPapel();
-          end;
-          if m_Ini.ReadString('Impressora Caixa', 'Gaveta', '') = 'S' then
-          begin
-              m_DEP.PosPrinter.AbrirGaveta;
-          end;
-
-        except
-        end;
-
-    end;
-
-end;
-
-function Tdm_nfe.PrintDANFE(NF: TCNotFis00): Boolean ;
-var
-  ptr: TRLPrinterWrapper;
-begin
-
-    //
-    // check nota ja processada
-    // (100, 110, 150, 301, 302, 303)
-    {if(not CStatProcess(NF.m_codstt))or
-      (not (NF.m_codstt =9)) then
-    begin
-        Exit(False);
-    end;}
-
     if NF.m_codmod <> 55 then
     begin
         NF.m_tipimp :=TpcnTipoImpressao(m_Ini.ReadInteger('DANFE','Tipo', 0));
         if TpcnTipoImpressao(NF.m_tipimp) = tiMsgEletronica then
         begin
-            ptr :=RLPrinter ;
+            //ptr :=RLPrinter ;
 
             m_df.Sistema :='.';
             m_df.MostraPreview :=m_Ini.ReadBool('DANFE','Exibir NFCE Tela', False);
@@ -1788,9 +1614,6 @@ begin
     end;
 
     m_NFE.DANFE.TipoDANFE :=TpcnTipoImpressao(NF.m_tipimp);
-    //
-    // descontinuado !
-    //m_NFE.DANFE.vTroco    :=NF.vTroco ;
 
     Result :=m_NFE.DANFE <> nil ;
     if Result then
@@ -1802,7 +1625,7 @@ begin
           m_NFE.DANFE.vTribEst :=NF.vTribEst ;
           m_NFE.DANFE.vTribMun :=NF.vTribMun ;
 
-          AddNotaFiscal(NF, True) ;
+          AddNotaFiscal(NF, True, True) ;
 
           m_NFE.NotasFiscais.Imprimir;
 
@@ -1817,10 +1640,13 @@ begin
         except
         end;
     end;
-
+    finally
+    m_Ini.Free ;
+    end;
 end;
 
-function Tdm_nfe.SendMail(NF: TCNotFis00; const dest_email: string): Boolean;
+function TCBaseACBrNFE.SendMail(NF: TCNotFis00;
+  const dest_email: string): Boolean;
 var
   N: NotaFiscal ;
   S: TMemoryStream;
@@ -1828,6 +1654,8 @@ var
 var
   email,assunt: string ;
   incPdf: Boolean;
+var
+  m_Ini: TMemIniFile ;
 begin
     //
     Result :=False ;
@@ -1848,10 +1676,11 @@ begin
 
         //
         // ad. NF & Protocolo
-        N :=AddNotaFiscal(NF, True) ;
+        N :=AddNotaFiscal(NF, True, True) ;
 
         //
         // ler config. do proxy
+        m_Ini :=TMemIniFile.Create(ApplicationPath +'Configuracoes.ini') ;
         m_Mail.Host     :=m_Ini.ReadString( 'Email','Host'   ,'');
         m_Mail.Port     :=m_Ini.ReadString( 'Email','Port'   ,'');
         m_Mail.Username :=m_Ini.ReadString( 'Email','User'   ,'');
@@ -1892,21 +1721,15 @@ begin
             m_ErrMsg :=Format('Não foi possível enviar a NFE "%s", verifique!',[email]);
 
         msg.Free ;
+        m_Ini.Free ;
     end
     else
         m_ErrMsg :='E-mail do destinatário não informado!';
 end;
 
-procedure Tdm_nfe.setStatusChange(const value: Boolean);
-begin
-    m_StatusChange :=value ;
-
-end;
-
-
 { TRegNFE }
 
-procedure TRegNFE.Load;
+procedure TRegNFE.Load(const aSendSync: Boolean; const aNumSer: SmallInt) ;
 const
   CST_CATEGO = 'NFE' ;
 var
@@ -2075,7 +1898,7 @@ begin
             p :=params.AddNew(conting_offline.Key) ;
             p.ValTyp:=ftBoolean ;
             P.xValor :='0';
-            P.Catego :='NFE';
+            P.Catego :=CST_CATEGO;
             p.Descricao :='Indicador para ativar/dasativar a contingência off-line';
             P.Save ;
         end;
@@ -2091,9 +1914,9 @@ begin
         begin
             p :=params.AddNew(send_sincrono.Key) ;
             p.ValTyp:=ftBoolean ;
-            P.xValor :='0';
-            P.Catego :='NFE';
-            p.Descricao :='Indicador para envio de sincrono';
+            P.xValor :=IntToStr(Ord(aSendSync));
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador para envio de lote sincrono';
             P.Save ;
         end;
         send_sincrono.Value :=p.ReadBoo() ;
@@ -2109,7 +1932,7 @@ begin
             p :=params.AddNew(send_maxnfelot.Key) ;
             p.ValTyp:=ftSmallint ;
             P.xValor :='25';
-            P.Catego :='NFE';
+            P.Catego :=CST_CATEGO;
             p.Descricao :='Total maximo de NFE no lote';
             P.Save ;
         end;
@@ -2131,23 +1954,83 @@ begin
         end;
         devol_me_epp_acontribuinte_nao_sn.Value :=p.ReadStr() ;
 
+        //
+        // verifica validade do cert
+        //
+        cert_chkvalid.Key :=Format('cert.chk_validade.%s',[Empresa.CNPJ]);
+        p :=params.IndexOf(cert_chkvalid.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(cert_chkvalid.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Verifica data de validade do certificado';
+            P.Save ;
+        end;
+        cert_chkvalid.Value :=p.ReadBoo() ;
+
+        //
+        // usa produto descri reduzida
+        xml_prodescri_rdz.Key :='xml.pro_descri_reduzida';
+        p :=params.IndexOf(xml_prodescri_rdz.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(xml_prodescri_rdz.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Usa descrição reduzida do produto';
+            P.Save ;
+        end;
+        xml_prodescri_rdz.Value :=p.ReadBoo() ;
+
+        //
+        // usa produto cod interno
+        xml_procodigo_int.Key :='xml.pro_codigo_interno';
+        p :=params.IndexOf(xml_procodigo_int.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(xml_procodigo_int.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Usa codigo interno do produto';
+            P.Save ;
+        end;
+        xml_procodigo_int.Value :=p.ReadBoo() ;
+
+        //
+        // arquivos
+        //numero_serie: TPair<string, string>;
+{        numero_serie.Key :=Format('numero_serie.%.3d',[aNumSer]) ;
+        p :=params.IndexOf(numero_serie.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(numero_serie.Key) ;
+            p.ValTyp:=ftSmallint ;
+            P.xValor :=Format('%.3d',[aNumSer]) ;
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Número de serie (CAIXA)';
+            P.Save ;
+        end;
+        numero_serie.Value :=p.ReadInt() ;
+
+   arquivos_Salva: TPair<string, Boolean>;
+    arquivos_SeparaPorMes: TPair<string, Boolean>;
+    arquivos_SalvaEvento: TPair<string, Boolean>;
+    arquivos_SeparaPorCNPJ: TPair<string, Boolean>;
+    arquivos_SeparaPorModelo: TPair<string, Boolean>;
+    arquivos_RootPath: TPair<string, string>;
+    arquivos_PathSchemas: TPair<string, string>;
+    arquivos_PathNFe: TPair<string, string>;
+    arquivos_PathInut: TPair<string, string>;
+    arquivos_PathEvento: TPair<string, string>;}
+
 
     finally
         params.Free ;
         S.Free ;
-    end;
-
-end;
-
-procedure TRegNFE.Save() ;
-var
-  p: TCParametro ;
-begin
-    p :=TCParametro.NewParametro(conting_offline.Key, ftUnknown) ;
-    if p.Load() then
-    begin
-        p.xValor :=IntToStr(Ord(conting_offline.Value)) ;
-        p.Save ;
     end;
 end;
 

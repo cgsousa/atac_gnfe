@@ -43,6 +43,7 @@ begin
     F :=Tfrm_Ajuda.Create(Application);
     try
         F.htm_Ajuda.HTMLText.Clear ;
+        F.AddHelp('Alt+K',' Cria um serial (sequência) da NFe/NFCe no GenSerial');
         F.AddHelp('Ctrl+C',' Copia chave para área de transferencia');
         F.AddHelp('Ctrl+K',' Força geração XML/Chave com base na forme de emissão (CUIDADO !!!)');
         F.AddHelp('Ctrl+S',' Envia XML/DANFE para e-mail do destinatário');

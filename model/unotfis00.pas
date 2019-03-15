@@ -20,11 +20,14 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+21.02.2019
+[*] Atualização do pacote ACBr
+
 22.12.2018
 [*] descontinuado o TCNotFis00.LoadInfCpl para melhor performance
 
 12.12.2018
-[+] Novo parametro "send_maxnfelot" para definir qtas vai no lote
+[+] Novo parametro "send_maxnfelot" para definir qtas NF vai no lote
 
 02.08.2018
 [*] Fixa grupo fatura em dados de cobrança (NT.2016.002_v160)
@@ -835,13 +838,13 @@ begin
     self.m_finnfe :=fnNormal;
     self.m_procemi :=peAplicativoContribuinte;
 
-    self.m_emit :=TEmit.Create(nil);
-    self.m_dest :=TDest.Create(nil);
+    self.m_emit :=TEmit.Create;//(nil);
+    self.m_dest :=TDest.Create;//(nil);
 
     self.m_icmstot :=TICMSTot.Create ;
-    self.m_transp :=TTransp.Create(nil);
-    self.m_cobr :=TCobr.Create(nil);
-    self.m_pag  :=TpagCollection.Create(nil);
+    self.m_transp :=TTransp.Create;//(nil);
+    self.m_cobr :=TCobr.Create;//(nil);
+    self.m_pag  :=TpagCollection.Create;//(nil);
 
 end;
 
@@ -866,11 +869,11 @@ end;
 destructor TCNotFis00.Destroy;
 begin
     m_oItems.Destroy ;
-    m_emit.Destroy ;
-    m_dest.Destroy ;
-    m_transp.Destroy;
-    m_cobr.Destroy ;
-    m_pag.Destroy ;
+    m_emit.Free ;
+    m_dest.Free ;
+    m_transp.Free ;
+    m_cobr.Free ;
+    m_pag.Free ;
     inherited;
 end;
 
@@ -1195,7 +1198,8 @@ begin
             vfat :=0 ;
             while not Q.Eof do
             begin
-                D :=Self.m_cobr.Dup.Add ;
+                //D :=Self.m_cobr.Dup.Add ;
+                D :=Self.m_cobr.Dup.New ;
                 D.nDup :=Format('%.3d',[Q.Field('numpar').AsInteger]) ;
                 D.dVenc:=Q.Field('dtvenc').AsDateTime;
                 D.vDup :=Q.Field('valdup').AsCurrency ;
@@ -1244,7 +1248,8 @@ begin
     Q.Open ;
     while not Q.Eof do
     begin
-        P :=Self.m_pag.Add ;
+        //P :=Self.m_pag.Add ;
+        P :=Self.m_pag.New ;
         if Q.Field('tippag').AsString = '' then
             P.tPag :=fpDinheiro
         else
@@ -1252,7 +1257,10 @@ begin
               01:
               begin
                   P.tPag := fpDinheiro;
-                  Self.m_Troco :=Q.Field('vtroco').AsCurrency;
+                  //Self.m_Troco :=Q.Field('vtroco').AsCurrency;
+                  //
+                  // troco agora oficial
+                  Self.m_pag.vTroco :=Q.Field('vtroco').AsCurrency;
               end;
               02: P.tPag :=fpCheque;
               03: P.tPag :=fpCartaoCredito;
@@ -1389,7 +1397,8 @@ begin
 
     //
     // volumes
-    V :=Self.m_transp.Vol.Add ;
+    //V :=Self.m_transp.Vol.Add ; deprecated
+    V :=Self.m_transp.Vol.New ;
     V.qVol  :=Q.Field('nf0_volqtd').AsInteger;
     V.esp   :=Q.Field('nf0_volesp').AsString;
     V.marca :=Q.Field('nf0_volmrc').AsString;

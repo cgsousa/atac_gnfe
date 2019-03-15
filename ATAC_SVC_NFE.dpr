@@ -13,7 +13,8 @@ uses
   Svc.NFE in 'view\Svc.NFE.pas' {Svc_NFE: TService},
   Form.ViewSvc in 'view\Form.ViewSvc.pas' {frm_ViewSvc},
   FDM.NFE in 'view\FDM.NFE.pas' {dm_nfe: TDataModule},
-  Form.NFEStatus in 'view\Form.NFEStatus.pas' {frm_NFEStatus};
+  Form.NFEStatus in 'view\Form.NFEStatus.pas' {frm_NFEStatus},
+  uACBrNFe in 'model\uACBrNFe.pas';
 
 {$R *.RES}
 {$R ATAC_SVC_NFE.UAC.RES}

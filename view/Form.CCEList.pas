@@ -54,7 +54,7 @@ implementation
 {$R *.dfm}
 
 uses uTaskDlg, uadodb ,
-  Form.CCE, FDM.NFE,
+  Form.CCE, FDM.NFE, uACBrNFE,
   pcnConversao, pcnConversaoNFe, pcnEnvEventoNFe  ;
 
 
@@ -68,50 +68,54 @@ end;
 
 procedure Tfrm_CCEList.btn_NewClick(Sender: TObject);
 var
-  C: TCEventoCCE ;
-  rep: Tdm_nfe;
+  V: IViewCCE ;
+  C: TCEventoCCE;
+  rep: IBaseACBrNFE; // Tdm_nfe;
   xCorrexao: string ;
 begin
     if CMsgDlg.Confirm('Deseja criar uma nova Carta de Correção?') then
     begin
-        if Tfrm_CCE.fn_Show(xCorrexao) then
+        V :=Tfrm_CCE.New ;
+        if V.Execute(xCorrexao) then
         begin
-            rep :=Tdm_nfe.getInstance ;
+            rep :=TCBaseACBrNFE.New() ;
+            //
+            // reg. novo
             C :=m_cceList.AddNew ;
-            C.m_versao :=100;
-            C.m_codorg :=m_nf.m_codufe ;
-            C.m_tipamb :=rep.m_NFE.Configuracoes.WebServices.Ambiente ;
-            C.m_cnpj  :=m_nf.m_emit.CNPJCPF ;
-            C.m_codorg:=m_nf.m_codufe ;
-            C.m_chvnfe :=m_nf.m_chvnfe;
-            C.m_dhevento :=TADOQuery.getDateTime ;
-            C.m_xcorrecao :=xCorrexao ;
-            if rep.OnlyCCE(m_nf, xCorrexao) then
+            if rep.OnlyCCE(m_nf, xCorrexao, C.getNextNumSeq) then
             begin
-                if rep.RetEvento.cStat in[135,136] then
+                if rep.retInfEvento.cStat in[135,136] then
                 begin
-                    C.m_verapp :=rep.RetEvento.verAplic ;
-                    C.m_codorgaut :=rep.RetEvento.cOrgao ;
-                    C.m_codstt :=rep.RetEvento.cStat ;
-                    C.m_motivo :=rep.RetEvento.xMotivo ;
-                    C.m_iddest :=rep.RetEvento.CNPJDest ;
-                    C.m_emaildest :=rep.RetEvento.emailDest;
-                    C.m_dhreceb :=rep.RetEvento.dhRegEvento;
-                    C.m_numprot:=rep.RetEvento.nProt;
+                    C.m_versao :=100;
+                    C.m_codorg :=m_nf.m_codufe ;
+                    C.m_tipamb :=rep.retInfEvento.tpAmb ;
+                    C.m_cnpj  :=m_nf.m_emit.CNPJCPF ;
+                    C.m_codorg:=m_nf.m_codufe ;
+                    C.m_chvnfe :=m_nf.m_chvnfe;
+                    C.m_dhevento :=TADOQuery.getDateTime ;
+                    C.m_xcorrecao :=xCorrexao ;
+                    //
+                    // ret
+                    C.m_verapp :=rep.retInfEvento.verAplic ;
+                    C.m_codorgaut :=rep.retInfEvento.cOrgao ;
+                    C.m_codstt :=rep.retInfEvento.cStat ;
+                    C.m_motivo :=rep.retInfEvento.xMotivo ;
+                    C.m_iddest :=rep.retInfEvento.CNPJDest ;
+                    C.m_emaildest :=rep.retInfEvento.emailDest;
+                    C.m_dhreceb :=rep.retInfEvento.dhRegEvento;
+                    C.m_numprot:=rep.retInfEvento.nProt;
                     if C.ExecuteInsert  then
-                    begin
-                        CMsgDlg.Info('Carta de correção homologada com sucesso.') ;
-                        LoadGrid() ;
-                    end
+                        CMsgDlg.Info('Carta de correção homologada com sucesso.')
                     else
                         CMsgDlg.Warning('Carta de correção homologada. Mas não foi possível gravar os dados de retorno!') ;
                 end
                 else
-                    CMsgDlg.Warning(Format('%d-%s',[rep.RetEvento.cStat,
-                                                    rep.RetEvento.xMotivo]));
+                    CMsgDlg.Warning(Format('%d-%s',[rep.retInfEvento.cStat,
+                                                    rep.retInfEvento.xMotivo]));
             end
             else
                 CMsgDlg.Warning(rep.ErrMsg) ;
+            LoadGrid() ;
         end;
     end;
 end;

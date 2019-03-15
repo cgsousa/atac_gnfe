@@ -4,7 +4,7 @@ object frm_Ajuda: Tfrm_Ajuda
   BorderStyle = bsToolWindow
   BorderWidth = 3
   Caption = 'Ajuda (Atalhos utilizados no gerenciador)'
-  ClientHeight = 120
+  ClientHeight = 145
   ClientWidth = 628
   Color = clWindow
   Ctl3D = False
@@ -20,19 +20,25 @@ object frm_Ajuda: Tfrm_Ajuda
     Left = 0
     Top = 0
     Width = 628
-    Height = 120
+    Height = 145
     Align = alClient
     ColorTo = 12189695
     BorderWidth = 1
     BorderStyle = bsSingle
     Color = clInfoBk
     GradientType = gtFullVertical
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Trebuchet MS'
+    Font.Style = []
     HTMLText.Strings = (
       
         '<P><IND x="50"><FONT color="#0000FF">Ctrl+K</FONT> Corrige Chave' +
         '/XML conforme forma de emiss'#227'o</P> <P><IND x="50"><b>Ctrl+S</b> ' +
         'Envia XML/Danfe por e-mail ao destinat'#225'rio</P>')
     ParentColor = False
+    ParentFont = False
     Transparent = False
     VAlignment = tvaCenter
     Version = '1.9.0.2'

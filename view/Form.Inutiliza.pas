@@ -48,7 +48,7 @@ uses StrUtils, DateUtils,
   JvJCLUtils ,
   pcnConversao, pcnConversaoNFe,
   uadodb ,
-  FDM.NFE, Form.Justifica ;
+  Form.Justifica, FDM.NFE, uACBrNFE;
 
 
 { Tfrm_Inutiliza }
@@ -64,14 +64,18 @@ var
   just: Tfrm_Justif;
   N: TCInutNumero;
   nfe: Tdm_nfe;
+  rep: IBaseACBrNFE;
 begin
     //
     just :=NewJustifica(svInut);
     try
-        nfe :=Tdm_nfe.getInstance;
-        if just.Execute(nfe.NSerie, Self.m_NF) then
+        //nfe :=Tdm_nfe.getInstance;
+        rep :=TCBaseACBrNFE.New() ;
+        //if just.Execute(nfe.NSerie, Self.m_NF) then
+        if just.Execute(rep.nSerie, m_NF) then
         begin
-            if nfe.InutNum(Empresa.CNPJ, just.Text, just.InutNum.m_ano,
+            //if nfe.InutNum(Empresa.CNPJ, just.Text, just.InutNum.m_ano,
+            if rep.OnlyInutiliza(Empresa.CNPJ, just.Text, just.InutNum.m_ano,
               just.InutNum.m_codmod, just.InutNum.m_nserie,
               just.edt_NumIni.IntValue,
               just.edt_NumFin.IntValue) then
@@ -79,7 +83,7 @@ begin
 
                 N :=m_InutList.AddNew ;
                 N.m_codemp   :=Empresa.codfil ;
-                N.m_tipamb   :=nfe.Inutiliza.TpAmb ;
+                {N.m_tipamb   :=nfe.Inutiliza.TpAmb ;
                 N.m_codufe   :=nfe.Inutiliza.cUF ;
                 N.m_ano      :=nfe.Inutiliza.Ano ;
                 N.m_cnpj     :=nfe.Inutiliza.CNPJ ;
@@ -88,18 +92,30 @@ begin
                 N.m_numini   :=nfe.Inutiliza.NumeroInicial ;
                 N.m_numfin   :=nfe.Inutiliza.NumeroFinal ;
                 N.m_justif   :=nfe.Inutiliza.Justificativa ;
-                N.m_codstt   :=102 ;
-                N.m_motivo   :='Inutilizacao de numero homologado' ;
                 N.m_verapp   :=nfe.Inutiliza.verAplic ;
                 N.m_dhreceb  :=nfe.Inutiliza.dhRecbto ;
-                N.m_numprot  :=nfe.Inutiliza.Protocolo ;
+                N.m_numprot  :=nfe.Inutiliza.Protocolo ;}
+                N.m_tipamb   :=rep.retInutiliza.TpAmb ;
+                N.m_codufe   :=rep.retInutiliza.cUF ;
+                N.m_ano      :=rep.retInutiliza.Ano ;
+                N.m_cnpj     :=rep.retInutiliza.CNPJ ;
+                N.m_codmod   :=rep.retInutiliza.Modelo ;
+                N.m_nserie   :=rep.retInutiliza.Serie ;
+                N.m_numini   :=rep.retInutiliza.NumeroInicial ;
+                N.m_numfin   :=rep.retInutiliza.NumeroFinal ;
+                N.m_justif   :=rep.retInutiliza.Justificativa ;
+                N.m_verapp   :=rep.retInutiliza.verAplic ;
+                N.m_dhreceb  :=rep.retInutiliza.dhRecbto ;
+                N.m_numprot  :=rep.retInutiliza.Protocolo ;
+                N.m_codstt   :=102 ;
+                N.m_motivo   :='Inutilizacao de numero homologado' ;
 
                 N.m_ultnum :=just.InutNum.m_ultnum ;
 
                 { TODO 1 -cNFE : PESISTIR OS DADOS NO BANCO }
                 try
                     N.DoInsert(N.m_codstt, N.m_motivo) ;
-                    CMsgDlg.Info('%d|%s',[nfe.Inutiliza.cStat,nfe.Inutiliza.xMotivo]);
+                    CMsgDlg.Info('%d|%s',[rep.retInutiliza.cStat,rep.retInutiliza.xMotivo]);
                     DoLoad ;
                 except
                     raise
@@ -107,7 +123,7 @@ begin
 
             end
             else
-                CMsgDlg.Warning(nfe.ErrMsg);
+                CMsgDlg.Warning(rep.ErrMsg);
         end;
 
     finally

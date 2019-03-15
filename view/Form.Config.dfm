@@ -85,10 +85,6 @@ object frm_Config: Tfrm_Config
       ColorTo = clNone
       TabColor = clBtnFace
       TabColorTo = clNone
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object rgx_FormaEmis: TAdvOfficeRadioGroup
         Left = 0
         Top = 0
@@ -162,6 +158,8 @@ object frm_Config: Tfrm_Config
         TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
         TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toMultiSelect, toRightClickSelect, toCenterScrollIntoView]
         OnGetText = vst_Grid1GetText
+        ExplicitLeft = -3
+        ExplicitTop = -3
         Columns = <
           item
             Color = clWindow

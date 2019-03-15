@@ -5,7 +5,7 @@ object frm_NFEStatus: Tfrm_NFEStatus
   BorderStyle = bsSingle
   BorderWidth = 3
   Caption = 'Status da NFe'
-  ClientHeight = 116
+  ClientHeight = 166
   ClientWidth = 508
   Color = clWindow
   Ctl3D = False
@@ -22,13 +22,13 @@ object frm_NFEStatus: Tfrm_NFEStatus
     Left = 0
     Top = 0
     Width = 508
-    Height = 76
+    Height = 126
     Align = alClient
-    ColorTo = 11769496
+    ColorTo = 9568255
     BorderWidth = 1
     BorderStyle = bsSingle
     BorderColor = clGray
-    Color = 15524577
+    Color = clInfoBk
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
@@ -49,7 +49,7 @@ object frm_NFEStatus: Tfrm_NFEStatus
   end
   object pnl_Footer: TJvFooter
     Left = 0
-    Top = 76
+    Top = 126
     Width = 508
     Height = 40
     Align = alBottom
@@ -61,7 +61,7 @@ object frm_NFEStatus: Tfrm_NFEStatus
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitTop = 82
+    ExplicitTop = 76
     DesignSize = (
       508
       40)

@@ -8,15 +8,15 @@ uses
   Form.Justifica in 'view\Form.Justifica.pas' {frm_Justif},
   Form.Inutiliza in 'view\Form.Inutiliza.pas' {frm_Inutiliza},
   Form.Princ00 in 'view\Form.Princ00.pas' {frm_Princ00},
-  Form.Config in 'view\Form.Config.pas' {frm_Config},
   Form.RelNFRL00 in 'view\Form.RelNFRL00.pas' {frm_RelNFRL00},
   Form.Ajuda in 'view\Form.Ajuda.pas' {frm_Ajuda},
   Form.EnvioLote in 'view\Form.EnvioLote.pas' {frm_EnvLote},
-  Form.ConfigGSerial in 'view\Form.ConfigGSerial.pas' {frm_ConfigGSerial},
   Form.Items in 'view\Form.Items.pas' {frm_Items},
   ucce in 'model\ucce.pas',
   Form.CCEList in 'view\Form.CCEList.pas' {frm_CCEList},
-  Form.CCE in 'view\Form.CCE.pas' {frm_CCE};
+  Form.CCE in 'view\Form.CCE.pas' {frm_CCE},
+  uACBrNFe in 'model\uACBrNFe.pas',
+  Form.GenSerialNFE in 'view\Form.GenSerialNFE.pas' {frm_GenSerialNFE};
 
 {$R *.res}
 {$R ATAC_APP_NFE.UAC.res}

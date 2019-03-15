@@ -13,6 +13,7 @@ object frm_CCE: Tfrm_CCE
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 14
   object html_Prompt: THTMLabel
@@ -79,7 +80,6 @@ object frm_CCE: Tfrm_CCE
       OnClick = btn_OKClick
       ButtonIndex = 0
       SpaceInterval = 6
-      ExplicitLeft = 238
     end
     object btn_Close: TJvFooterBtn
       Left = 526

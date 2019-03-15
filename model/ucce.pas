@@ -40,6 +40,7 @@ type
     m_dhreceb: Tdatetime;
     m_numprot: string ;
     function ExecuteInsert(): Boolean ;
+    function getNextNumSeq: smallint;
   end;
 
   TCEventoCCEList =class(TList<TCEventoCCE>)
@@ -97,7 +98,7 @@ begin
           //
           // retorno
           C.m_verapp :=Q.Field('cce_verapp').AsString ;
-          C.m_codorgaut  :=Q.Field('cce_codorgaut').AsInteger ;
+          C.m_codorgaut :=Q.Field('cce_codorgaut').AsInteger ;
           C.m_codstt :=Q.Field('cce_codstt').AsInteger ;
           C.m_motivo :=Q.Field('cce_motivo').AsString ;
           C.m_iddest :=Q.Field('cce_iddest').AsString ;
@@ -194,6 +195,23 @@ begin
 
     finally
         C.Free ;
+    end;
+end;
+
+function TCEventoCCE.getNextNumSeq: smallint;
+var
+  Q: TADOQuery ;
+begin
+    Q :=TADOQuery.NewADOQuery() ;
+    try
+        Q.AddCmd('select max(cce_numseq) as cce_nextseq from eventocce')  ;
+        Q.Open ;
+        if Q.IsEmpty then
+            Result :=1
+        else
+            Result :=Q.Field('cce_nextseq').AsInteger +1;
+    finally
+        Q.Free ;
     end;
 end;
 

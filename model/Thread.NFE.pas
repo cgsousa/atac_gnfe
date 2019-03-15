@@ -63,7 +63,7 @@ Símbolo : Significado
 interface
 
 uses SysUtils ,
-  uclass, ulog, unotfis00, FDM.NFE;
+  uclass, ulog, unotfis00;
 
 type
   TGetCertifProc = procedure(const aCNPJ: String; const aDays: Word) of object;
@@ -71,8 +71,8 @@ type
   private
     { Private declarations }
     m_Log: TCLog;
-    m_Rep: Tdm_nfe;
-    procedure runContingOffLine(NF: TCNotFis00) ;
+//    m_Rep: Tdm_nfe;
+//    procedure runContingOffLine(NF: TCNotFis00) ;
   private
     m_OnCertif: TGetCertifProc;
     m_OnBooProc: TGetBooProc;
@@ -100,9 +100,9 @@ type
 
 implementation
 
-uses Windows, ActiveX, WinInet, DateUtils ,
+uses Windows, ActiveX, WinInet, DateUtils , DB ,
   pcnConversao, ACBr_WinHttp ,
-  uadodb;
+  uadodb, FDM.NFE, uACBrNFE;
 
 
 { TMySvcThread }
@@ -174,25 +174,26 @@ begin
     m_AlertCount :=0;
 end;
 
+{
 procedure TMySvcThread.runContingOffLine(NF: TCNotFis00) ;
 begin
-{
+
                       //
                       // so atualiza a NF, se, e somente se,
                       // o mes/ano forem os mesmos de emissão
-                      if(YearOf(dt_serv)  =YearOf(NF.m_dtemis))and
-                        (MonthOf(dt_serv) =MonthOf(NF.m_dtemis))then
-                      begin
-                          //
-                          // caso não consiga atualiza a NF
-                          // reporta o erro e vai para a proxima NF
-                          if not NF.UpdateNFe(now, Ord(m_Rep.ProdDescrRdz), Ord(m_Rep.ProdCodInt), err_db) then
-                          begin
-                              m_Log.AddPar('Erro: '+err_db);
-                              Continue ;
-                          end;
-                      end;
-}
+//                      if(YearOf(dt_serv)  =YearOf(NF.m_dtemis))and
+//                        (MonthOf(dt_serv) =MonthOf(NF.m_dtemis))then
+//                      begin
+//                          //
+//                          // caso não consiga atualiza a NF
+//                          // reporta o erro e vai para a proxima NF
+//                          if not NF.UpdateNFe(now, Ord(m_Rep.ProdDescrRdz), Ord(m_Rep.ProdCodInt), err_db) then
+//                          begin
+//                              m_Log.AddPar('Erro: '+err_db);
+//                              Continue ;
+//                          end;
+//                      end;
+
 
 
     //
@@ -218,15 +219,63 @@ begin
         NF.setContinge('', True);
         m_Log.AddPar('Erro ao gerar a NFE em contingência!');
     end;
-end;
+end;}
 
 procedure TMySvcThread.RunProc;
+var
+  rep: IBaseACBrNFE ;
 var
   F: TNotFis00Filter;
   L: TCNotFis00Lote;
   NF: TCNotFis00;
 var
   err_db: string;
+  //
+  //
+  procedure runConting() ;
+  begin
+{
+                      //
+                      // so atualiza a NF, se, e somente se,
+                      // o mes/ano forem os mesmos de emissão
+                      if(YearOf(dt_serv)  =YearOf(NF.m_dtemis))and
+                        (MonthOf(dt_serv) =MonthOf(NF.m_dtemis))then
+                      begin
+                          //
+                          // caso não consiga atualiza a NF
+                          // reporta o erro e vai para a proxima NF
+                          if not NF.UpdateNFe(now, Ord(m_Rep.ProdDescrRdz), Ord(m_Rep.ProdCodInt), err_db) then
+                          begin
+                              m_Log.AddPar('Erro: '+err_db);
+                              Continue ;
+                          end;
+                      end;
+}
+    //
+    // set contingencia
+    NF.setContinge('Falha na comunicação!');
+    NF.Load();
+    if rep.AddNotaFiscal(NF, True, True) <> nil then
+    begin
+        NF.setXML() ;
+        if NF.m_codmod = 55 then
+        begin
+            m_Log.AddPar('NFE gerada com sucesso') ;
+        end
+        //NFCe
+        else begin
+            m_Log.AddPar('NFCe gerada com sucesso') ;
+        end;
+        m_Log.AddPar(Format('chave: %s',[NF.m_chvnfe])) ;
+    end
+    else begin
+        //
+        // desfaz contingencia
+        NF.setContinge('', True);
+        m_Log.AddPar('Erro ao gerar a NFE em contingência!');
+    end;
+  end;
+  //
 begin
     //
     // m_Log.AddSec('%s.RunProc',[Self.ClassName]);
@@ -240,26 +289,20 @@ begin
             Empresa.DoLoad(1);
             m_Log.AddSec('Emitente: %s-%s',[Empresa.CNPJ,Empresa.RzSoci]);
         end;
-    except
-        on E:Exception do
-        begin
-            m_Log.AddSec('Erro de banco: %s',[E.Message]);
-            Exit ;
-        end;
-    end;
 
-    m_Rep :=Tdm_nfe.getInstance ;
-    m_Rep.setStatusChange(false); //desabilita status de processamento
+    //m_Rep :=Tdm_nfe.getInstance ;
+    //m_Rep.setStatusChange(false); //desabilita status de processamento
+    rep :=TCBaseACBrNFE.New(False);
 
     //
     // check validade do certificado
-    if m_Rep.getDaysUseCertif <= 7 then
+    if rep.getDaysUseCertif <= 7 then
     begin
         if(m_AlertCount =0)or(m_Interval >= MSecsPerDay div HoursPerDay) then
         begin
             //
             // sincroniza o alert aqui
-            CallOnCertif(m_Rep.m_NFE.SSL.CertCNPJ, m_Rep.getDaysUseCertif);
+            CallOnCertif(rep.nfe.SSL.CertCNPJ, rep.getDaysUseCertif);
             //
             // reset o intervalo
             m_Interval :=0 ;
@@ -268,7 +311,7 @@ begin
 
         //
         // caso o certificado venceu, termina a thread
-        if m_Rep.getDaysUseCertif <= 0 then
+        if rep.getDaysUseCertif <= 0 then
         begin
             m_Log.AddSec('Certificado vinculado ao CNPJ:%s já vencido.',[Empresa.CNPJ]);
             Self.Terminate ;
@@ -278,7 +321,7 @@ begin
 
     //
     // atualiza a view
-    CallOnContingOffLine(m_Rep.Parametro.conting_offline.Value);
+    CallOnContingOffLine(rep.param.conting_offline.Value);
 
     //
     // preenche filtro
@@ -286,7 +329,7 @@ begin
     F.filTyp :=ftService ;
     //F.status :=sttService ;
     //F.codmod :=m_Rep.CodMod ;
-    F.nserie :=m_Rep.NSerie ;
+    F.nserie :=rep.nSerie ;
 
     //
     // cria o lote
@@ -338,7 +381,7 @@ begin
 
               //
               // check se flag Contingencia/OffLine esta ativa
-              if m_Rep.Parametro.conting_offline.Value then
+              if rep.param.conting_offline.Value then
               begin
                   //
                   // NF não processada, pronta para envio
@@ -349,7 +392,7 @@ begin
                       NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt]);
                       //
                       // emissão em contingência offline
-                      runContingOffLine(NF) ;
+                      runConting ;
                   end;
               end
 
@@ -369,7 +412,7 @@ begin
                       //
                       // caso não consiga atualiza a NF
                       // reporta o erro e vai para a proxima NF
-                      if not NF.UpdateNFe(now, Ord(m_Rep.ProdDescrRdz), Ord(m_Rep.ProdCodInt), err_db) then
+                      if not NF.UpdateNFe(now, Ord(rep.param.xml_prodescri_rdz.Value), Ord(rep.param.xml_procodigo_int.Value), err_db) then
                       begin
                           m_Log.AddPar('Erro: '+err_db);
                           Continue ;
@@ -378,9 +421,9 @@ begin
                       //
                       // gera NFE
                       m_Log.AddPar('Gerando NFE ...') ;
-                      if m_Rep.AddNotaFiscal(NF, True) = nil then
+                      if rep.AddNotaFiscal(NF, True, True) = nil then
                       begin
-                          m_Log.AddPar('NFE não gerada: ' +m_Rep.ErrMsg);
+                          m_Log.AddPar('NFE não gerada: ' +rep.ErrMsg);
                           //
                           // caso não for gerada!
                           // força para a proxima nota
@@ -438,23 +481,23 @@ begin
                   if NF.m_codstt in[TCNotFis00.CSTT_DONE_SEND,TCNotFis00.CSTT_NFE_NAO_CONSTA] then
                   begin
                       m_Log.AddPar('Enviando lote ...');
-                      if m_Rep.OnlySend(NF) then
+                      if rep.OnlySend(NF) then
                       begin
                           NF.setStatus();
                           m_Log.AddPar(NF.m_motivo);
                       end
                       else begin
-                          m_Log.AddPar(Format('Envio falhou: %d-%s',[m_Rep.ErrCod,m_Rep.ErrMsg]));
+                          m_Log.AddPar(Format('Envio falhou: %d-%s',[rep.ErrCod,rep.ErrMsg]));
                           //
                           // chk erro
                           //
-                          case m_Rep.ErrCod of
+                          case rep.ErrCod of
                               // http ou interno
                               // Pendente de retorno
                               408,HTTP_STATUS_SERVICE_UNAVAIL,10060,10091,ERROR_WINHTTP_TIMEOUT:
                               begin
                                   NF.m_codstt :=TCNotFis00.CSTT_RET_PENDENTE;
-                                  NF.m_motivo :=Format('[%d]Pendente de retorno!',[m_Rep.ErrCod]);
+                                  NF.m_motivo :=Format('[%d]Pendente de retorno!',[rep.ErrCod]);
                                   NF.setStatus ;
                                   m_Log.AddPar(NF.m_motivo);
                               end;
@@ -474,7 +517,7 @@ begin
                               begin
                                   //
                                   // process contingencia
-                                  runContingOffLine(NF) ;
+                                  runConting ;
                               end;
 
                               //
@@ -488,7 +531,7 @@ begin
                               ERROR_WINHTTP_CLIENT_CERT_NO_ACCESS_PRIVATE_KEY:
                               begin
                                   NF.m_codstt :=55 ;
-                                  NF.m_motivo :=Format('[%d]%s', [m_Rep.ErrCod,m_Rep.ErrMsg]) ;
+                                  NF.m_motivo :=Format('[%d]%s', [rep.ErrCod,rep.ErrMsg]) ;
                                   NF.setStatus ;
                               end;
 
@@ -497,8 +540,8 @@ begin
                           else
                               //
                               // se ocorrer, implementação futura !!!
-                              NF.m_codstt :=m_Rep.ErrCod ;
-                              NF.m_motivo :=Format('Erro interno[%d|%s]',[m_Rep.ErrCod,m_Rep.ErrMsg]) ;
+                              NF.m_codstt :=rep.ErrCod ;
+                              NF.m_motivo :=Format('Erro interno[%d|%s]',[rep.ErrCod,rep.ErrMsg]) ;
                               NF.setStatus ;
                           end;
                       end;
@@ -514,7 +557,7 @@ begin
                   begin
 
                       m_Log.AddPar('Consulta protocolo ...');
-                      if m_Rep.OnlyCons(NF) then
+                      if rep.OnlyCons(NF) then
                       begin
                           //
                           // Caso a NF não constar na base [217],
@@ -530,7 +573,7 @@ begin
                           begin
                               m_Log.AddPar('Desfaz contingência...');
                               NF.setContinge('', True);
-                              if m_Rep.AddNotaFiscal(NF, True) <> nil then
+                              if rep.AddNotaFiscal(NF, True, True) <> nil then
                               begin
                                   NF.setXML() ;
                               end ;
@@ -549,9 +592,21 @@ begin
 
     finally
       L.Free ;
-      Tdm_nfe.doFreeAndNil;
-      m_Rep :=nil;
+//      Tdm_nfe.doFreeAndNil;
+//      m_Rep :=nil;
       ConnectionADO.Close ;
+    end;
+    except
+        on E:EDatabaseError do
+        begin
+            m_Log.AddSec('Erro de banco: %s',[E.Message]);
+            //Exit ;
+        end;
+        on E:Exception do
+        begin
+            m_Log.AddSec('Erro geral: %s',[E.Message]);
+            //Exit ;
+        end;
     end;
 end;
 

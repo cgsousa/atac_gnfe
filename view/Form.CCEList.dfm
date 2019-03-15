@@ -2,7 +2,7 @@ object frm_CCEList: Tfrm_CCEList
   Left = 0
   Top = 0
   BorderStyle = bsDialog
-  Caption = '.:Lista de Carta de Corre'#231'oes:.'
+  Caption = '.:Lista de Carta de Corre'#231#245'es:.'
   ClientHeight = 484
   ClientWidth = 1018
   Color = clWindow
