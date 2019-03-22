@@ -1071,7 +1071,7 @@ end;
 
 function TCBaseACBrNFE.getRetInutiliza: TNFeInutilizacao;
 begin
-    m_RetInutiliza :=m_NFE.WebServices.Inutilizacao;
+    Result :=m_RetInutiliza ;
 
 end;
 

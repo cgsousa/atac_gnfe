@@ -585,7 +585,7 @@ end;
 procedure Tfrm_Princ00.btn_SendClick(Sender: TObject);
 var
   N: TCNotFis00 ;
-  rep: IBaseACBrNFE; //Tdm_nfe ;
+  rep: IBaseACBrNFE;
   S: string;
   ret: Boolean ;
 var
@@ -609,27 +609,6 @@ begin
     // envio do lote com uma NF (sincrono)
     else begin
         N :=m_Lote.Items[vst_Grid1.IndexItem] ;
-        {rep :=Tdm_nfe.getInstance ;
-        DoUpdateStatus('Atualizando Nota Fiscal...');
-        if N.UpdateNFe(now, ord(rep.ProdDescrRdz),ord(rep.ProdCodInt), S) then
-        begin
-            DoUpdateStatus('Processando...');
-            ret :=rep.OnlySend(N) ;
-            //DoUpdateStatus('');
-
-            if ret then
-            begin
-                CMsgDlg.Info(N.m_motivo) ;
-                DoUpdateStatus('Gravando status...');
-                N.setStatus();
-                LoadGrid ;
-            end
-            else
-                CMsgDlg.Warning(rep.ErrMsg);
-        end
-        else
-            CMsgDlg.Warning(S);
-        DoUpdateStatus('');}
         try
             rep :=TCBaseACBrNFE.New() ;
             setStatus(Format('Atualizando NF(%d)',[N.m_codped]));
