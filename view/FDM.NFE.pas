@@ -18,6 +18,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+16.04.2019
+[*] Atualizações do pacote ACBr
+
 11.03.2019
 [*] As chamadas do pacote ACBrNFE, foram removidas para a uACBrNFE
 [*] Remoção da instancia global do dm_nfe para evitar confritos com a thread

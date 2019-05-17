@@ -18,6 +18,15 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+14.05.2019
+[-] Correção do totalizador <tot_vCredICMSSN> qdo CSOSN=101,
+    q somava somente um item
+[-] Não adcionava duplicatas na respectiva tag(N.nfe.cobr.Dup)
+
+07.05.2019
+[+] Preenchimento da tag <InfRespTec> NT2018.005_v130(Altera leiaute NFe_NFCe)
+[*] Atualizações do pacote ACBr
+
 *}
 
 interface
@@ -35,6 +44,18 @@ uses Classes, Generics.Collections ,
 
 
 type
+  //
+  //  Identificação do Responsável Técnico.
+  //
+  OIdentRespTecnico = Object
+    CNPJ: string ;
+    xContato: string ;
+    email: string ;
+    fone: string ;
+    idCSRT: SmallInt;
+    hashCSRT: string;
+  end;
+
   //
   // params da nfe
   TRegNFE = record
@@ -82,6 +103,11 @@ type
     arquivos_PathNFe: TPair<string, string>;
     arquivos_PathInut: TPair<string, string>;
     arquivos_PathEvento: TPair<string, string>;}
+
+    //
+    // Info do resp tec
+    //
+    indRespTec: TPair<string, Boolean>;
 
     procedure Load(const aSendSync: Boolean; const aNumSer: SmallInt) ;
     procedure setContingOffLine(const aFlag: Boolean);
@@ -152,6 +178,7 @@ type
     m_StatusChange: Boolean ;
     m_CodMod, m_NSerie: Word ;
     m_reg: TRegNFE ;
+    m_InfRespTec: OIdentRespTecnico ;
     function getNFe: TACBrNFe;
     function getCodMod: Word ;
     function getNSerie: Word ;
@@ -177,6 +204,7 @@ type
     property nSerie: Word read getNSerie;
     property param: TRegNFE read getParam;
     constructor Create(const aStatusChange: Boolean);
+    destructor Destroy; override ;
     function AddNotaFiscal(NF: TCNotFis00;
       const Clear, InfProt: Boolean): NotaFiscal ;
     function PrintDANFE(NF: TCNotFis00): Boolean ;
@@ -199,6 +227,7 @@ type
     property retInutiliza: TNFeInutilizacao read getRetInutiliza ;
     function getDaysUseCertif: Smallint ;
   end;
+
 
 
 implementation
@@ -243,6 +272,8 @@ var
   tot_bc, tot_icm, tot_bcst: Currency;
   tot_pis, tot_cofins: Currency;
   tot_trib: Currency;
+  tot_vCredICMSSN,per_CredSN: Currency;
+  inf_CredSN: string;
 var
   tot_FCP,
   tot_FCPST: Currency ;
@@ -254,8 +285,6 @@ var
   //
   D: TDupCollectionItem;
   p0,p1: TpagCollectionItem ;
-var
-  nos_termos: string;
 begin
     //
     Result :=nil;
@@ -381,7 +410,7 @@ begin
     tot_ICMSUFDest:=0;
     tot_ICMSUFRemet :=0;
 
-    nos_termos:='';
+    tot_vCredICMSSN :=0;
 
     for nf1 in NF.Items do
     begin
@@ -445,9 +474,8 @@ begin
                         icm.CSOSN :=csosn101 ;
                         icm.pCredSN :=nf1.m_pcredsn ;
                         icm.vCredICMSSN :=nf1.m_vcredicmssn ;
-                        nos_termos :='PERMITE O APROVEITAMENTO DO CRÉDITO DE ICMS NO VALOR DE '+FloatToStrF(icm.vCredICMSSN,ffCurrency,13,2);
-                        nos_termos :=nos_termos +'; CORRESPONDENTE À ALÍQUOTA DE '+FloatToStrF(icm.pCredSN,ffNumber,5,2) +'%, ';
-                        nos_termos :=nos_termos +m_reg.devol_me_epp_acontribuinte_nao_sn.Value
+                        tot_vCredICMSSN :=tot_vCredICMSSN +icm.vCredICMSSN;
+                        per_CredSN :=icm.pCredSN ;
                     end;
                     102: icm.CSOSN :=csosn102 ;
                     103: icm.CSOSN :=csosn103 ;
@@ -841,7 +869,7 @@ begin
         for I :=0 to NF.m_cobr.Dup.Count -1 do
         begin
             D :=NF.m_cobr.Dup.Items[I] ;
-            with NF.m_cobr.Dup.New do
+            with N.NFe.Cobr.Dup.New do
             begin
                 nDup :=D.nDup ;
                 dVenc:=D.dVenc ;
@@ -903,13 +931,26 @@ begin
 
     //
     // inf.Cpl
-    if nos_termos <> '' then
+    if tot_vCredICMSSN > 0 then
     begin
-        N.NFe.InfAdic.infCpl :=NF.m_infCpl +';'+ nos_termos;
-        //NF.s
+      inf_CredSN :='PERMITE O APROVEITAMENTO DO CRÉDITO DE ICMS NO VALOR DE '+FloatToStrF(tot_vCredICMSSN,ffCurrency,13,2);
+      inf_CredSN :=inf_CredSN +'; CORRESPONDENTE À ALÍQUOTA DE '+FloatToStrF(per_CredSN,ffNumber,5,2) +'%, ';
+      inf_CredSN :=inf_CredSN +m_reg.devol_me_epp_acontribuinte_nao_sn.Value;
+      N.NFe.InfAdic.infCpl :=NF.m_infCpl +';'+ inf_CredSN;
     end
     else begin
-        N.NFe.InfAdic.infCpl :=NF.m_infCpl ;
+      N.NFe.InfAdic.infCpl :=NF.m_infCpl ;
+    end;
+
+    //
+    // chk resp.tec
+    if m_reg.indRespTec.Value then
+    begin
+        N.NFe.infRespTec.CNPJ :=m_InfRespTec.CNPJ ;
+        N.NFe.infRespTec.xContato :=m_InfRespTec.xContato ;
+        N.NFe.infRespTec.email :=m_InfRespTec.email ;
+        N.NFe.infRespTec.fone :=m_InfRespTec.fone;
+        N.NFe.infRespTec.idCSRT :=m_InfRespTec.idCSRT ;
     end;
 
     //
@@ -998,6 +1039,7 @@ end;
 
 constructor TCBaseACBrNFE.Create(const aStatusChange: Boolean);
 begin
+    inherited Create;
     m_DM :=Tdm_nfe.Create(True) ;
     m_DM.setStatusChange(aStatusChange);
     m_NFE :=m_DM.m_NFE ;
@@ -1009,6 +1051,12 @@ begin
     m_DF  :=m_DM.m_DF ;
     m_Val :=m_DM.m_Val;
     m_StatusChange :=aStatusChange ;
+end;
+
+destructor TCBaseACBrNFE.Destroy;
+begin
+    m_DM.Free;
+    inherited;
 end;
 
 function TCBaseACBrNFE.getCodMod: Word;
@@ -1088,6 +1136,14 @@ procedure TCBaseACBrNFE.LoadConfig;
 var
   m_Ini: TMemIniFile ;
 begin
+    //
+    // inicializa
+    m_InfRespTec.CNPJ :='07998760000189' ;
+    m_InfRespTec.xContato :='RODRIGO KLEYTON';
+    m_InfRespTec.email :='rodrigo@atacsistemas.com';
+    m_InfRespTec.fone :='9832361595';
+    m_InfRespTec.idCSRT :=0;
+
     //
     //
     m_ErrCod :=0;
@@ -1744,7 +1800,7 @@ var
 begin
 
     S :=TStringList.Create ;
-    params :=TCParametroList.Create ;
+    params :=TCParametroList.Create(True) ;
     try
         //
         // carrega todos do nfe
@@ -2026,6 +2082,22 @@ begin
     arquivos_PathNFe: TPair<string, string>;
     arquivos_PathInut: TPair<string, string>;
     arquivos_PathEvento: TPair<string, string>;}
+
+        //
+        // info resp tec
+        //
+        indRespTec.Key :='ind.resp_tecnico';
+        p :=params.IndexOf(indRespTec.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(indRespTec.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador do resp.tecnico';
+            P.Save ;
+        end;
+        indRespTec.Value :=p.ReadBoo();
 
 
     finally

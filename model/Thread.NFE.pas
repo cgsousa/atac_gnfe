@@ -63,7 +63,7 @@ Símbolo : Significado
 interface
 
 uses SysUtils ,
-  uclass, ulog, unotfis00;
+  uclass, ulog, uACBrNFE;
 
 type
   TGetCertifProc = procedure(const aCNPJ: String; const aDays: Word) of object;
@@ -73,6 +73,7 @@ type
     m_Log: TCLog;
 //    m_Rep: Tdm_nfe;
 //    procedure runContingOffLine(NF: TCNotFis00) ;
+    rep: IBaseACBrNFE ;
   private
     m_OnCertif: TGetCertifProc;
     m_OnBooProc: TGetBooProc;
@@ -102,7 +103,7 @@ implementation
 
 uses Windows, ActiveX, WinInet, DateUtils , DB ,
   pcnConversao, ACBr_WinHttp ,
-  uadodb, FDM.NFE, uACBrNFE;
+  uadodb, unotfis00;
 
 
 { TMySvcThread }
@@ -222,8 +223,8 @@ begin
 end;}
 
 procedure TMySvcThread.RunProc;
-var
-  rep: IBaseACBrNFE ;
+//var
+//  rep: IBaseACBrNFE ;
 var
   F: TNotFis00Filter;
   L: TCNotFis00Lote;
@@ -290,9 +291,13 @@ begin
             m_Log.AddSec('Emitente: %s-%s',[Empresa.CNPJ,Empresa.RzSoci]);
         end;
 
-    //m_Rep :=Tdm_nfe.getInstance ;
-    //m_Rep.setStatusChange(false); //desabilita status de processamento
-    rep :=TCBaseACBrNFE.New(False);
+    //
+    // simula o singleton
+    if rep =nil then
+    begin
+        // (aStatusChange =false) desabilita status de processamento
+        rep :=TCBaseACBrNFE.New(False) ;
+    end;
 
     //
     // check validade do certificado
@@ -323,6 +328,7 @@ begin
     // atualiza a view
     CallOnContingOffLine(rep.param.conting_offline.Value);
 
+
     //
     // preenche filtro
     F.Create(0, 0);
@@ -330,6 +336,7 @@ begin
     //F.status :=sttService ;
     //F.codmod :=m_Rep.CodMod ;
     F.nserie :=rep.nSerie ;
+
 
     //
     // cria o lote
@@ -343,7 +350,7 @@ begin
           // X notas encontradas
           if L.Items.Count > 1 then
           begin
-              m_Log.AddSec('Carregou %d NF(s) da serie:%.3d',[L.Items.Count,F.nserie]) ;
+              m_Log.AddSec('Carregou %d NF(s) da serie:%.3d',[L.Items.Count,F.nserie]);
           end;
 
           //
@@ -592,20 +599,18 @@ begin
 
     finally
       L.Free ;
-//      Tdm_nfe.doFreeAndNil;
-//      m_Rep :=nil;
       ConnectionADO.Close ;
     end;
+    //
+    //
     except
         on E:EDatabaseError do
         begin
             m_Log.AddSec('Erro de banco: %s',[E.Message]);
-            //Exit ;
         end;
         on E:Exception do
         begin
             m_Log.AddSec('Erro geral: %s',[E.Message]);
-            //Exit ;
         end;
     end;
 end;

@@ -18,6 +18,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+17.05.2019
+[+] Novo atalho(Ctrl+D) chamada do rel resumo de NF (Form.RelNFRL02)
+
 24.08.2018
 [+] Inclusao da Carta de Correção Eletronica (CC-e)
 
@@ -134,6 +137,11 @@ type
     AdvMenuStyler1: TAdvMenuStyler;
     mnu_CancNFE: TMenuItem;
     mnu_CCE: TMenuItem;
+    pm_Rel: TAdvPopupMenu;
+    act_ListDetalh: TAction;
+    act_ListResumo: TAction;
+    ListagemDetalhe1: TMenuItem;
+    ListagemResumo1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -151,7 +159,6 @@ type
     procedure btn_ConsSvcClick(Sender: TObject);
     procedure vst_Grid1HeaderClick(Sender: TVTHeader;
       HitInfo: TVTHeaderHitInfo);
-    procedure btn_RelNFClick(Sender: TObject);
     procedure rgx_StatusClick(Sender: TObject);
     procedure chk_EnvLoteClick(Sender: TObject);
     procedure chk_ChvNFeClick(Sender: TObject);
@@ -159,6 +166,7 @@ type
     procedure btn_ItemsClick(Sender: TObject);
     procedure act_CCEExecute(Sender: TObject);
     procedure act_CancNFEExecute(Sender: TObject);
+    procedure act_ListDetalhExecute(Sender: TObject);
   private
     { Private declarations }
     m_Service: Boolean ;
@@ -221,8 +229,9 @@ uses StrUtils, DateUtils, IOUtils , DB, Clipbrd ,
   //Form.Config,
   Form.ParametroList, Form.NFEStatus,
   Form.Justifica, Form.Inutiliza,
-  Form.RelNFRL00, Form.Ajuda, Form.EnvioLote, Form.Items, Form.CCEList,
-  Form.GenSerialNFE ;
+  Form.Ajuda, Form.EnvioLote, Form.Items, Form.CCEList,
+  Form.GenSerialNFE,
+  Form.RelNFRL00, Form.RelNFRL02 ;
 
 const
   Alignments: array [TAlignment] of Word = (DT_LEFT, DT_RIGHT, DT_CENTER);
@@ -280,6 +289,14 @@ begin
         Tfrm_CCEList.lp_Show(N) ;
     end;
     ActiveControl :=vst_Grid1;
+end;
+
+procedure Tfrm_Princ00.act_ListDetalhExecute(Sender: TObject);
+begin
+    if TAction(Sender).Tag > 0 then
+        Tfrm_RelNFRL02.Execute(m_Lote)
+    else
+        Tfrm_RelNFRL00.Execute(m_Lote);
 end;
 
 procedure Tfrm_Princ00.btn_CloseClick(Sender: TObject);
@@ -574,12 +591,6 @@ begin
         ;
 
     ActiveControl :=vst_Grid1;
-end;
-
-procedure Tfrm_Princ00.btn_RelNFClick(Sender: TObject);
-begin
-//    Tfrm_RelNF.CF_Execute(m_Lote);
-    Tfrm_RelNFRL00.Execute(m_Lote);
 end;
 
 procedure Tfrm_Princ00.btn_SendClick(Sender: TObject);

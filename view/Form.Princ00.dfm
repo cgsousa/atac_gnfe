@@ -41,7 +41,7 @@ object frm_Princ00: Tfrm_Princ00
   end
   object vst_Grid1: TVirtualStringTree
     Left = 5
-    Top = 5
+    Top = 0
     Width = 1005
     Height = 485
     Alignment = taCenter
@@ -287,6 +287,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 1
       OnClick = btn_ConfigClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 0
       SpaceInterval = 6
     end
@@ -303,6 +304,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 2
       OnClick = btn_ConsSvcClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 1
       SpaceInterval = 6
     end
@@ -319,6 +321,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 3
       OnClick = btn_FilterClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 2
       SpaceInterval = 6
     end
@@ -347,6 +350,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 4
       OnClick = btn_ItemsClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 4
       SpaceInterval = 6
     end
@@ -363,6 +367,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 5
       OnClick = btn_SendClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 5
       SpaceInterval = 6
     end
@@ -379,6 +384,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 6
       OnClick = btn_ConsClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 6
       SpaceInterval = 6
     end
@@ -395,6 +401,7 @@ object frm_Princ00: Tfrm_Princ00
       ShowHint = True
       TabOrder = 7
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 7
       SpaceInterval = 6
     end
@@ -411,6 +418,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 10
       OnClick = btn_DanfeClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 8
       SpaceInterval = 6
     end
@@ -427,6 +435,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 8
       OnClick = btn_InutClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 9
       SpaceInterval = 6
     end
@@ -443,6 +452,7 @@ object frm_Princ00: Tfrm_Princ00
       TabOrder = 9
       OnClick = btn_exportClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 10
       SpaceInterval = 6
     end
@@ -451,11 +461,15 @@ object frm_Princ00: Tfrm_Princ00
       Top = 5
       Width = 75
       Height = 30
+      Hint = 'Listagem de Notas Fiscais detalhada/resumida'
       Anchors = [akLeft, akBottom]
       Caption = 'Relat'#243'rios'
+      DropDownMenu = pm_Rel
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 11
-      OnClick = btn_RelNFClick
       Alignment = taLeftJustify
+      HintColor = clInfoBk
       ButtonIndex = 11
       SpaceInterval = 6
     end
@@ -818,6 +832,21 @@ object frm_Princ00: Tfrm_Princ00
       GroupIndex = 1
       OnExecute = act_CCEExecute
     end
+    object act_ListDetalh: TAction
+      Category = 'REL'
+      Caption = 'Listagem Detalhe'
+      GroupIndex = 1
+      ShortCut = 16452
+      OnExecute = act_ListDetalhExecute
+    end
+    object act_ListResumo: TAction
+      Tag = 1
+      Category = 'REL'
+      Caption = 'Listagem Resumo'
+      GroupIndex = 1
+      ShortCut = 16466
+      OnExecute = act_ListDetalhExecute
+    end
   end
   object AdvPopupMenu1: TAdvPopupMenu
     MenuStyler = AdvMenuStyler1
@@ -889,7 +918,19 @@ object frm_Princ00: Tfrm_Princ00
     ButtonAppearance.CaptionFont.Height = -11
     ButtonAppearance.CaptionFont.Name = 'Segoe UI'
     ButtonAppearance.CaptionFont.Style = []
+    Left = 632
+    Top = 496
+  end
+  object pm_Rel: TAdvPopupMenu
+    MenuStyler = AdvMenuStyler1
+    Version = '2.5.4.3'
     Left = 576
     Top = 496
+    object ListagemDetalhe1: TMenuItem
+      Action = act_ListDetalh
+    end
+    object ListagemResumo1: TMenuItem
+      Action = act_ListResumo
+    end
   end
 end

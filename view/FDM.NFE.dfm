@@ -21,7 +21,7 @@ object dm_nfe: Tdm_nfe
     Configuracoes.WebServices.QuebradeLinha = '|'
     Configuracoes.RespTec.IdCSRT = 0
     DANFE = m_DRL
-    Left = 40
+    Left = 32
     Top = 10
   end
   object m_PP: TACBrPosPrinter
@@ -48,7 +48,7 @@ object dm_nfe: Tdm_nfe
     Attempts = 3
     DefaultCharset = UTF_8
     IDECharset = CP1252
-    Left = 43
+    Left = 35
     Top = 148
   end
   object m_DEP: TACBrNFeDANFeESCPOS
@@ -64,6 +64,7 @@ object dm_nfe: Tdm_nfe
     CasasDecimais.MaskqCom = ',0.00'
     CasasDecimais.MaskvUnCom = ',0.00'
     TipoDANFE = tiNFCe
+    ImprimeTributos = trbSeparadamente
     ImprimeDescAcrescItem = False
     PosPrinter = m_PP
     Left = 203
@@ -81,8 +82,8 @@ object dm_nfe: Tdm_nfe
     CasasDecimais.MaskqCom = ',0.00'
     CasasDecimais.MaskvUnCom = ',0.00'
     ACBrNFe = m_NFE
-    ExibeCampoFatura = False
-    Left = 40
+    ImprimeTributos = trbSeparadamente
+    Left = 32
     Top = 80
   end
   object m_DF: TACBrNFeDANFCeFortes
@@ -90,13 +91,14 @@ object dm_nfe: Tdm_nfe
     MargemInferior = 0.800000000000000000
     MargemSuperior = 0.800000000000000000
     MargemEsquerda = 1.000000000000000000
-    MargemDireita = 1.500000000000000000
+    MargemDireita = 4.000000000000000000
     CasasDecimais.Formato = tdetInteger
     CasasDecimais.qCom = 2
     CasasDecimais.vUnCom = 2
     CasasDecimais.MaskqCom = ',0.00'
     CasasDecimais.MaskvUnCom = ',0.00'
     TipoDANFE = tiNFCe
+    ImprimeTributos = trbSeparadamente
     ImprimeNomeFantasia = True
     ImprimeQRCodeLateral = True
     TamanhoLogoWidth = 50
