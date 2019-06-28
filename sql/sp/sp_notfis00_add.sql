@@ -18,6 +18,12 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+14.06.2019
+[*] Parametro <@indfinal> atualizado de <venda.consumidorfinal>
+
+20.05.2019
+[*] Mais dois novos tipos para @modFret: proprio remetente, proprio destinatario
+
 22.12.2018
 [*] Movido codigo de leitura das inf comple pra k 
 
@@ -251,10 +257,12 @@ as
     @vlrfret=isnull(v.frete,0) ,
     @vlroutr=isnull(v.totala,0) +isnull(v.valortxentrega,0),
     --//transportes
-    @modfret =case  when lower(v.modofrete)='emitente' then 0 
-                    when lower(v.modofrete)='destinatario' then 1
-                    when lower(v.modofrete)='conta terceiros' then 2 
-                    when lower(v.modofrete)='sem frete' then 5
+    @modfret =case  when lower(v.modofrete)='emitente' then 0 --mfContaEmitente
+                    when lower(v.modofrete)='destinatario' then 1 --mfContaDestinatario
+                    when lower(v.modofrete)='conta terceiros' then 2 --mfContaTerceiros
+                    when lower(v.modofrete)='proprio remetente' then 3 --mfProprioRemetente
+                    when lower(v.modofrete)='proprio destinatario' then 4 --mfProprioDestinatario
+                    when lower(v.modofrete)='sem frete' then 5 -- mfSemFrete
               else null --//tratar outros no futuro
               end  ,
     @tra_cnpjcpf =replace(replace(replace(v.transcnpj,'.',''),'/',''),'-',''),
@@ -285,7 +293,7 @@ as
     ,@usrnome =u.nome 
     ,@funnome =f.nome 
     ,@codcntsnh =case when s.codcontadorsenha is null then 0 else s.codcontadorsenha end
-
+    ,@indfinal =v.consumidorfinal
   from venda v
   --//info cpl
   left join usuario u on u.codusuario =v.codusuario            
@@ -348,6 +356,7 @@ as
       ,@usrnome =u.nome 
       ,@funnome =f.nome 
       ,@codcntsnh =case when s.codcontadorsenha is null then 0 else s.codcontadorsenha end
+      ,@indfinal =v.consumidorfinal
 
     from histvenda v
     --//info cpl

@@ -17,7 +17,8 @@ uses
   Form.CCE in 'view\Form.CCE.pas' {frm_CCE},
   uACBrNFe in 'model\uACBrNFe.pas',
   Form.GenSerialNFE in 'view\Form.GenSerialNFE.pas' {frm_GenSerialNFE},
-  Form.RelNFRL02 in 'view\Form.RelNFRL02.pas' {frm_RelNFRL02};
+  Form.RelNFRL02 in 'view\Form.RelNFRL02.pas' {frm_RelNFRL02},
+  Thread.NFE in 'model\Thread.NFE.pas';
 
 {$R *.res}
 {$R ATAC_APP_NFE.UAC.res}

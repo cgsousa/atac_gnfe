@@ -20,7 +20,8 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_DcuOutput>..\bin\dcu\</DCC_DcuOutput>
+			<DCC_UsePackage>rtl;vcl;vclx;vclimg;vclactnband;dbrtl;vcldb;vcldbx;bdertl;vcltouch;xmlrtl;dsnap;dsnapcon;TeeUI;TeeDB;Tee;adortl;IndyCore;IndySystem;IndyProtocols;VclSmp;vclie;inet;websnap;webdsnap;inetdb;inetdbbde;inetdbxpress;soaprtl;dbexpress;DbxCommonDriver;DataSnapIndy10ServerTransport;DataSnapProviderClient;DbxClientDriver;DataSnapServer;DBXInterBaseDriver;DBXMySQLDriver;dbxcds;DBXFirebirdDriver;DBXSybaseASEDriver;DBXSybaseASADriver;DBXOracleDriver;DBXMSSQLDriver;DBXInformixDriver;DBXDb2Driver;VirtualTreesR;JclVcl;Jcl;JvCore;JvSystem;JvStdCtrls;JvAppFrm;JvBands;JvCmp;JvControls;JvCrypt;JvCustom;JvDB;JvDlgs;JvDocking;JvHMI;JvJans;JvManagedThreads;JvMM;JvNet;JvPageComps;JvPascalInterpreter;JclDeveloperTools;JvPluginSystem;JvPrintPreview;JvRuntimeDesign;JvTimeFramework;JvWizards;JvXPCtrls;tmsd2010;tmsexd2010;tmsxlsd2010;tmswizd2010;QR5RunD2010;Rave110VCL;advchartd2010;frce;ACBr_MDFe;ACBr_PCNComum;ACBr_DFeComum;ACBr_MDFeDamdfeRL;ACBrDFeReportRL;ACBr_Comum;ACBr_synapse;ACBr_OpenSSL;ACBr_Diversos;ACBr_Serial;ACBr_Sintegra;ACBr_TXTComum;ACBr_TCP;ACBr_Boleto;ACBr_NFe;ACBr_NFCeECFVirtual;ACBr_NFeDanfeESCPOS;ACBr_TEFD;ACBr_NFeDanfeRL;ACBr_BoletoRL</DCC_UsePackage>
+			<DCC_DcuOutput>..\bin\dcu\ATAC_SVC_NFE</DCC_DcuOutput>
 			<DCC_ExeOutput>..\bin\</DCC_ExeOutput>
 			<DCC_UnitSearchPath>D:\develop\lib\delphi\sistem.lib\units;D:\develop\lib\delphi\sistem.lib\view;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
@@ -89,6 +90,7 @@
 			<DCCReference Include="view\Form.RelNFRL02.pas">
 				<Form>frm_RelNFRL02</Form>
 			</DCCReference>
+			<DCCReference Include="model\Thread.NFE.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -121,7 +123,7 @@
 						<VersionInfo Name="MajorVer">2</VersionInfo>
 						<VersionInfo Name="MinorVer">5</VersionInfo>
 						<VersionInfo Name="Release">1</VersionInfo>
-						<VersionInfo Name="Build">530</VersionInfo>
+						<VersionInfo Name="Build">560</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -133,7 +135,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Atac Sistemas Ltda</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">App de gerenciamento da NF-e</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">2.5.1.530</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">2.5.1.560</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">ATAC_APP_NFE</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">(C)</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">Todos os direitos reservados</VersionInfoKeys>
@@ -142,6 +144,9 @@
 						<VersionInfoKeys Name="ProductVersion">ATAC APP NFE 2018</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>
+					<Excluded_Packages>
+						<Excluded_Packages Name="D:\develop\ACBr\Lib\Delphi\LibD14\ACBr_Integrador.bpl">ACBr - Integrador - (http://www.projetoacbr.com.br/)</Excluded_Packages>
+					</Excluded_Packages>
 				</Delphi.Personality>
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>

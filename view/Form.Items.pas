@@ -101,6 +101,7 @@ begin
     else begin
         C.Text :='CSOSN';
     end;
+    m_notfis.LoadItems ;
     vst_Grid1.RootNodeCount :=m_notfis.Items.Count ;
     lbl_vNF.Caption :=Format('Valor da NF: %12.2m',[m_notfis.m_icmstot.vNF]);
 end;

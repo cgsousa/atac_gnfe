@@ -20,6 +20,18 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+27.06.2019
+[*] Executa Load (+performa) conforme combatibilidade (sql):
+    > 8: TCNotFis00Lote.CLoadSPNotFis00Busca(m_Filter)
+    <=8: TCNotFis00Lote.CLoad(m_Filter)
+
+26.06.2019
+[*] Mais 2(dois) enum(sstAutoriza,sttDenega) no filtro status
+
+05.06.2019
+[*] Tratamento do campo <nf0_xmltyp> para gravar o xml em formato apropriado
+[*] Vincula NFe ao lote <nf0_codlot> para não ser processada como serviço
+
 21.02.2019
 [*] Atualização do pacote ACBr
 
@@ -69,7 +81,7 @@ Símbolo : Significado
 *}
 
 uses
-  Classes, SysUtils, DB,  ADODB,
+  Classes, SysUtils, DB, ADODB,
   Generics.Collections ,
 
 //  ACBrNFe, ACBrPosPrinter, ACBrNFeDANFeESCPOS,
@@ -126,11 +138,82 @@ type
 
 
 type
+  // INFormation
+  // WARing
+  // ERRor
+  NotFis00CodStatus = object
+    //
+    // pronto para envio
+    const DONE_SEND = 1;
+    //
+    // contigencia off-line
+    const CONTING_OFFLINE = 9;
+    //
+    // pendente de retorno
+    const RET_PENDENTE = 44;
+    //
+    // consumo indevido
+    const ERR_CONSUMO_INDEVIDO =33 ;
+    //
+    // chk assinatura (cert)
+    const ERR_ASSINA =55;
+    const ERR_CHECK_ASSINA =66;
+    //
+    // XML erros
+    const ERR_SCHEMA = 77;
+    const ERR_REGRAS = 88;
+
+    //
+    // Uso autorizado
+    const AUTORIZADO_USO = 100;
+    const AUTORIZADO_USO_FORA = 150;
+
+    //
+    // envio/retorno lote
+    const EM_PROCESS = 103;
+    const PROCESS = 104;
+
+    //
+    // NFe/NFCe
+    const NFE_NAO_CONSTA_BD = 217; //NFe não consta na base
+    const NFE_JA_CANCEL = 218; //NFe JÁ CANCELADA
+
+    // duplicidade
+    const DUPL = 204;
+    //
+    //Rejeição 539: Duplicidade de NF-e, com diferença na Chave de Acesso
+    const DUPL_DIF_CHV =539;
+    //
+    //Rejeição 613: Chave de Acesso difere da existente em BD (WS_CONSULTA)
+    const CHV_DIF_BD =613;
+    //
+    // Rejeição 704: NFC-E com data-hora de emissão atrasada
+    const NFCE_DH_EMIS_RETRO = 704;
+
+    //
+    // Uso Denegado
+    const USO_DENEGADO = 110;
+    //
+    // Uso Denegado: Irregularidade fiscal do emitente
+    const USO_DENEGADO_EMIT = 301;
+    //
+    // Uso Denegado: Irregularidade fiscal do destinatário
+    const USO_DENEGADO_DEST = 302;
+
+    //
+    // Rejeição 206: NF-e já está inutilizada na Base de Dados da SEFAZ
+    const NFE_JA_INUT = 206;
+
+    //
+    // erro geral SEFAZ
+    const ERR_GERAL =999;
+  end;
+
   ENotFis00 = class(Exception)
   end;
 
   TNotFis00TipPes =(tpFis, tpJur, tpRud);
-  TNotFis00Status = (sttDoneSend, sttConting, sttProcess, sttCancel, sttInut, sttError, sttNone);
+  TNotFis00Status = (sttDoneSend, sttConting, sttAutoriza, sttDenega, sttCancel, sttInut, sttError=9, sttNone);
   TNotFis00StatusSet = set of TNotFis00Status;
 
   TNotFis00InfoDest =(idEmail, idNone);
@@ -147,6 +230,9 @@ type
     status: TNotFis00Status;
     codmod,nserie,limlot: Word;
     sttSet: TNotFis00StatusSet;
+    save: Boolean;
+    codlot: Int32;
+    sumitm: Boolean;
     constructor Create(const codseq, codped: Integer);
   end;
 
@@ -159,7 +245,7 @@ type
   // capa nota fiscal
   TCNotFis00 = class(TPersistent)
   private
-//    m_oParent: TCNotFisLot;
+    m_Parent: TCNotFis00Lote;
     m_ItemIndex: Int32;
     m_oItems: TList<TCNotFis01>;
     m_oriindpag: TpcnIndicadorPagamento;
@@ -173,8 +259,6 @@ type
     m_vlrpag: Currency;
     m_oricodstt: Word ;
     procedure doInsert() ;
-    procedure LoadFromQ(Q: TADOQuery; const load_Items: Boolean =False);
-    procedure LoadFormaPgto();
     procedure LoadInfCpl();
     procedure OnClearItems(Sender: TObject; const Item: TCNotFis01;
       Action: TCollectionNotification) ;
@@ -185,6 +269,7 @@ type
     const CSTT_DONE_SEND = 1;
     const CSTT_EMIS_CONTINGE = 9;
     const CSTT_RET_PENDENTE = 44;
+    const CSTT_ERRO_REGRAS = 88;
     const CSTT_AUTORIZADO_USO = 100;
     const CSTT_EM_PROCESS = 103;
     const CSTT_PROCESS = 104;
@@ -199,8 +284,8 @@ type
     const CSTT_CHV_DIF_BD =613;
 
     //
-    // consumo indevido
-    const QTD_MAX_CONSUMO =10 ;
+    // qtd.max de consumo
+    const QTD_MAX_CONSUMO =3; //10 ;
 
     //
     // qtd max de nfe por lote (assincrono)
@@ -291,17 +376,28 @@ type
     function Load(const codseq: Integer =0): Boolean ;
     function LoadFromPed(const codped: Integer): Boolean ;
     procedure LoadItems();
+    procedure LoadFromQ(Q: TDataSet);
     procedure LoadDest() ;
+    procedure LoadFormaPgto();
     function LoadXML(): Boolean ;
+
+    procedure FillDataSet(aDS: TDataSet) ;
 
     procedure setStatus() ;
     procedure setXML() ;
+
     procedure setContinge(const xJustif: string; const aCancel: Boolean =false) ;
     procedure setFormaEmissao(const aTipEmis: TpcnTipoEmissao;
       const aJustif: string) ;
 
+    procedure setConsumoWS() ;
+    procedure setCodLote(const aCodLot: Integer) ;
+
     function CStatProcess(): Boolean;
-    function CstatCancel(): Boolean;
+    function CStatCancel(): Boolean;
+    function CStatError(): Boolean;
+    function CStatAutorizado(): Boolean ;
+    function CStatDenegado(): Boolean ;
 
   public
 
@@ -331,7 +427,6 @@ type
       const modfret: TpcnModalidadeFrete;
       const codped: Integer;
       const pro_nomrdz, pro_codint: SmallInt): TCNotFis00;
-
   end;
 
   //
@@ -492,7 +587,9 @@ type
     function Load(const afilter: TNotFis00Filter): Boolean ;
     function LoadCX(const codcxa: smallint; out lstcod: string): Boolean;
   public
-    class function CLoad(const afilter: TNotFis00Filter): TADOQuery ;
+    class function CLoad(const afilter: TNotFis00Filter): TDataSet ; //TADOQuery ;
+    class function CLoadXML(const afilter: TNotFis00Filter): TADOQuery ;
+    class function CLoadSPNotFis00Busca(const afilter: TNotFis00Filter): TDataSet ;
   end;
 
   TInutNumeroFilter = record
@@ -536,15 +633,11 @@ type
 function GTIN_DV(const aCodigo : String ): String ;
 function GTIN_Valida(const aCodigo : String ): Boolean ;
 
-
-
-
 implementation
 
 uses StrUtils, Variants, Math ,
   ACBrUtil,
   uparam;
-
 
 function GTIN_DV(const aCodigo: String ): String ;
 var
@@ -808,6 +901,7 @@ begin
     Self.codmod :=0;
     Self.nserie :=0;
     Self.limlot :=0;
+    Self.codlot :=0;
 end;
 
 { TCNotFis00 }
@@ -824,9 +918,9 @@ end;
 constructor TCNotFis00.Create;
 begin
     inherited Create;
-//    self.m_oParent :=nil;
+    self.m_Parent :=nil;
     self.m_ItemIndex :=0;
-    self.m_oItems :=TList<TCNotFis01>.Create ;
+    self.m_oItems :=TList<TCNotFis01>.Create;
     self.m_oItems.OnNotify :=OnClearItems ;
 
     self.m_indpag :=ipVista ;
@@ -848,13 +942,55 @@ begin
 
 end;
 
+function TCNotFis00.CStatAutorizado: Boolean;
+begin
+    case Self.m_codstt of
+        100, 150: Result := True;
+      else
+          Result :=False;
+    end;
+end;
+
 function TCNotFis00.CstatCancel(): Boolean;
 begin
     case Self.m_codstt of
-        101, 151, 155: Result := True;
+        101, 135, 151, 155: Result := True;
       else
           Result := False;
     end;
+end;
+
+function TCNotFis00.CStatDenegado: Boolean;
+begin
+    case Self.m_codstt of
+          110, 301, 302, 303: Result := True;
+      else
+          Result :=False;
+    end;
+end;
+
+function TCNotFis00.CStatError: Boolean;
+var
+  cs: NotFis00CodStatus ;
+begin
+    Result :=(not CStatProcess)and //não esta processada
+             (not CStatCancel )and //não esta cancelada
+             (not(Self.m_codstt = 0))and //não status inicial
+             (not(Self.m_codstt =cs.DONE_SEND))and
+             (not(Self.m_codstt =cs.CONTING_OFFLINE))and
+             (not(Self.m_codstt =cs.RET_PENDENTE))and
+             (not(Self.m_codstt =cs.ERR_ASSINA))and
+             (not(Self.m_codstt =cs.ERR_CHECK_ASSINA))and
+             (not(Self.m_codstt =cs.ERR_SCHEMA))and
+             (not(Self.m_codstt =cs.ERR_REGRAS))and
+             (not(Self.m_codstt =cs.EM_PROCESS))and
+             (not(Self.m_codstt =cs.NFE_NAO_CONSTA_BD))and
+             (not(Self.m_codstt =cs.NFE_JA_CANCEL))and
+             (not(Self.m_codstt =cs.DUPL))and
+             (not(Self.m_codstt =cs.DUPL_DIF_CHV))and
+             (not(Self.m_codstt =cs.CHV_DIF_BD))and
+             (not(Self.m_codstt =cs.NFCE_DH_EMIS_RETRO))and
+             (not(Self.m_codstt =cs.ERR_GERAL)) ;
 end;
 
 function TCNotFis00.CStatProcess(): Boolean;
@@ -862,7 +998,7 @@ begin
     case Self.m_codstt of
         100, 110, 150, 301, 302, 303: Result := True;
       else
-          Result := False;
+          Result :=False;
     end;
 end;
 
@@ -1060,6 +1196,155 @@ begin
       }
 end;
 
+procedure TCNotFis00.FillDataSet(aDS: TDataSet);
+var
+  V: TVolCollectionItem;
+begin
+    //
+    m_transp.Vol.Clear;
+    m_cobr.Dup.Clear;
+    m_pag.Clear;
+
+    //ide
+    Self.m_codseq :=aDS.FieldByName('nf0_codseq').AsInteger ;
+    Self.m_codemp :=aDS.FieldByName('nf0_codemp').AsInteger ;
+    Self.m_codufe :=aDS.FieldByName('nf0_codufe').AsInteger ;
+    Self.m_natope :=aDS.FieldByName('nf0_natope').AsString ;
+    Self.m_indpag :=TpcnIndicadorPagamento(aDS.FieldByName('nf0_indpag').AsInteger) ;
+    Self.m_codmod :=aDS.FieldByName('nf0_codmod').AsInteger ;
+    Self.m_nserie :=aDS.FieldByName('nf0_nserie').AsInteger ;
+    Self.m_numdoc :=aDS.FieldByName('nf0_numdoc').AsInteger ;
+    Self.m_dtemis :=aDS.FieldByName('nf0_dtemis').AsDateTime ;
+    Self.m_dhsaient:=aDS.FieldByName('nf0_dhsaient').AsDateTime ;
+    Self.m_tipntf :=TpcnTipoNFe(aDS.FieldByName('nf0_tipntf').AsInteger) ;
+    Self.m_indope :=TpcnDestinoOperacao(aDS.FieldByName('nf0_indope').AsInteger) ;
+    Self.m_codmun :=aDS.FieldByName('nf0_codmun').AsInteger ;
+    Self.m_tipimp :=TpcnTipoImpressao(aDS.FieldByName('nf0_tipimp').AsInteger) ;
+    Self.m_tipemi :=TpcnTipoEmissao(aDS.FieldByName('nf0_tipemi').AsInteger) ;
+    Self.m_tipamb :=TpcnTipoAmbiente(aDS.FieldByName('nf0_tipamb').AsInteger) ;
+    Self.m_finnfe :=TpcnFinalidadeNFe(aDS.FieldByName('nf0_finnfe').AsInteger) ;
+    Self.m_indfinal:=TpcnConsumidorFinal(aDS.FieldByName('nf0_indfinal').AsInteger) ;
+    Self.m_indpres :=TpcnPresencaComprador(aDS.FieldByName('nf0_indpres').AsInteger) ;
+    Self.m_procemi :=TpcnProcessoEmissao(aDS.FieldByName('nf0_procemi').AsInteger) ;
+    Self.m_verproc :=aDS.FieldByName('nf0_verproc').AsString ;
+    Self.m_dhcont  :=aDS.FieldByName('nf0_dhcont').AsDateTime ;
+    Self.m_justif  :=aDS.FieldByName('nf0_justif').AsString ;
+
+    Self.m_chvref :=Trim(aDS.FieldByName('nf0_chvref').AsString);
+
+    //emit
+    {Self.m_emit.CNPJCPF := aDS.FieldByName('nf0_emicnpj').AsString ;
+    Self.m_emit.xNome :=aDS.FieldByName('nf0_eminome').AsString ;
+    Self.m_emit.xFant :=aDS.FieldByName('nf0_emifant').AsString ;
+    Self.m_emit.EnderEmit.xLgr:=aDS.FieldByName('nf0_emilogr').AsString ;
+    Self.m_emit.EnderEmit.nro :=aDS.FieldByName('nf0_eminumero').AsString;
+    Self.m_emit.EnderEmit.xCpl :=aDS.FieldByName('nf0_emicomple').AsString ;
+    Self.m_emit.EnderEmit.xBairro :=aDS.FieldByName('nf0_emibairro').AsString ;
+    Self.m_emit.EnderEmit.cMun :=aDS.FieldByName('nf0_emicodmun').AsInteger ;
+    Self.m_emit.EnderEmit.xMun :=aDS.FieldByName('nf0_emimun').AsString ;
+    Self.m_emit.EnderEmit.UF :=aDS.FieldByName('nf0_emiufe').AsString ;
+    Self.m_emit.EnderEmit.CEP    :=aDS.FieldByName('nf0_emicep').AsInteger ;
+    Self.m_emit.EnderEmit.fone   :=aDS.FieldByName('nf0_emifone').AsString ;
+    Self.m_emit.IE   :=aDS.FieldByName('nf0_emiie').AsString ;
+    Self.m_emit.IEST :=aDS.FieldByName('nf0_emiiest').AsString;
+    Self.m_emit.CRT  :=TpcnCRT(aDS.FieldByName('nf0_emicrt').AsInteger) ;}
+
+    //dest
+    if aDS.FieldByName('nf0_dsttippes').IsNull then
+      Self.m_tippes :=tpFis
+    else
+        Self.m_tippes :=TNotFis00TipPes(aDS.FieldByName('nf0_dsttippes').AsInteger) ;
+    Self.m_dest.CNPJCPF :=aDS.FieldByName('nf0_dstcnpjcpf').AsString ;
+    Self.m_dest.idEstrangeiro :=aDS.FieldByName('nf0_dstidestra').AsString ;
+    Self.m_dest.xNome :=aDS.FieldByName('nf0_dstnome').AsString ;
+    Self.m_dest.EnderDest.xLgr :=aDS.FieldByName('nf0_dstlogr').AsString ;
+    Self.m_dest.EnderDest.nro :=aDS.FieldByName('nf0_dstnumero').AsString ;
+    Self.m_dest.EnderDest.xCpl :=aDS.FieldByName('nf0_dstcomple').AsString ;
+    Self.m_dest.EnderDest.xBairro :=aDS.FieldByName('nf0_dstbairro').AsString ;
+    Self.m_dest.EnderDest.cMun :=aDS.FieldByName('nf0_dstcodmun').AsInteger ;
+    Self.m_dest.EnderDest.xMun :=aDS.FieldByName('nf0_dstmun').AsString ;
+    Self.m_dest.EnderDest.UF :=aDS.FieldByName('nf0_dstufe').AsString ;
+    Self.m_dest.EnderDest.CEP :=aDS.FieldByName('nf0_dstcep').AsInteger ;
+    Self.m_dest.EnderDest.fone :=aDS.FieldByName('nf0_dstfone').AsString ;
+    Self.m_dest.indIEDest   :=TpcnindIEDest(aDS.FieldByName('nf0_dstindie').AsInteger) ;
+    Self.m_dest.IE   :=aDS.FieldByName('nf0_dstie').AsString ;
+    Self.m_dest.ISUF :=aDS.FieldByName('nf0_dstisuf').AsString ;
+    Self.m_dest.Email:=aDS.FieldByName('nf0_dstemail').AsString ;
+
+    //
+    // transportes
+    //
+    Self.m_transp.modFrete :=TpcnModalidadeFrete(aDS.FieldByName('nf0_modfret').AsInteger) ;
+    Self.m_transp.Transporta.CNPJCPF :=aDS.FieldByName('nf0_tracnpjcpf').AsString;
+    Self.m_transp.Transporta.xNome   :=aDS.FieldByName('nf0_tranome').AsString;
+    Self.m_transp.Transporta.IE      :=aDS.FieldByName('nf0_traie').AsString;
+    Self.m_transp.Transporta.xEnder  :=aDS.FieldByName('nf0_traend').AsString;
+    Self.m_transp.Transporta.xMun    :=aDS.FieldByName('nf0_tramun').AsString;
+    Self.m_transp.Transporta.UF      :=aDS.FieldByName('nf0_traufe').AsString;
+    Self.m_transp.veicTransp.placa :=aDS.FieldByName('nf0_veiplaca').AsString;
+    Self.m_transp.veicTransp.UF    :=aDS.FieldByName('nf0_veiufe').AsString;
+    Self.m_transp.veicTransp.RNTC  :=aDS.FieldByName('nf0_veirntc').AsString;
+
+    //
+    // volumes
+    //V :=Self.m_transp.Vol.Add ; deprecated
+    V :=Self.m_transp.Vol.New ;
+    V.qVol  :=aDS.FieldByName('nf0_volqtd').AsInteger;
+    V.esp   :=aDS.FieldByName('nf0_volesp').AsString;
+    V.marca :=aDS.FieldByName('nf0_volmrc').AsString;
+    V.nVol  :=aDS.FieldByName('nf0_volnum').AsString;
+    V.pesoL :=aDS.FieldByName('nf0_volpsol').AsFloat;
+    V.pesoB :=aDS.FieldByName('nf0_volpsob').AsFloat;
+
+    Self.m_codped :=aDS.FieldByName('nf0_codped').AsInteger ;
+
+    Self.m_codstt:=aDS.FieldByName('nf0_codstt').AsInteger;
+    Self.m_motivo:=aDS.FieldByName('nf0_motivo').AsString ;
+
+    Self.m_chvnfe:=aDS.FieldByName('nf0_chvnfe').AsString ;
+    //Self.m_xml   :=aDS.FieldByName('nf0_xml').AsString ;
+    Self.m_indsinc:=aDS.FieldByName('nf0_indsinc').AsInteger;
+
+    Self.m_verapp:=aDS.FieldByName('nf0_verapp').AsString ;
+    Self.m_dhreceb:=aDS.FieldByName('nf0_dhreceb').AsDateTime;
+    Self.m_numreci:=aDS.FieldByName('nf0_numreci').AsString ;
+    Self.m_numprot:=aDS.FieldByName('nf0_numprot').AsString ;
+    Self.m_digval:=aDS.FieldByName('nf0_digval').AsString ;
+
+    // consumo indevido
+    Self.m_consumo :=aDS.FieldByName('nf0_consumo').AsInteger;
+
+    // info cmple
+    Self.m_infCpl:=aDS.FieldByName('nf0_infcpl').AsString ;
+
+    Self.m_oriindpag :=Self.m_indpag;
+    Self.m_oritipemi :=Self.m_tipemi;
+    Self.m_oricodstt :=Self.m_codstt;
+
+
+    //
+    // totais
+    m_icmstot.vBC :=aDS.FieldByName('vBC').AsCurrency ;
+    m_icmstot.vICMS :=aDS.FieldByName('vICMS').AsCurrency ;
+    m_icmstot.vFCP :=aDS.FieldByName('vFCP').AsCurrency ;
+    m_icmstot.vBCST :=aDS.FieldByName('vBCST').AsCurrency ;
+    m_icmstot.vST :=aDS.FieldByName('vST').AsCurrency ;
+    m_icmstot.vFCPST :=aDS.FieldByName('vFCPST').AsCurrency ;
+    m_icmstot.vProd :=aDS.FieldByName('vProd').AsCurrency ;
+    m_icmstot.vFrete :=aDS.FieldByName('vFrete').AsCurrency ;
+    m_icmstot.vSeg :=aDS.FieldByName('vSeg').AsCurrency ;
+    m_icmstot.vDesc :=aDS.FieldByName('vDesc').AsCurrency ;
+    m_icmstot.vII :=aDS.FieldByName('vII').AsCurrency ;
+    m_icmstot.vIPI :=aDS.FieldByName('vIPI').AsCurrency ;
+    m_icmstot.vIPIDevol :=aDS.FieldByName('vIPIDevol').AsCurrency ;
+    m_icmstot.vPIS :=aDS.FieldByName('vPIS').AsCurrency ;
+    m_icmstot.vCOFINS :=aDS.FieldByName('vCOFINS').AsCurrency ;
+    m_icmstot.vOutro :=aDS.FieldByName('vOutro').AsCurrency ;
+    m_icmstot.vTotTrib :=aDS.FieldByName('vTrib').AsCurrency ;
+    m_icmstot.vNF :=aDS.FieldByName('vNF').AsCurrency ;
+
+end;
+
 function TCNotFis00.IndexOf(const codint: Int32): TCNotFis01;
 var
   found: Boolean ;
@@ -1082,7 +1367,8 @@ end;
 function TCNotFis00.Load(const codseq: Integer): Boolean;
 var
   F: TNotFis00Filter ;
-  Q: TADOQuery ;
+  Q: TDataSet ;// TADOQuery ;
+  cmplvl: Integer;
 begin
     //
     Result :=False ;
@@ -1092,13 +1378,25 @@ begin
     else
         F.Create(Self.m_codseq, 0);
 
-    Q :=TCNotFis00Lote.CLoad(F) ;
+    //
+    // combatibilidade
+    cmplvl :=TADOQuery.getCompLevel ;
+    if cmplvl > 8 then
+        Q :=TCNotFis00Lote.CLoadSPNotFis00Busca(F)
+    else
+        Q :=TCNotFis00Lote.CLoad(F) ;
+
     try
         Result :=not Q.IsEmpty ;
         if Result then
         begin
-            Self.LoadFromQ(Q);
-            Self.LoadItems;
+            if cmplvl > 8 then
+                Self.FillDataSet(Q)
+            else begin
+                Self.LoadItems() ;
+                Self.LoadFromQ(Q);
+            end;
+            Self.LoadFormaPgto();
         end;
     finally
         Q.Free ;
@@ -1129,6 +1427,39 @@ procedure TCNotFis00.LoadFormaPgto();
 var
   Q: TADOQuery ;
 var
+  saveSQL: Boolean;
+  F: string ;
+  //
+  //
+  procedure DoLoadFormaPgtos(const aTabVenda, aTabFormPagVenda: string);
+  begin
+      Q.AddCmd('declare @codped int; set @codped =%d        ',[Self.m_codped]);
+      Q.AddCmd('select                                      ');
+      Q.AddCmd('  v.troco as vtroco  ,                      ');
+      Q.AddCmd('  fp.indice as tippag,                      ');
+      Q.AddCmd('  fp.codformapagamento as codfpg,           ');
+      Q.AddCmd('  fp.nome as descri,                        ');
+      Q.AddCmd('  fpv.valor as vlrpag,                      ');
+      Q.AddCmd('  fpv.datareceber as dtvenc                 ');
+      Q.AddCmd('from %s v with(readpast)                    ',[aTabVenda]);
+      Q.AddCmd('inner join %s fpv with(readpast) on fpv.codvenda =v.codvenda',[aTabFormPagVenda]);
+      Q.AddCmd('inner join formapagamento fp with(readpast) on fpv.codformapagamento=fp.codformapagamento');
+      Q.AddCmd('where v.codvenda =@codped                   ');
+      //
+      // save SQL
+      if saveSQL then
+      begin
+          case m_Parent.m_Filter.filTyp of
+              ftNormal: F:=Format('App-%s.LoadFormaPgto.%s.SQL',[Self.ClassName,aTabFormPagVenda]);
+              ftService:F:=Format('Svc-%s.LoadFormaPgto.%s.SQL',[Self.ClassName,aTabFormPagVenda]);
+              ftFech:   F:=Format('Fcx-%s.LoadFormaPgto.%s.SQL',[Self.ClassName,aTabFormPagVenda]);
+          end;
+          Q.SaveToFile(F);
+      end;
+      Q.Open ;
+  end;
+  //
+var
   D: TDupCollectionItem ;
   P: TpagCollectionItem ;
 var
@@ -1139,6 +1470,9 @@ begin
     Self.m_pag.Clear;
 
     m_vlrpag :=0;
+    vfat :=0;
+
+    saveSQL :=Assigned(m_Parent)and(m_Parent.m_Filter.save) ;
 
     //
     Q :=TADOQuery.NewADOQuery() ;
@@ -1151,42 +1485,73 @@ begin
     begin
         //
         // busca primeiro no contas a receber!
-        Q.AddCmd('select                        ');
-        Q.AddCmd('  codcontareceber as numdup,  ');
-        Q.AddCmd('  valor as valdup,            ');
-        Q.AddCmd('  datavenc as dtvenc,         ');
-        Q.AddCmd('  prestacaoreferente as numpar');
-        Q.AddCmd('from contareceber r           ');
-        Q.AddCmd('where codvenda =%d            ',[Self.m_codped]);
-        Q.AddCmd('order by datavenc             ');
+        Q.AddCmd('select                            ');
+        Q.AddCmd('  codcontareceber as numdup,      ');
+        Q.AddCmd('  valor as valdup,                ');
+        Q.AddCmd('  datavenc as dtvenc,             ');
+        Q.AddCmd('  prestacaoreferente as numpar    ');
+        Q.AddCmd('from contareceber r with(readpast)');
+        Q.AddCmd('where codvenda =%d                ',[Self.m_codped]);
+        Q.AddCmd('order by datavenc                 ');
+
+        if saveSQL then
+        begin
+            case m_Parent.m_Filter.filTyp of
+                ftNormal: F:=Format('App-%s.LoadFormaPgto.contareceber.SQL',[Self.ClassName]);
+                ftService:F:=Format('Svc-%s.LoadFormaPgto.contareceber.SQL',[Self.ClassName]);
+                ftFech:   F:=Format('Fcx-%s.LoadFormaPgto.contareceber.SQL',[Self.ClassName]);
+            end;
+            Q.SaveToFile(F);
+        end;
+
         Q.Open ;
+
+        Self.m_indpag :=ipPrazo;
+        vfat :=0 ;
+        while not Q.Eof do
+        begin
+            D :=Self.m_cobr.Dup.New ;
+            D.nDup :=Format('%.3d',[Q.Field('numpar').AsInteger]) ;
+            D.dVenc:=Q.Field('dtvenc').AsDateTime;
+            D.vDup :=Q.Field('valdup').AsCurrency ;
+            vfat :=vfat +D.vDup ;
+            Q.Next ;
+        end;
 
         //
         // caso não encontra,
         // busca em forma de pagamento
-        if Q.IsEmpty then
+        {if Q.IsEmpty then
         begin
-            Q.AddCmd('declare @codped int; set @codped =%d',[Self.m_codped]);
-            Q.AddCmd('select                              ');
-            Q.AddCmd('  fp.indice as tippag,              ');
-            Q.AddCmd('  fpv.codformapagvenda as numdup,   ');
-            Q.AddCmd('  fpv.valor as valdup,              ');
-            Q.AddCmd('  fpv.datareceber as dtvenc         ');
-            Q.AddCmd('from formapagamentovenda fpv        ');
-            Q.AddCmd('inner join formapagamento fp on fpv.codformapagamento=fp.codformapagamento');
-            Q.AddCmd('where codvenda =@codped             ');
+            Q.AddCmd('declare @codped int; set @codped =%d        ',[Self.m_codped]);
+            Q.AddCmd('select                                      ');
+            Q.AddCmd('  fp.indice as tippag,                      ');
+            Q.AddCmd('  fpv.codformapagvenda as numdup,           ');
+            Q.AddCmd('  fpv.valor as valdup,                      ');
+            Q.AddCmd('  fpv.datareceber as dtvenc                 ');
+            Q.AddCmd('from formapagamentovenda fpv with(readpast) ');
+            Q.AddCmd('inner join formapagamento fp with(readpast) on fpv.codformapagamento=fp.codformapagamento');
+            Q.AddCmd('where codvenda =@codped                     ');
             //
             // link com a hist
-            Q.AddCmd('union all                           ');
-            Q.AddCmd('select                              ');
-            Q.AddCmd('  fp.indice as tippag,              ');
-            Q.AddCmd('  fpv.codformapagvenda as numdup,   ');
-            Q.AddCmd('  fpv.valor as valdup,              ');
-            Q.AddCmd('  fpv.datareceber as dtvenc         ');
-            Q.AddCmd('from histformapagamentovenda fpv    ');
-            Q.AddCmd('inner join formapagamento fp on fpv.codformapagamento=fp.codformapagamento');
-            Q.AddCmd('where codvenda =@codped             ');
-
+            Q.AddCmd('union all                                       ');
+            Q.AddCmd('select                                          ');
+            Q.AddCmd('  fp.indice as tippag,                          ');
+            Q.AddCmd('  fpv.codformapagvenda as numdup,               ');
+            Q.AddCmd('  fpv.valor as valdup,                          ');
+            Q.AddCmd('  fpv.datareceber as dtvenc                     ');
+            Q.AddCmd('from histformapagamentovenda fpv with(readpast) ');
+            Q.AddCmd('inner join formapagamento fp with(readpast) on fpv.codformapagamento=fp.codformapagamento');
+            Q.AddCmd('where codvenda =@codped                         ');
+            if saveSQL then
+            begin
+                case m_Parent.m_Filter.filTyp of
+                    ftNormal: F:=Format('App-%s.LoadFormaPgto.formapagamentovenda.SQL',[Self.ClassName]);
+                    ftService:F:=Format('Svc-%s.LoadFormaPgto.formapagamentovenda.SQL',[Self.ClassName]);
+                    ftFech:   F:=Format('Fcx-%s.LoadFormaPgto.formapagamentovenda.SQL',[Self.ClassName]);
+                end;
+                Q.SaveToFile(F);
+            end;
             Q.Open ;
             if(not Q.Field('tippag').IsNull)and(Q.Field('tippag').AsInteger=1)then
                 Self.m_indpag :=ipVista
@@ -1206,7 +1571,7 @@ begin
                 vfat :=vfat +D.vDup ;
                 Q.Next ;
             end;
-        end;
+        end;}
     end;
 
     //
@@ -1221,18 +1586,29 @@ begin
 
     //
     // pagamentos
-    // mantem leiaute 3.10,
-    Q.AddCmd('declare @codped int; set @codped =%d ',[Self.m_codped]);
-    Q.AddCmd('select                               ');
-    Q.AddCmd('  fp.indice as tippag,               ');
-    Q.AddCmd('  fp.codformapagamento as codfpg,    ');
-    Q.AddCmd('  fp.nome as descri,                 ');
-    Q.AddCmd('  fpv.valor as vlrpag,               ');
-    Q.AddCmd('  v.troco as vtroco                  ');
-    Q.AddCmd('from venda v                         ');
-    Q.AddCmd('inner join formapagamentovenda fpv on fpv.codvenda =v.codvenda            ');
-    Q.AddCmd('inner join formapagamento fp on fpv.codformapagamento=fp.codformapagamento');
-    Q.AddCmd('where v.codvenda=@codped             ');
+
+    //
+    // load venda/formapagamentovenda
+    DoLoadFormaPgtos('venda','formapagamentovenda');
+    //
+    // não encontrou
+    if Q.IsEmpty then
+    begin
+        //
+        // load histvenda/histformapagamentovenda
+        DoLoadFormaPgtos('histvenda','histformapagamentovenda');
+    end ;
+    {Q.AddCmd('declare @codped int; set @codped =%d  ',[Self.m_codped]);
+    Q.AddCmd('select                                ');
+    Q.AddCmd('  fp.indice as tippag,                ');
+    Q.AddCmd('  fp.codformapagamento as codfpg,     ');
+    Q.AddCmd('  fp.nome as descri,                  ');
+    Q.AddCmd('  fpv.valor as vlrpag,                ');
+    Q.AddCmd('  v.troco as vtroco                   ');
+    Q.AddCmd('from venda v with(readpast)           ');
+    Q.AddCmd('inner join formapagamentovenda fpv with(readpast) on fpv.codvenda =v.codvenda            ');
+    Q.AddCmd('inner join formapagamento fp with(readpast) on fpv.codformapagamento=fp.codformapagamento');
+    Q.AddCmd('where v.codvenda=@codped              ');
     //hist
     Q.AddCmd('union all                            ');
     Q.AddCmd('select                               ');
@@ -1241,14 +1617,23 @@ begin
     Q.AddCmd('  fp.nome as descri,                 ');
     Q.AddCmd('  fpv.valor as vlrpag,               ');
     Q.AddCmd('  v.troco as vtroco                  ');
-    Q.AddCmd('from histvenda v                     ');
-    Q.AddCmd('inner join histformapagamentovenda fpv on fpv.codvenda =v.codvenda        ');
-    Q.AddCmd('inner join formapagamento fp on fpv.codformapagamento=fp.codformapagamento');
+    Q.AddCmd('from histvenda v with(readpast)      ');
+    Q.AddCmd('inner join histformapagamentovenda fpv with(readpast) on fpv.codvenda =v.codvenda        ');
+    Q.AddCmd('inner join formapagamento fp with(readpast) on fpv.codformapagamento=fp.codformapagamento');
     Q.AddCmd('where v.codvenda=@codped             ');
-    Q.Open ;
+    if saveSQL then
+    begin
+        case m_Parent.m_Filter.filTyp of
+            ftNormal: F:=Format('App-%s.LoadFormaPgto.formapagamentovenda-2.SQL',[Self.ClassName]);
+            ftService:F:=Format('Svc-%s.LoadFormaPgto.formapagamentovenda-2.SQL',[Self.ClassName]);
+            ftFech:   F:=Format('Fcx-%s.LoadFormaPgto.formapagamentovenda-2.SQL',[Self.ClassName]);
+        end;
+        Q.SaveToFile(F);
+    end;
+    Q.Open ;}
+
     while not Q.Eof do
     begin
-        //P :=Self.m_pag.Add ;
         P :=Self.m_pag.New ;
         if Q.Field('tippag').AsString = '' then
             P.tPag :=fpDinheiro
@@ -1257,9 +1642,6 @@ begin
               01:
               begin
                   P.tPag := fpDinheiro;
-                  //Self.m_Troco :=Q.Field('vtroco').AsCurrency;
-                  //
-                  // troco agora oficial
                   Self.m_pag.vTroco :=Q.Field('vtroco').AsCurrency;
               end;
               02: P.tPag :=fpCheque;
@@ -1280,13 +1662,18 @@ begin
         Q.Next ;
     end;
 
+    if Self.m_pag.Count > 1 then
+        Self.m_indpag :=ipOutras
+    else
+        Self.m_indpag :=ipVista ;
+
     Q.Free ;
 end;
 
 function TCNotFis00.LoadFromPed(const codped: Integer): Boolean;
 var
   F: TNotFis00Filter ;
-  Q: TADOQuery ;
+  Q: TDataSet; // TADOQuery ;
 begin
     //
     Result :=False ;
@@ -1299,159 +1686,144 @@ begin
         if Result then
         begin
             Self.LoadFromQ(Q);
-            Self.LoadItems;
+            //Self.LoadItems;
         end;
     finally
         Q.Free ;
     end;
 end;
 
-procedure TCNotFis00.LoadFromQ(Q: TADOQuery; const load_Items: Boolean);
+procedure TCNotFis00.LoadFromQ(Q: TDataSet);
 var
   V: TVolCollectionItem;
 begin
     //
-    m_transp.Vol.Clear ;
+    m_transp.Vol.Clear;
     m_cobr.Dup.Clear;
     m_pag.Clear;
 
     //ide
-    Self.m_codseq :=Q.Field('nf0_codseq').AsInteger ;
-    Self.m_codemp :=Q.Field('nf0_codemp').AsInteger ;
-    Self.m_codufe :=Q.Field('nf0_codufe').AsInteger ;
-    Self.m_natope :=Q.Field('nf0_natope').AsString ;
-    Self.m_indpag :=TpcnIndicadorPagamento(Q.Field('nf0_indpag').AsInteger) ;
-    Self.m_codmod :=Q.Field('nf0_codmod').AsInteger ;
-    Self.m_nserie :=Q.Field('nf0_nserie').AsInteger ;
-    Self.m_numdoc :=Q.Field('nf0_numdoc').AsInteger ;
-    Self.m_dtemis :=Q.Field('nf0_dtemis').AsDateTime ;
-    Self.m_dhsaient:=Q.Field('nf0_dhsaient').AsDateTime ;
-    Self.m_tipntf :=TpcnTipoNFe(Q.Field('nf0_tipntf').AsInteger) ;
-    Self.m_indope :=TpcnDestinoOperacao(Q.Field('nf0_indope').AsInteger) ;
-    Self.m_codmun :=Q.Field('nf0_codmun').AsInteger ;
-    Self.m_tipimp :=TpcnTipoImpressao(Q.Field('nf0_tipimp').AsInteger) ;
-    Self.m_tipemi :=TpcnTipoEmissao(Q.Field('nf0_tipemi').AsInteger) ;
-    Self.m_tipamb :=TpcnTipoAmbiente(Q.Field('nf0_tipamb').AsInteger) ;
-    Self.m_finnfe :=TpcnFinalidadeNFe(Q.Field('nf0_finnfe').AsInteger) ;
-    Self.m_indfinal:=TpcnConsumidorFinal(Q.Field('nf0_indfinal').AsInteger) ;
-    Self.m_indpres :=TpcnPresencaComprador(Q.Field('nf0_indpres').AsInteger) ;
-    Self.m_procemi :=TpcnProcessoEmissao(Q.Field('nf0_procemi').AsInteger) ;
-    Self.m_verproc :=Q.Field('nf0_verproc').AsString ;
-    Self.m_dhcont  :=Q.Field('nf0_dhcont').AsDateTime ;
-    Self.m_justif  :=Q.Field('nf0_justif').AsString ;
+    Self.m_codseq :=Q.FieldByName('nf0_codseq').AsInteger ;
+    Self.m_codemp :=Q.FieldByName('nf0_codemp').AsInteger ;
+    Self.m_codufe :=Q.FieldByName('nf0_codufe').AsInteger ;
+    Self.m_natope :=Q.FieldByName('nf0_natope').AsString ;
+    Self.m_indpag :=TpcnIndicadorPagamento(Q.FieldByName('nf0_indpag').AsInteger) ;
+    Self.m_codmod :=Q.FieldByName('nf0_codmod').AsInteger ;
+    Self.m_nserie :=Q.FieldByName('nf0_nserie').AsInteger ;
+    Self.m_numdoc :=Q.FieldByName('nf0_numdoc').AsInteger ;
+    Self.m_dtemis :=Q.FieldByName('nf0_dtemis').AsDateTime ;
+    Self.m_dhsaient:=Q.FieldByName('nf0_dhsaient').AsDateTime ;
+    Self.m_tipntf :=TpcnTipoNFe(Q.FieldByName('nf0_tipntf').AsInteger) ;
+    Self.m_indope :=TpcnDestinoOperacao(Q.FieldByName('nf0_indope').AsInteger) ;
+    Self.m_codmun :=Q.FieldByName('nf0_codmun').AsInteger ;
+    Self.m_tipimp :=TpcnTipoImpressao(Q.FieldByName('nf0_tipimp').AsInteger) ;
+    Self.m_tipemi :=TpcnTipoEmissao(Q.FieldByName('nf0_tipemi').AsInteger) ;
+    Self.m_tipamb :=TpcnTipoAmbiente(Q.FieldByName('nf0_tipamb').AsInteger) ;
+    Self.m_finnfe :=TpcnFinalidadeNFe(Q.FieldByName('nf0_finnfe').AsInteger) ;
+    Self.m_indfinal:=TpcnConsumidorFinal(Q.FieldByName('nf0_indfinal').AsInteger) ;
+    Self.m_indpres :=TpcnPresencaComprador(Q.FieldByName('nf0_indpres').AsInteger) ;
+    Self.m_procemi :=TpcnProcessoEmissao(Q.FieldByName('nf0_procemi').AsInteger) ;
+    Self.m_verproc :=Q.FieldByName('nf0_verproc').AsString ;
+    Self.m_dhcont  :=Q.FieldByName('nf0_dhcont').AsDateTime ;
+    Self.m_justif  :=Q.FieldByName('nf0_justif').AsString ;
 
-    Self.m_chvref :=Trim(Q.Field('nf0_chvref').AsString);
+    Self.m_chvref :=Trim(Q.FieldByName('nf0_chvref').AsString);
 
     //emit
-    Self.m_emit.CNPJCPF :=Q.Field('nf0_emicnpj').AsString ;
-    Self.m_emit.xNome :=Q.Field('nf0_eminome').AsString ;
-    Self.m_emit.xFant :=Q.Field('nf0_emifant').AsString ;
-    Self.m_emit.EnderEmit.xLgr:=Q.Field('nf0_emilogr').AsString ;
-    Self.m_emit.EnderEmit.nro :=Q.Field('nf0_eminumero').AsString;
-    Self.m_emit.EnderEmit.xCpl :=Q.Field('nf0_emicomple').AsString ;
-    Self.m_emit.EnderEmit.xBairro :=Q.Field('nf0_emibairro').AsString ;
-    Self.m_emit.EnderEmit.cMun :=Q.Field('nf0_emicodmun').AsInteger ;
-    Self.m_emit.EnderEmit.xMun :=Q.Field('nf0_emimun').AsString ;
-    Self.m_emit.EnderEmit.UF :=Q.Field('nf0_emiufe').AsString ;
-    Self.m_emit.EnderEmit.CEP    :=Q.Field('nf0_emicep').AsInteger ;
-    Self.m_emit.EnderEmit.fone   :=Q.Field('nf0_emifone').AsString ;
-    Self.m_emit.IE   :=Q.Field('nf0_emiie').AsString ;
-    Self.m_emit.IEST :=Q.Field('nf0_emiiest').AsString;
-    Self.m_emit.CRT  :=TpcnCRT(Q.Field('nf0_emicrt').AsInteger) ;
+    Self.m_emit.CNPJCPF :=Q.FieldByName('nf0_emicnpj').AsString ;
+    Self.m_emit.xNome :=Q.FieldByName('nf0_eminome').AsString ;
+    Self.m_emit.xFant :=Q.FieldByName('nf0_emifant').AsString ;
+    Self.m_emit.EnderEmit.xLgr:=Q.FieldByName('nf0_emilogr').AsString ;
+    Self.m_emit.EnderEmit.nro :=Q.FieldByName('nf0_eminumero').AsString;
+    Self.m_emit.EnderEmit.xCpl :=Q.FieldByName('nf0_emicomple').AsString ;
+    Self.m_emit.EnderEmit.xBairro :=Q.FieldByName('nf0_emibairro').AsString ;
+    Self.m_emit.EnderEmit.cMun :=Q.FieldByName('nf0_emicodmun').AsInteger ;
+    Self.m_emit.EnderEmit.xMun :=Q.FieldByName('nf0_emimun').AsString ;
+    Self.m_emit.EnderEmit.UF :=Q.FieldByName('nf0_emiufe').AsString ;
+    Self.m_emit.EnderEmit.CEP    :=Q.FieldByName('nf0_emicep').AsInteger ;
+    Self.m_emit.EnderEmit.fone   :=Q.FieldByName('nf0_emifone').AsString ;
+    Self.m_emit.IE   :=Q.FieldByName('nf0_emiie').AsString ;
+    Self.m_emit.IEST :=Q.FieldByName('nf0_emiiest').AsString;
+    Self.m_emit.CRT  :=TpcnCRT(Q.FieldByName('nf0_emicrt').AsInteger) ;
 
     //dest
-    if Q.Field('nf0_dsttippes').IsNull then
+    if Q.FieldByName('nf0_dsttippes').IsNull then
       Self.m_tippes :=tpFis
     else
-        Self.m_tippes :=TNotFis00TipPes(Q.Field('nf0_dsttippes').AsInteger) ;
-    Self.m_dest.CNPJCPF :=Q.Field('nf0_dstcnpjcpf').AsString ;
-    Self.m_dest.idEstrangeiro :=Q.Field('nf0_dstidestra').AsString ;
-    Self.m_dest.xNome :=Q.Field('nf0_dstnome').AsString ;
-    Self.m_dest.EnderDest.xLgr :=Q.Field('nf0_dstlogr').AsString ;
-    Self.m_dest.EnderDest.nro :=Q.Field('nf0_dstnumero').AsString ;
-    Self.m_dest.EnderDest.xCpl :=Q.Field('nf0_dstcomple').AsString ;
-    Self.m_dest.EnderDest.xBairro :=Q.Field('nf0_dstbairro').AsString ;
-    Self.m_dest.EnderDest.cMun :=Q.Field('nf0_dstcodmun').AsInteger ;
-    Self.m_dest.EnderDest.xMun :=Q.Field('nf0_dstmun').AsString ;
-    Self.m_dest.EnderDest.UF :=Q.Field('nf0_dstufe').AsString ;
-    Self.m_dest.EnderDest.CEP :=Q.Field('nf0_dstcep').AsInteger ;
-    Self.m_dest.EnderDest.fone :=Q.Field('nf0_dstfone').AsString ;
-    Self.m_dest.indIEDest   :=TpcnindIEDest(Q.Field('nf0_dstindie').AsInteger) ;
-    Self.m_dest.IE   :=Q.Field('nf0_dstie').AsString ;
-    Self.m_dest.ISUF :=Q.Field('nf0_dstisuf').AsString ;
-    Self.m_dest.Email:=Q.Field('nf0_dstemail').AsString ;
+        Self.m_tippes :=TNotFis00TipPes(Q.FieldByName('nf0_dsttippes').AsInteger) ;
+    Self.m_dest.CNPJCPF :=Q.FieldByName('nf0_dstcnpjcpf').AsString ;
+    Self.m_dest.idEstrangeiro :=Q.FieldByName('nf0_dstidestra').AsString ;
+    Self.m_dest.xNome :=Q.FieldByName('nf0_dstnome').AsString ;
+    Self.m_dest.EnderDest.xLgr :=Q.FieldByName('nf0_dstlogr').AsString ;
+    Self.m_dest.EnderDest.nro :=Q.FieldByName('nf0_dstnumero').AsString ;
+    Self.m_dest.EnderDest.xCpl :=Q.FieldByName('nf0_dstcomple').AsString ;
+    Self.m_dest.EnderDest.xBairro :=Q.FieldByName('nf0_dstbairro').AsString ;
+    Self.m_dest.EnderDest.cMun :=Q.FieldByName('nf0_dstcodmun').AsInteger ;
+    Self.m_dest.EnderDest.xMun :=Q.FieldByName('nf0_dstmun').AsString ;
+    Self.m_dest.EnderDest.UF :=Q.FieldByName('nf0_dstufe').AsString ;
+    Self.m_dest.EnderDest.CEP :=Q.FieldByName('nf0_dstcep').AsInteger ;
+    Self.m_dest.EnderDest.fone :=Q.FieldByName('nf0_dstfone').AsString ;
+    Self.m_dest.indIEDest   :=TpcnindIEDest(Q.FieldByName('nf0_dstindie').AsInteger) ;
+    Self.m_dest.IE   :=Q.FieldByName('nf0_dstie').AsString ;
+    Self.m_dest.ISUF :=Q.FieldByName('nf0_dstisuf').AsString ;
+    Self.m_dest.Email:=Q.FieldByName('nf0_dstemail').AsString ;
 
     //
     // transportes
     //
-    Self.m_transp.modFrete :=TpcnModalidadeFrete(Q.Field('nf0_modfret').AsInteger) ;
-    Self.m_transp.Transporta.CNPJCPF :=Q.Field('nf0_tracnpjcpf').AsString;
-    Self.m_transp.Transporta.xNome   :=Q.Field('nf0_tranome').AsString;
-    Self.m_transp.Transporta.IE      :=Q.Field('nf0_traie').AsString;
-    Self.m_transp.Transporta.xEnder  :=Q.Field('nf0_traend').AsString;
-    Self.m_transp.Transporta.xMun    :=Q.Field('nf0_tramun').AsString;
-    Self.m_transp.Transporta.UF      :=Q.Field('nf0_traufe').AsString;
-    Self.m_transp.veicTransp.placa :=Q.Field('nf0_veiplaca').AsString;
-    Self.m_transp.veicTransp.UF    :=Q.Field('nf0_veiufe').AsString;
-    Self.m_transp.veicTransp.RNTC  :=Q.Field('nf0_veirntc').AsString;
+    Self.m_transp.modFrete :=TpcnModalidadeFrete(Q.FieldByName('nf0_modfret').AsInteger) ;
+    Self.m_transp.Transporta.CNPJCPF :=Q.FieldByName('nf0_tracnpjcpf').AsString;
+    Self.m_transp.Transporta.xNome   :=Q.FieldByName('nf0_tranome').AsString;
+    Self.m_transp.Transporta.IE      :=Q.FieldByName('nf0_traie').AsString;
+    Self.m_transp.Transporta.xEnder  :=Q.FieldByName('nf0_traend').AsString;
+    Self.m_transp.Transporta.xMun    :=Q.FieldByName('nf0_tramun').AsString;
+    Self.m_transp.Transporta.UF      :=Q.FieldByName('nf0_traufe').AsString;
+    Self.m_transp.veicTransp.placa :=Q.FieldByName('nf0_veiplaca').AsString;
+    Self.m_transp.veicTransp.UF    :=Q.FieldByName('nf0_veiufe').AsString;
+    Self.m_transp.veicTransp.RNTC  :=Q.FieldByName('nf0_veirntc').AsString;
 
     //
     // volumes
     //V :=Self.m_transp.Vol.Add ; deprecated
     V :=Self.m_transp.Vol.New ;
-    V.qVol  :=Q.Field('nf0_volqtd').AsInteger;
-    V.esp   :=Q.Field('nf0_volesp').AsString;
-    V.marca :=Q.Field('nf0_volmrc').AsString;
-    V.nVol  :=Q.Field('nf0_volnum').AsString;
-    V.pesoL :=Q.Field('nf0_volpsol').AsFloat;
-    V.pesoB :=Q.Field('nf0_volpsob').AsFloat;
+    V.qVol  :=Q.FieldByName('nf0_volqtd').AsInteger;
+    V.esp   :=Q.FieldByName('nf0_volesp').AsString;
+    V.marca :=Q.FieldByName('nf0_volmrc').AsString;
+    V.nVol  :=Q.FieldByName('nf0_volnum').AsString;
+    V.pesoL :=Q.FieldByName('nf0_volpsol').AsFloat;
+    V.pesoB :=Q.FieldByName('nf0_volpsob').AsFloat;
 
-    Self.m_codped :=Q.Field('nf0_codped').AsInteger ;
+    Self.m_codped :=Q.FieldByName('nf0_codped').AsInteger ;
 
-    Self.m_codstt:=Q.Field('nf0_codstt').AsInteger;
-    Self.m_motivo:=Q.Field('nf0_motivo').AsString ;
+    Self.m_codstt:=Q.FieldByName('nf0_codstt').AsInteger;
+    Self.m_motivo:=Q.FieldByName('nf0_motivo').AsString ;
 
-    Self.m_chvnfe:=Q.Field('nf0_chvnfe').AsString ;
-    //Self.m_xml   :=Q.Field('nf0_xml').AsString ;
-    Self.m_indsinc:=Q.Field('nf0_indsinc').AsInteger;
+    Self.m_chvnfe:=Q.FieldByName('nf0_chvnfe').AsString ;
+    //Self.m_xml   :=Q.FieldByName('nf0_xml').AsString ;
+    Self.m_indsinc:=Q.FieldByName('nf0_indsinc').AsInteger;
 
-    Self.m_verapp:=Q.Field('nf0_verapp').AsString ;
-    Self.m_dhreceb:=Q.Field('nf0_dhreceb').AsDateTime;
-    Self.m_numreci:=Q.Field('nf0_numreci').AsString ;
-    Self.m_numprot:=Q.Field('nf0_numprot').AsString ;
-    Self.m_digval:=Q.Field('nf0_digval').AsString ;
+    Self.m_verapp:=Q.FieldByName('nf0_verapp').AsString ;
+    Self.m_dhreceb:=Q.FieldByName('nf0_dhreceb').AsDateTime;
+    Self.m_numreci:=Q.FieldByName('nf0_numreci').AsString ;
+    Self.m_numprot:=Q.FieldByName('nf0_numprot').AsString ;
+    Self.m_digval:=Q.FieldByName('nf0_digval').AsString ;
 
     // consumo indevido
-    Self.m_consumo :=Q.Field('nf0_consumo').AsInteger;
+    Self.m_consumo :=Q.FieldByName('nf0_consumo').AsInteger;
 
     // info cmple
-    Self.m_infCpl:=Q.Field('nf0_infcpl').AsString ;
+    Self.m_infCpl:=Q.FieldByName('nf0_infcpl').AsString ;
 
     Self.m_oriindpag :=Self.m_indpag;
     Self.m_oritipemi :=Self.m_tipemi;
     Self.m_oricodstt :=Self.m_codstt;
-
-    //
-    // load pagtos/duplicatas
-    Self.LoadFormaPgto();
-
-    //
-    // inf cpl
-    Self.LoadInfCpl();
-
-    //
-    // load items
-    if load_Items then
-    begin
-        Self.LoadItems ;
-    end;
-
 end;
 
 procedure TCNotFis00.LoadInfCpl;
 var
   Q: TADOQuery ;
 begin
+
     { DESCONTINUADO !!! MOVIDO PARA AS SP´s NOTFIS00_ADD/UPD
     Q :=TADOQuery.NewADOQuery() ;
     try
@@ -1717,7 +2089,7 @@ begin
 
         //
         // base item
-        Q.AddCmd('from notfis01                         ');
+        Q.AddCmd('from notfis01 with(readpast)          ');
         Q.AddCmd('where nf1_codntf =@codntf             ');
 
         if not Q.Prepared then
@@ -1975,19 +2347,49 @@ begin
 
 end;
 
-function TCNotFis00.LoadXML: Boolean;
+function TCNotFis00.LoadXML(): Boolean ;
 var
-  Q: TADOQuery ;
+  Q: TADOQuery;
+  fnf0_xml: TField;
+  //
+  // compatibilidade
+  cmplvl: SmallInt;
 begin
+
     Q :=TADOQuery.NewADOQuery() ;
     try
-        Q.AddCmd('select nf0_xml from notfis00 where nf0_codseq =%d',[Self.m_codseq]) ;
+        //
+        // compatibilidade
+//        Q.AddCmd('declare @versql sysname; set @versql =convert(sysname,serverproperty(%s));',[Q.FStr('ProductVersion')]);
+//        Q.AddCmd('declare @posdot smallint;set @posdot =charindex(%s,@versql);              ',[Q.FStr('.')]);
+//        Q.AddCmd('declare @cmplvl smallint;set @cmplvl =substring(@versql,1,@posdot-1);     ');
+        //
+        // ID
+//        Q.AddCmd('declare @codseq int; set @codseq =%d;     ',[Self.m_codseq]) ;
+        //
+        //
+//        Q.AddCmd('if(@cmplvl >= 9) --sql 2005                                               ');
+//        Q.AddCmd('  select                                                                  ');
+//        Q.AddCmd('    case when nf0_xml is null then nf0_xmltyp else nf0_xml end as nf0_xml ');
+//        Q.AddCmd('  from notfis00 where nf0_codseq =@codseq                                 ');
+//        Q.AddCmd('else                                                                      ');
+        Q.AddCmd('select nf0_xml from notfis00 where nf0_codseq =%d;     ',[Self.m_codseq]) ;
         Q.Open ;
-        Result :=not Q.IsEmpty ;
-        if Result then
+        fnf0_xml :=Q.Field('nf0_xml') ;
+        if fnf0_xml.IsNull then
         begin
-            Self.m_xml :=Q.Field('nf0_xml').AsString ;
+            cmplvl :=TADOQuery.getCompLevel ;
+            if cmplvl > 8 then
+            begin
+                Q.AddCmd('select nf0_xmltyp as nf0_xml from notfis00 where nf0_codseq =%d;',[Self.m_codseq]);
+                Q.Open ;
+                fnf0_xml :=Q.Field('nf0_xml') ;
+            end;
         end;
+
+        Self.m_xml :=fnf0_xml.AsString ;
+        Result :=Trim(Self.m_xml) <> '';
+
     finally
         Q.Free ;
     end;
@@ -2141,6 +2543,54 @@ begin
     end;
 end;
 
+procedure TCNotFis00.setCodLote(const aCodLot: Integer);
+var
+  C: TADOCommand ;
+  cs: NotFis00CodStatus;
+begin
+    //
+    // se status for consumo indevido!
+    if Self.m_codstt =cs.ERR_CONSUMO_INDEVIDO then
+    begin
+        //
+        // reset para posterior processamento
+        Self.m_codstt :=cs.ERR_REGRAS ;
+        Self.m_consumo:=1;
+    end;
+
+    C :=TADOCommand.NewADOCommand() ;
+    try
+      C.AddCmd('update notfis00 set   ');
+      C.AddCmd('   nf0_codlot  =%d    ',[acodlot]);
+      C.AddCmd('  ,nf0_codstt  =%d    ',[Self.m_codstt]);
+      C.AddCmd('  ,nf0_consumo =%d    ',[Self.m_consumo]);
+      C.AddCmd('where nf0_codseq =%d  ',[Self.m_codseq]);
+      C.Execute ;
+    finally
+      C.Free ;
+    end;
+end;
+
+procedure TCNotFis00.setConsumoWS;
+var
+  C: TADOCommand ;
+  cs: NotFis00CodStatus;
+begin
+    Self.m_codstt :=cs.ERR_REGRAS ;
+    Self.m_consumo:=1;
+
+    C :=TADOCommand.NewADOCommand() ;
+    try
+      C.AddCmd('update notfis00 set   ');
+      C.AddCmd('  nf0_codstt  =%d ,   ',[Self.m_codstt]);
+      C.AddCmd('  nf0_consumo =%d    ',[Self.m_consumo]);
+      C.AddCmd('where nf0_codseq =%d  ',[Self.m_codseq]);
+      C.Execute ;
+    finally
+      C.Free ;
+    end;
+end;
+
 procedure TCNotFis00.setContinge(const xJustif: string;
   const aCancel: Boolean) ;
 var
@@ -2269,12 +2719,54 @@ end;
 procedure TCNotFis00.setStatus();
 var
   C: TADOCommand ;
+  cs: NotFis00CodStatus;
 begin
+
+    //
+    // trata status
+    // chk erro nas regras de negocio
+    if CStatError then
+    begin
+        m_motivo:=Format('%d|%s',[Self.m_codstt,Self.m_motivo]);
+        //
+        // padroniza qr erro para o 88
+        m_codstt:=cs.ERR_REGRAS ;
+
+        //
+        // se pesistir msm codigo
+        // poder ser q hj consumo indevido
+        if m_codstt =m_oricodstt then
+        begin
+            //
+            // chk consumo indevido
+            if m_consumo < TCNotFis00.QTD_MAX_CONSUMO -1 then
+            begin
+                m_consumo :=m_consumo +1 ;
+            end
+            //
+            // consumo indevido ativo
+            else begin
+                //
+                // set status
+                m_codstt:=cs.ERR_CONSUMO_INDEVIDO ;
+                m_motivo:=Format('CONSUMO INDEVIDO|QTD_MAX_CONSUMO=%d(%s)',[
+                  TCNotFis00.QTD_MAX_CONSUMO,m_motivo]);
+                m_consumo :=0;
+            end;
+        end
+        else
+            m_consumo :=0;
+    end;
+
+    //
+    // limita tam.motivo em 250
+    m_motivo:=Copy(m_motivo,1,250) ;
+
     C :=TADOCommand.NewADOCommand() ;
     try
       C.AddCmd('update notfis00 set   ');
       C.AddCmd('  nf0_codstt  =%d ,   ',[Self.m_codstt]);
-      C.AddCmd('  nf0_motivo  =%s     ',[C.FStr(Copy(Self.m_motivo,1,250))]);
+      C.AddCmd('  nf0_motivo  =%s     ',[C.FStr(Self.m_motivo)]);
 
       if Self.m_numreci <> '' then
       begin
@@ -2288,7 +2780,6 @@ begin
           C.AddCmd('  ,nf0_dhreceb  =?     ');
           C.AddCmd('  ,nf0_numprot  =%s    ',[C.FStr(Self.m_numprot)]);
           C.AddCmd('  ,nf0_digval   =%s    ',[C.FStr(Self.m_digval)]);
-
       end;
 
       //trata forma pagto no codigo
@@ -2297,12 +2788,6 @@ begin
           C.AddCmd('  ,nf0_indpag =%d     ',[ord(Self.m_indpag)]);
       end;
 
-      //
-      // controla consumo
-      if Self.m_codstt =Self.m_oricodstt then
-          Self.m_consumo :=Self.m_consumo +1
-      else
-          Self.m_consumo :=0;
       C.AddCmd('  ,nf0_consumo =%d    ',[Self.m_consumo]);
 
       C.AddCmd('where nf0_codseq =%d  ',[Self.m_codseq]);
@@ -2319,8 +2804,13 @@ procedure TCNotFis00.setXML() ;
 var
   C: TADOCommand ;
   P: TParameter ;
-  S: TStreamWriter;
+  S: TStringStream; // TStreamWriter;
+  cmplvl: SmallInt ;
 begin
+    //
+    // ler compatibilidade
+    cmplvl :=TADOQuery.getCompLevel ;
+
     C :=TADOCommand.NewADOCommand() ;
     try
         C.AddCmd('update notfis00 set   ');
@@ -2330,15 +2820,25 @@ begin
             C.AddCmd('  nf0_codstt  =%d,    ',[Self.m_codstt]);
             C.AddCmd('  nf0_motivo  =%s,    ',[C.FStr(Self.m_motivo)]);
             C.AddCmd('  nf0_chvnfe  =%s,    ',[C.FStr(Self.m_chvnfe)]);
-            C.AddCmd('  nf0_xml     =?      ');
+            if cmplvl > 8 then
+            begin
+                C.AddCmd('  nf0_xmltyp  =?,     ');
+                C.AddCmd('  nf0_xml     =null   ');
+            end
+            else
+                C.AddCmd('  nf0_xml     =?      ');
 
-            S :=TStreamWriter.Create(TMemoryStream.Create);
-            S.Write(Self.m_xml);
+            //S :=TStreamWriter.Create(TMemoryStream.Create);
+            //S.Write(Self.m_xml);
+            S :=TStringStream.Create(Self.m_xml);
         end
         else begin
             C.AddCmd('  nf0_codstt  =0,     ');
             C.AddCmd('  nf0_motivo  =null,  ');
             C.AddCmd('  nf0_chvnfe  =null,  ');
+            if cmplvl > 8 then
+            C.AddCmd('  nf0_xmltyp  =null   ')
+            else
             C.AddCmd('  nf0_xml     =null   ');
         end;
 
@@ -2346,8 +2846,10 @@ begin
 
         if Assigned(S) then
         begin
-            P :=C.AddParamWithValue('@nf0_xml', ftMemo, Null) ;
-            P.LoadFromStream(S.BaseStream, ftMemo);
+            //P :=C.AddParamWithValue('@nf0_xml', ftMemo, Null) ;
+            //P.LoadFromStream(S.BaseStream, ftMemo);
+            P :=C.AddParamWithValue('@nf0_xml', ftString, Null) ;
+            P.LoadFromStream(S, ftString);
         end;
 
         C.Execute ;
@@ -2356,7 +2858,7 @@ begin
         C.Free ;
         if Assigned(S) then
         begin
-            S.BaseStream.Free ;
+            //S.BaseStream.Free ;
             S.Free;
         end;
     end;
@@ -2819,6 +3321,7 @@ end;
 function TCNotFis00Lote.AddNotFis00(const codseq: Int32): TCNotFis00;
 begin
     Result :=TCNotFis00.Create;
+    Result.m_Parent :=Self ;
     Result.m_ItemIndex :=m_oItems.Count ;
     Result.m_codseq   :=codseq ;
     Items.Add(Result) ;
@@ -2828,15 +3331,16 @@ begin
     end;
 end;
 
-class function TCNotFis00Lote.CLoad(const afilter: TNotFis00Filter): TADOQuery;
+class function TCNotFis00Lote.CLoad(const afilter: TNotFis00Filter): TDataSet;
 var
   Q: TADOQuery ;
-  dt_sys: TDateTime;
+  dh_now: TDateTime;
 begin
     //
     Result :=nil;
     //
     Q :=TADOQuery.NewADOQuery() ;
+    //
 
     Q.AddCmd('declare @seqini int; set @seqini =%d          ',[afilter.codini]);
     Q.AddCmd('declare @seqfin int; set @seqfin =%d          ',[afilter.codfin]);
@@ -2941,7 +3445,6 @@ begin
     Q.AddCmd('  nf0_codstt ,                               ');
     Q.AddCmd('  nf0_motivo ,                               ');
     Q.AddCmd('  nf0_chvnfe ,                               ');
-    //Q.AddCmd('  nf0_xml ,                                  ');
     Q.AddCmd('  nf0_indsinc ,                              ');
 
     //retorno
@@ -2957,9 +3460,9 @@ begin
 
     //
     //
-    Q.AddCmd('  ,nf0_infcpl                               ');
+    Q.AddCmd('  ,nf0_infcpl                                ');
 
-    Q.AddCmd('from notfis00                               ');
+    Q.AddCmd('from notfis00 with(readpast)                 ');
 
     //
     // busca por
@@ -2977,14 +3480,6 @@ begin
         Q.AddCmd('where nf0_codped between @pedini and @pedfin ');
     end
 
-    {//
-    // busca por
-    // nf0_numdoc
-    else if afilter.ntfini > 0 then
-    begin
-        Q.AddCmd('where nf0_numdoc between @ntfini and @ntffin ');
-    end }
-
     //
     // busca por
     // periodo / situacao
@@ -2994,34 +3489,34 @@ begin
         if afilter.filTyp = ftNormal then
         begin
             //
-            // nf0_codmod, nf0_nserie
-            if AFilter.nserie > 0 then
-            begin
-                if AFilter.codmod > 0 then
-                    Q.AddCmd('where nf0_codmod =@codmod                      ')
-                else
-                    Q.AddCmd('where nf0_codmod in(55,65)                     ');
-                Q.AddCmd('and nf0_nserie =@numser                            ');
-            end
-            //
             // nf0_dtemis
-            else
-                Q.AddCmd('where nf0_dtemis between @datini and @datfin       ');
+            Q.AddCmd('where nf0_dtemis between @datini and @datfin              ');
             //
             // situação
-            case AFilter.status of
+            case aFilter.status of
                 sttDoneSend:Q.AddCmd('and nf0_codstt in(0,1)                    ');
                 sttConting: Q.AddCmd('and nf0_codstt =9                         ');
-                sttProcess: Q.AddCmd('and nf0_codstt in(100,110,150,301,302,303)');
+                sttAutoriza:Q.AddCmd('and nf0_codstt in(100,150)                ');
+                sttDenega:  Q.AddCmd('and nf0_codstt in(301,302,303)            ');
                 sttCancel:  Q.AddCmd('and nf0_codstt in(101,135,151,155,218)    ');
-                sttInut:    Q.AddCmd('and nf0_codstt in(102, 563)               ');
+                sttInut:    Q.AddCmd('and nf0_codstt in(102,206,563)            ');
                 sttError:   Q.AddCmd('and nf0_codstt not in(0,1,9,100,101,102,110,135,150,151,155,301,302,303)');
             end;
-
-            Q.AddCmd('order by nf0_codseq desc                      ');
+            //
+            // nf0_codmod, nf0_nserie
+            if aFilter.nserie > 0 then
+            begin
+                Q.AddCmd('and nf0_codmod =@codmod                            ');
+                Q.AddCmd('and nf0_nserie =@numser                            ');
+            end;
+            //
+            // ordem desc. ID
+            Q.AddCmd('order by nf0_codseq desc                            ');
         end
-        // nf0_codstt
-        else begin
+        //
+        // filtro service
+        else if afilter.filTyp = ftService then
+        begin
             //notas pendentes de envio
             {Q.AddCmd('--//notas nao processadas                           ');
             Q.AddCmd('where nf0_codstt not in(100, 110, 150, 301, 302, 303)');
@@ -3055,14 +3550,28 @@ begin
             Q.AddCmd('or    (nf0_codstt =999))  --//erro geral sefaz   ');
 
             //
-            // load por ser
-//            if AFilter.nserie > 0 then
-//            begin
-//                Q.AddCmd('and nf0_nserie =@numser                      ');
-//            end;
+            // garante NF´s não alocadas pelo fech do CX
+            Q.AddCmd('and   nf0_codlot is null                         ');
+
             //
             // coloca as notas q foram geradas na frente
             Q.AddCmd('order by nf0_codstt desc                         ');
+        end
+        //
+        // filtro fech CX
+        else begin
+            if afilter.codmod > 0 then
+            Q.AddCmd('where nf0_codmod =@codmod                         ')
+            else
+            Q.AddCmd('where nf0_codmod in(55,65)                        ');
+            Q.AddCmd('and   nf0_nserie =@numser                         ');
+            Q.AddCmd('--//notas nao processadas                         ');
+            Q.AddCmd('and nf0_codstt not in(0,100,110,150,301,302,303)  ');
+            Q.AddCmd('--//notas nao canceladas                          ');
+            Q.AddCmd('and nf0_codstt not in(101,151,135,155,218)        ');
+            Q.AddCmd('--//notas nao inutilizadas                        ');
+            Q.AddCmd('and nf0_codstt not in(102,206,563)                ');
+            Q.AddCmd('order by nf0_codseq                               ');
         end;
     end;
 
@@ -3071,28 +3580,89 @@ begin
         Q.Prepared :=True;
     end;
 
-    if afilter.datini > 0 then
+    //
+    // periodo somente para normal
+    dh_now :=Now;
+    if afilter.filTyp = ftNormal then
     begin
-        Q.AddParamDatetime('@datini', afilter.datini);
-        Q.AddParamDatetime('@datfin', afilter.datfin, True);
-    end
-    else begin
-        if afilter.filTyp = ftService then
+        if(afilter.codini > 0)or(afilter.pedini > 0) then
         begin
-            dt_sys :=Trunc(TADOQuery.getDateTime );
-            Q.AddParamDatetime('@datini', dt_sys);
-            Q.AddParamDatetime('@datfin', dt_sys, True);
+        Q.AddParamDatetime('@datini', dh_now);
+        Q.AddParamDatetime('@datfin', dh_now);
         end
         else begin
-        Q.AddParamDatetime('@datini', date);
-        Q.AddParamDatetime('@datfin', date);
+        Q.AddParamDatetime('@datini', afilter.datini);
+        Q.AddParamDatetime('@datfin', afilter.datfin, True);
+        end;
+    end
+    else begin
+        Q.AddParamDatetime('@datini', dh_now);
+        Q.AddParamDatetime('@datfin', dh_now);
+    end;
+
+    if afilter.save then
+    begin
+        case afilter.filTyp of
+            ftNormal: Q.SaveToFile(Format('App-%s.Load.SQL',[Self.ClassName]));
+            ftService: Q.SaveToFile(Format('Svc-%s.Load.SQL',[Self.ClassName]));
+            ftFech: Q.SaveToFile(Format('Fcx-%s.Load.SQL',[Self.ClassName]));
+        end;
+        //Q.SaveToFile(Format('%s.Load.sql.txt',[Self.ClassName]));
+    end;
+    Q.Open ;
+    //
+    Result :=TDataSet(Q);
+
+end;
+
+class function TCNotFis00Lote.CLoadSPNotFis00Busca(
+  const afilter: TNotFis00Filter): TDataSet ;
+var
+  F: TNotFis00Filter ;
+  sp: TADOStoredProc ;
+begin
+    //
+    Result :=nil ;
+    F :=afilter ;
+    //
+    // set param datetime
+    if(F.datini =0)or(F.datfin =0)then
+    begin
+        F.datini :=Date;
+        F.datfin :=F.datini;
+    end;
+    //
+    // set params
+    sp :=TADOStoredProc.NewADOStoredProc('sp_notfis00_busca');
+    sp.AddParamWithValue('@codseq', ftInteger, F.codini);
+    sp.AddParamWithValue('@codped', ftInteger, F.pedini);
+    sp.AddParamWithValue('@filtyp', ftSmallint, Ord(F.filTyp));
+    sp.AddParamDatetime('@datini', F.datini);
+    sp.AddParamDatetime('@datfin', F.datfin, True);
+    sp.AddParamWithValue('@status', ftSmallint, Ord(F.status));
+    sp.AddParamWithValue('@codmod', ftSmallint, F.codmod);
+    sp.AddParamWithValue('@numser', ftSmallint, F.nserie);
+    sp.AddParamWithValue('@topnum', ftSmallint, F.limlot);
+    sp.AddParamOut('@err_msg', ftString);
+    //sp.AddParamRet('@err_cod');
+
+    try
+        sp.Open ;
+        Result :=TDataSet (sp) ; //.Recordset) ;
+    except
+        on E:EDatabaseError do
+        begin
+            sp.Free ;
+            raise ;
         end;
     end;
 
-//    Q.SaveToFile(Format('%s.Load.sql-txt',[Self.ClassName]));
-    Q.Open ;
-    //
-    Result :=Q;
+end;
+
+class function TCNotFis00Lote.CLoadXML(
+  const afilter: TNotFis00Filter): TADOQuery;
+begin
+    Result :=TADOQuery.NewADOQuery() ;
 
 end;
 
@@ -3148,8 +3718,9 @@ end;
 
 function TCNotFis00Lote.Load(const AFilter: TNotFis00Filter): Boolean;
 var
-  Q,Q2: TADOQuery ;
+  Q: TDataSet; // TADOQuery ;
   N: TCNotFis00;
+  cmplvl: Integer;
 var
   fcodseq: TField ;
 begin
@@ -3157,28 +3728,36 @@ begin
     m_oItems.Clear ;
     //
     //
-//    if SizeOf(afilter)>0 then
-//    begin
-        m_Filter :=afilter;
-//    end;
+    m_Filter :=afilter;
 
     //
-    m_vTotalNF :=0;
-    Q :=TCNotFis00Lote.CLoad(m_Filter) ;
+    // combatibilidade
+    cmplvl :=TADOQuery.getCompLevel ;
+    if cmplvl > 8 then
+        Q :=TCNotFis00Lote.CLoadSPNotFis00Busca(m_Filter)
+    else
+        Q :=TCNotFis00Lote.CLoad(m_Filter) ;
     try
-        fcodseq :=Q.Field('nf0_codseq') ;
+        m_vTotalNF :=0;
+        fcodseq :=Q.FieldByName('nf0_codseq') ;
         Result  :=not Q.IsEmpty ;
         while not Q.Eof do
         begin
-            N :=Self.IndexOf(fcodseq.AsInteger) ;
-            if N = nil then
-            begin
-                N :=Self.AddNotFis00(fcodseq.AsInteger) ;
-                N.LoadFromQ(Q, True);
-
-                m_vTotalNF :=m_vTotalNF +N.m_icmstot.vNF;
-            end ;
-
+            N :=Self.AddNotFis00(fcodseq.AsInteger) ;
+            if cmplvl >8 then
+                N.FillDataSet(Q)
+            else begin
+                if afilter.filTyp = ftNormal then
+                begin
+                    N.LoadFromQ(Q);
+                    N.LoadItems;
+                end;
+            end;
+            //
+            // totaliza NF
+            m_vTotalNF :=m_vTotalNF +N.m_icmstot.vNF;
+            //
+            // proximo
             Q.Next ;
         end;
 
@@ -3238,7 +3817,7 @@ begin
             if N = nil then
             begin
                 N :=Self.AddNotFis00(fcodseq.AsInteger) ;
-                N.LoadFromQ(Q, True);
+                N.LoadFromQ(Q);
             end ;
 
             lstcod :=lstcod +Format('"%d",',[N.m_codped]);

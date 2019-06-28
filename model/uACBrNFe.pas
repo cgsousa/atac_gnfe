@@ -40,7 +40,7 @@ uses Classes, Generics.Collections ,
   ACBrValidador,
   pcnEventoNFe, pcnEnvEventoNFe,
   FDM.NFE,
-  unotfis00, ucce ;
+  unotfis00, ucce;
 
 
 type
@@ -74,8 +74,12 @@ type
     // servidor smtp
 
     conting_offline: TPair<string, Boolean>;
-    send_sincrono: TPair<string, Boolean>;
-    send_maxnfelot: TPair<string, Int16>;
+    //send_sincrono: TPair<string, Boolean>;
+//    send_sync: TPair<string, Boolean>;
+//    send_maxnfelot: TPair<string, Int16>;
+
+    send_lotsync: TPair<string, Boolean>;
+    send_lotqtdnfe: TPair<string, Int16>;
 
     //
     // nos termos
@@ -91,18 +95,19 @@ type
     xml_procodigo_int: TPair<string, Boolean>;
 
     //
-    // local dos arquivos grados
-    {numero_serie: TPair<string, string>;
+    // local dos arquivos gravados
+    //numero_serie: TPair<string, string>;
     arquivos_Salva: TPair<string, Boolean>;
-    arquivos_SeparaPorMes: TPair<string, Boolean>;
+    arquivos_Salva_BD: TPair<string, Boolean>;
     arquivos_SalvaEvento: TPair<string, Boolean>;
+    arquivos_SeparaPorMes: TPair<string, Boolean>;
     arquivos_SeparaPorCNPJ: TPair<string, Boolean>;
     arquivos_SeparaPorModelo: TPair<string, Boolean>;
     arquivos_RootPath: TPair<string, string>;
     arquivos_PathSchemas: TPair<string, string>;
     arquivos_PathNFe: TPair<string, string>;
     arquivos_PathInut: TPair<string, string>;
-    arquivos_PathEvento: TPair<string, string>;}
+    arquivos_PathEvento: TPair<string, string>;
 
     //
     // Info do resp tec
@@ -116,6 +121,9 @@ type
 
 
 type
+  TRetornoChangedEvent = procedure of object;
+
+
   IBaseACBrNFE = interface
     ['{123B1C2D-4EBA-48AB-B300-4E135422AB3C}']
     procedure LoadConfig() ;
@@ -135,13 +143,15 @@ type
     function getParam: TRegNFE ;
     property param: TRegNFE read getParam;
     //
-    function AddNotaFiscal(NF: TCNotFis00;
-      const Clear, InfProt: Boolean): NotaFiscal ;
+    function AddNotaFiscal(aNF: TCNotFis00; const aClear: Boolean): NotaFiscal;
+
     function SendMail(NF: TCNotFis00; const dest_email: string =''): Boolean;
     //
     function OnlyStatusSvc(): Boolean;
     function OnlySend(NF: TCNotFis00): Boolean; overload ;
     function OnlySend(const aNumLot: Integer): Boolean; overload ;
+    function OnlySendSync(NF: TCNotFis00): Boolean;
+    function OnlySendAssync(const aNumLote: Integer): Boolean;
     function OnlyCons(NF: TCNotFis00): Boolean;
     function OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
     function OnlyCCE(NF: TCNotFis00; const aCorrecao: String;
@@ -158,6 +168,7 @@ type
     property retInutiliza: TNFeInutilizacao read getRetInutiliza ;
     //
     function getDaysUseCertif: Smallint ;
+
   end;
 
   TCBaseACBrNFE = class(TInterfacedObject, IBaseACBrNFE)
@@ -166,6 +177,8 @@ type
     m_ErrMsg: string ;
     function getErrCod: Integer;
     function getErrMsg: string ;
+  private
+    m_reg: TRegNFE ;
   private
     m_DM: Tdm_nfe ;
     m_NFE: TACBrNFe;
@@ -177,7 +190,6 @@ type
     m_Val: TACBrValidador;
     m_StatusChange: Boolean ;
     m_CodMod, m_NSerie: Word ;
-    m_reg: TRegNFE ;
     m_InfRespTec: OIdentRespTecnico ;
     function getNFe: TACBrNFe;
     function getCodMod: Word ;
@@ -205,35 +217,39 @@ type
     property param: TRegNFE read getParam;
     constructor Create(const aStatusChange: Boolean);
     destructor Destroy; override ;
-    function AddNotaFiscal(NF: TCNotFis00;
-      const Clear, InfProt: Boolean): NotaFiscal ;
+    function AddNotaFiscal(aNF: TCNotFis00; const aClear: Boolean): NotaFiscal;
     function PrintDANFE(NF: TCNotFis00): Boolean ;
     function SendMail(NF: TCNotFis00; const dest_email: string =''): Boolean;
-    class function New(const aStatusChange: Boolean =True): IBaseACBrNFE;
   public
     { somente chamadas dos serviços, sem checa status }
     function OnlyStatusSvc(): Boolean;
     function OnlySend(NF: TCNotFis00): Boolean; overload ;
     function OnlySend(const aNumLot: Integer): Boolean; overload ;
+    function OnlySendSync(NF: TCNotFis00): Boolean;
+    function OnlySendAssync(const aNumLote: Integer): Boolean;
     function OnlyCons(NF: TCNotFis00): Boolean;
     function OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
     function OnlyCCE(NF: TCNotFis00; const aCorrecao: String;
       const aNumSeq: SmallInt): Boolean;
     function OnlyInutiliza(const cnpj, just: String;
       const ano, codmod, nserie, numini, numfin: Integer): Boolean;
+
+    //
+    //
   public
     { retorno das chamadas }
     property retInfEvento: TRetInfEvento read getRetInfEvento;
     property retInutiliza: TNFeInutilizacao read getRetInutiliza ;
     function getDaysUseCertif: Smallint ;
+  public
+    class function New(const aStatusChange: Boolean =True): IBaseACBrNFE;
   end;
-
 
 
 implementation
 
 uses Windows, SysUtils, StrUtils, DateUtils, IniFiles, TypInfo, DB, WinInet,
-  uadodb, uparam ,
+  uadodb, uparam, ucademp,
   ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp,
   pcnConversao, pcnConversaoNFe, pcnNFe,
   blcksock;
@@ -241,8 +257,7 @@ uses Windows, SysUtils, StrUtils, DateUtils, IniFiles, TypInfo, DB, WinInet,
 
 { TCBaseACBrNFE }
 
-function TCBaseACBrNFE.AddNotaFiscal(NF: TCNotFis00; const Clear,
-  InfProt: Boolean): NotaFiscal;
+function TCBaseACBrNFE.AddNotaFiscal(aNF: TCNotFis00; const aClear: Boolean): NotaFiscal;
 var
   N: NotaFiscal ;
   det: TDetCollectionItem;
@@ -285,96 +300,124 @@ var
   //
   D: TDupCollectionItem;
   p0,p1: TpagCollectionItem ;
+var
+  cs: NotFis00CodStatus ;
 begin
     //
     Result :=nil;
     //
-    if Clear then
-        Self.m_NFE.NotasFiscais.Clear;
+    if aClear then
+        m_NFE.NotasFiscais.Clear;
 
-    N :=Self.m_NFE.NotasFiscais.Add ;
-    N.NFe.Ide.cNF       :=NF.m_codseq;
-    N.NFe.Ide.natOp     :=NF.m_natope;
-    N.NFe.Ide.indPag    :=NF.m_indpag;
-    N.NFe.Ide.modelo    :=NF.m_codmod;
-    N.NFe.Ide.serie     :=NF.m_nserie;
-    N.NFe.Ide.nNF       :=NF.m_numdoc;
-    N.NFe.Ide.dEmi      :=NF.m_dtemis;
-    N.NFe.Ide.tpNF      :=NF.m_tipntf;
+    //
+    // somente Add
+    N :=m_NFE.NotasFiscais.Add ;
+    if aNF = nil then
+    begin
+        Exit(N);
+    end;
 
-    if NF.m_dest.EnderDest.UF = 'EX' then
+    N.NFe.Ide.cNF       :=aNF.m_codseq;
+    N.NFe.Ide.natOp     :=aNF.m_natope;
+    N.NFe.Ide.indPag    :=aNF.m_indpag;
+    N.NFe.Ide.modelo    :=aNF.m_codmod;
+    N.NFe.Ide.serie     :=aNF.m_nserie;
+    N.NFe.Ide.nNF       :=aNF.m_numdoc;
+    N.NFe.Ide.dEmi      :=aNF.m_dtemis;
+    N.NFe.Ide.tpNF      :=aNF.m_tipntf;
+
+    if aNF.m_dest.EnderDest.UF = 'EX' then
         N.NFe.Ide.idDest :=doExterior
     else begin
-        if NF.m_emit.EnderEmit.UF <> NF.m_dest.EnderDest.UF then
+        if aNF.m_emit.EnderEmit.UF <> aNF.m_dest.EnderDest.UF then
             N.NFe.Ide.idDest :=doInterestadual
         else
             N.NFe.Ide.idDest :=doInterna;
     end;
 
-    N.NFe.Ide.tpEmis    :=NF.m_tipemi;
-    N.NFe.Ide.tpAmb     :=NF.m_tipamb;
-    N.NFe.Ide.cUF       :=NF.m_codufe;
-    N.NFe.Ide.cMunFG    :=NF.m_codmun;
-    N.NFe.Ide.finNFe    :=NF.m_finnfe;
-    N.NFe.Ide.tpImp     :=NF.m_tipimp;
-    N.NFe.Ide.indFinal  :=NF.m_indfinal;
-    N.NFe.Ide.indPres   :=NF.m_indpres;
-    N.NFe.Ide.dhCont  :=NF.m_dhcont;
-    N.NFe.Ide.xJust   :=NF.m_justif;
+    N.NFe.Ide.tpEmis    :=aNF.m_tipemi;
+    N.NFe.Ide.tpAmb     :=aNF.m_tipamb;
+    N.NFe.Ide.cUF       :=aNF.m_codufe;
+    N.NFe.Ide.cMunFG    :=aNF.m_codmun;
+    N.NFe.Ide.finNFe    :=aNF.m_finnfe;
+    N.NFe.Ide.tpImp     :=aNF.m_tipimp;
+    N.NFe.Ide.indFinal  :=aNF.m_indfinal;
+    N.NFe.Ide.indPres   :=aNF.m_indpres;
+    N.NFe.Ide.dhCont  :=aNF.m_dhcont;
+    N.NFe.Ide.xJust   :=aNF.m_justif;
 
     //
-    N.NFe.Emit.CRT               :=NF.m_emit.CRT;
-    N.NFe.Emit.CNPJCPF           :=NF.m_emit.CNPJCPF;
-    N.NFe.Emit.IE                :=NF.m_emit.IE;
-    N.NFe.Emit.xNome             :=NF.m_emit.xNome;
-    N.NFe.Emit.xFant             :=NF.m_emit.xFant;
-    N.NFe.Emit.EnderEmit.fone    :=NF.m_emit.EnderEmit.fone;
-    N.NFe.Emit.EnderEmit.CEP     :=NF.m_emit.EnderEmit.CEP;
-    N.NFe.Emit.EnderEmit.xLgr    :=NF.m_emit.EnderEmit.xLgr;
-    N.NFe.Emit.EnderEmit.nro     :=NF.m_emit.EnderEmit.nro;
-    N.NFe.Emit.EnderEmit.xCpl    :=NF.m_emit.EnderEmit.xCpl;
-    N.NFe.Emit.EnderEmit.xBairro :=NF.m_emit.EnderEmit.xBairro;
-    N.NFe.Emit.EnderEmit.cMun    :=NF.m_emit.EnderEmit.cMun;
-    N.NFe.Emit.EnderEmit.xMun    :=NF.m_emit.EnderEmit.xMun;
-    N.NFe.Emit.EnderEmit.UF      :=NF.m_emit.EnderEmit.UF;
+    {N.NFe.Emit.CRT               :=aNF.m_emit.CRT;
+    N.NFe.Emit.CNPJCPF           :=aNF.m_emit.CNPJCPF;
+    N.NFe.Emit.IE                :=aNF.m_emit.IE;
+    N.NFe.Emit.xNome             :=aNF.m_emit.xNome;
+    N.NFe.Emit.xFant             :=aNF.m_emit.xFant;
+    N.NFe.Emit.EnderEmit.fone    :=aNF.m_emit.EnderEmit.fone;
+    N.NFe.Emit.EnderEmit.CEP     :=aNF.m_emit.EnderEmit.CEP;
+    N.NFe.Emit.EnderEmit.xLgr    :=aNF.m_emit.EnderEmit.xLgr;
+    N.NFe.Emit.EnderEmit.nro     :=aNF.m_emit.EnderEmit.nro;
+    N.NFe.Emit.EnderEmit.xCpl    :=aNF.m_emit.EnderEmit.xCpl;
+    N.NFe.Emit.EnderEmit.xBairro :=aNF.m_emit.EnderEmit.xBairro;
+    N.NFe.Emit.EnderEmit.cMun    :=aNF.m_emit.EnderEmit.cMun;
+    N.NFe.Emit.EnderEmit.xMun    :=aNF.m_emit.EnderEmit.xMun;
+    N.NFe.Emit.EnderEmit.UF      :=aNF.m_emit.EnderEmit.UF;
     N.NFe.Emit.enderEmit.cPais   :=1058;
     N.NFe.Emit.enderEmit.xPais   :='BRASIL';
     N.NFe.Emit.IEST              := '';
 //    N.NFe.Emit.IM                := '2648800'; // Preencher no caso de existir serviços na nota
 //    N.NFe.Emit.CNAE              := '6201500'; // Verifique na cidade do emissor da NFe se é permitido
-                                               // a inclusão de serviços na NF
-    N.NFe.Dest.CNPJCPF           :=NF.m_dest.CNPJCPF;
-    N.NFe.Dest.IE                :=NF.m_dest.IE;
-    N.NFe.Dest.ISUF              :=NF.m_dest.ISUF;
-    N.NFe.Dest.xNome             :=NF.m_dest.xNome;
-    N.NFe.Dest.EnderDest.Fone    :=NF.m_dest.EnderDest.fone;
-    N.NFe.Dest.EnderDest.CEP     :=NF.m_dest.EnderDest.CEP;
-    N.NFe.Dest.EnderDest.xLgr    :=NF.m_dest.EnderDest.xLgr;
-    if NF.m_dest.EnderDest.nro <> '' then
-        N.NFe.Dest.EnderDest.nro     :=NF.m_dest.EnderDest.nro
+                                               // a inclusão de serviços na aNF}
+
+    N.NFe.Emit.CRT               :=TpcnCRT(Ord(CadEmp.CRT));
+    N.NFe.Emit.CNPJCPF           :=CadEmp.CNPJ;
+    N.NFe.Emit.IE                :=CadEmp.IE;
+    N.NFe.Emit.xNome             :=CadEmp.xNome;
+    N.NFe.Emit.xFant             :=CadEmp.xFant;
+    N.NFe.Emit.EnderEmit.fone    :=CadEmp.fone;
+    N.NFe.Emit.EnderEmit.CEP     :=CadEmp.ender.CEP;
+    N.NFe.Emit.EnderEmit.xLgr    :=CadEmp.ender.xLogr;
+    N.NFe.Emit.EnderEmit.nro     :=CadEmp.ender.numero;
+    N.NFe.Emit.EnderEmit.xCpl    :=CadEmp.ender.xCompl;
+    N.NFe.Emit.EnderEmit.xBairro :=CadEmp.ender.xBairro;
+    N.NFe.Emit.EnderEmit.cMun    :=CadEmp.ender.cMun;
+    N.NFe.Emit.EnderEmit.xMun    :=CadEmp.ender.xMun;
+    N.NFe.Emit.EnderEmit.UF      :=CadEmp.ender.UF;
+    N.NFe.Emit.enderEmit.cPais   :=CadEmp.ender.cPais;
+    N.NFe.Emit.enderEmit.xPais   :=CadEmp.ender.xPais;
+    N.NFe.Emit.IEST              :=CadEmp.IEST ;
+
+    N.NFe.Dest.CNPJCPF           :=aNF.m_dest.CNPJCPF;
+    N.NFe.Dest.IE                :=aNF.m_dest.IE;
+    N.NFe.Dest.ISUF              :=aNF.m_dest.ISUF;
+    N.NFe.Dest.xNome             :=aNF.m_dest.xNome;
+    N.NFe.Dest.EnderDest.Fone    :=aNF.m_dest.EnderDest.fone;
+    N.NFe.Dest.EnderDest.CEP     :=aNF.m_dest.EnderDest.CEP;
+    N.NFe.Dest.EnderDest.xLgr    :=aNF.m_dest.EnderDest.xLgr;
+    if aNF.m_dest.EnderDest.nro <> '' then
+        N.NFe.Dest.EnderDest.nro     :=aNF.m_dest.EnderDest.nro
     else
         N.NFe.Dest.EnderDest.nro     :='SN';
-    N.NFe.Dest.EnderDest.xCpl    :=NF.m_dest.EnderDest.xCpl;
-    N.NFe.Dest.EnderDest.xBairro :=NF.m_dest.EnderDest.xBairro;
-    N.NFe.Dest.EnderDest.cMun    :=NF.m_dest.EnderDest.cMun;
-    N.NFe.Dest.EnderDest.xMun    :=NF.m_dest.EnderDest.xMun;
-    N.NFe.Dest.EnderDest.UF      :=NF.m_dest.EnderDest.UF;
+    N.NFe.Dest.EnderDest.xCpl    :=aNF.m_dest.EnderDest.xCpl;
+    N.NFe.Dest.EnderDest.xBairro :=aNF.m_dest.EnderDest.xBairro;
+    N.NFe.Dest.EnderDest.cMun    :=aNF.m_dest.EnderDest.cMun;
+    N.NFe.Dest.EnderDest.xMun    :=aNF.m_dest.EnderDest.xMun;
+    N.NFe.Dest.EnderDest.UF      :=aNF.m_dest.EnderDest.UF;
     N.NFe.Dest.EnderDest.cPais   :=N.NFe.Emit.enderEmit.cPais;
     N.NFe.Dest.EnderDest.xPais   :=N.NFe.Emit.enderEmit.xPais;
 
-    case NF.m_codmod of
-        55://NF-e
+    case aNF.m_codmod of
+        55://aNF-e
         begin
-            N.NFe.Ide.dSaiEnt   :=NF.m_dhsaient;
-            N.NFe.Ide.hSaiEnt   :=NF.m_dhsaient;
+            N.NFe.Ide.dSaiEnt   :=aNF.m_dhsaient;
+            N.NFe.Ide.hSaiEnt   :=aNF.m_dhsaient;
 
-            if NF.m_chvref <> '' then
+            if aNF.m_chvref <> '' then
             with N.NFe.Ide.NFref.Add do
             begin
-                refNFe :=NF.m_chvref ;
+                refNFe :=aNF.m_chvref ;
             end;
 
-            N.NFe.Dest.indIEDest :=NF.m_dest.indIEDest ;
+            N.NFe.Dest.indIEDest :=aNF.m_dest.indIEDest ;
         end;
 
         65://NFC-e
@@ -412,7 +455,7 @@ begin
 
     tot_vCredICMSSN :=0;
 
-    for nf1 in NF.Items do
+    for nf1 in aNF.Items do
     begin
         det :=N.NFe.Det.Add ;
         det.infAdProd :=nf1.m_infadprod;
@@ -464,7 +507,7 @@ begin
         icm :=imp.ICMS;
         icm.orig :=nf1.m_orig ;
 
-        case NF.m_emit.CRT of
+        case aNF.m_emit.CRT of
 
             crtSimplesNacional:
             begin
@@ -654,7 +697,7 @@ begin
                     // cobrado anteriormente por substituição tributária
                     60:
                     begin
-                        if(nf1.m_comb.m_codanp > 0)and(NF.m_codmod =55)then
+                        if(nf1.m_comb.m_codanp > 0)and(aNF.m_codmod =55)then
                         begin
                             icm.CST :=cstRep60;
                             icm.vBCSTRet  :=nf1.m_vbcstret;
@@ -666,7 +709,7 @@ begin
                             icm.CST :=cst60;
                             icm.vBCSTRet  :=0;
                             icm.vICMSSTRet:=0;
-                            if NF.m_indfinal = cfConsumidorFinal then
+                            if aNF.m_indfinal = cfConsumidorFinal then
                             begin
                                 icm.pRedBCEfet:=nf1.m_predbcefet;
                                 icm.vBCEfet   :=nf1.m_vbcefet;
@@ -835,24 +878,24 @@ begin
     tot.vFCPST :=tot_FCPST ;
 
     //transportes
-    N.NFe.Transp.modFrete :=NF.m_transp.modFrete ;
+    N.NFe.Transp.modFrete :=aNF.m_transp.modFrete ;
 
     //
     // nfe ambos os leiautes (3.10/4.0)
     // dup/faturas
-    if NF.m_codmod =TCNotFis00.MOD_NFE then
+    if aNF.m_codmod =TCNotFis00.MOD_NFE then
     begin
-        N.NFe.Transp.Transporta.Assign(NF.m_transp.Transporta) ;
+        N.NFe.Transp.Transporta.Assign(aNF.m_transp.Transporta) ;
         //
-        N.NFe.Transp.veicTransp.Assign(NF.m_transp.veicTransp) ;
+        N.NFe.Transp.veicTransp.Assign(aNF.m_transp.veicTransp) ;
         //
         // volumes
-        if NF.m_transp.Vol.Count > 0 then
+        if aNF.m_transp.Vol.Count > 0 then
         begin
             //
             // evita o Assign para corrigir o AV dentro do ACBr
-            // N.NFe.Transp.Vol.Assign(NF.m_transp.Vol) ;
-            V :=NF.m_transp.Vol.Items[0] ;
+            // N.NFe.Transp.Vol.Assign(aNF.m_transp.Vol) ;
+            V :=aNF.m_transp.Vol.Items[0] ;
             with N.NFe.Transp.Vol.New do
             begin
                 qVol :=V.qVol;
@@ -863,12 +906,12 @@ begin
                 pesoB:=V.pesoB;
             end;
         end;
-        N.NFe.Cobr.Fat.Assign(NF.m_cobr.Fat);
+        N.NFe.Cobr.Fat.Assign(aNF.m_cobr.Fat);
         // evita o Assign da Cobr
-        // N.NFe.Cobr.Assign(NF.m_cobr);//cobrança (NF-e)
-        for I :=0 to NF.m_cobr.Dup.Count -1 do
+        // N.NFe.Cobr.Assign(aNF.m_cobr);//cobrança (aNF-e)
+        for I :=0 to aNF.m_cobr.Dup.Count -1 do
         begin
-            D :=NF.m_cobr.Dup.Items[I] ;
+            D :=aNF.m_cobr.Dup.Items[I] ;
             with N.NFe.Cobr.Dup.New do
             begin
                 nDup :=D.nDup ;
@@ -887,13 +930,13 @@ begin
         //
         // pagamentos tbm para NFE
 
-        //N.NFe.pag.Assign(NF.m_pag);
+        //N.NFe.pag.Assign(aNF.m_pag);
         //if N.NFe.pag.Count =0 then pag :=N.NFe.pag.Add
         //else                       pag :=N.NFe.pag.Items[0] ;
-        N.NFe.pag.vTroco :=NF.m_pag.vTroco ;
-        for I :=0 to NF.m_pag.Count -1 do
+        N.NFe.pag.vTroco :=aNF.m_pag.vTroco ;
+        for I :=0 to aNF.m_pag.Count -1 do
         begin
-            p0 :=NF.m_pag.Items[I] ;
+            p0 :=aNF.m_pag.Items[I] ;
             //p1 :=N.NFe.pag.Add ;
             p1 :=N.NFe.pag.New ;
             p1.indPag :=p0.indPag ;
@@ -908,7 +951,7 @@ begin
         //
         // Para as notas com finalidade de Ajuste ou Devolução
         // o campo Forma de Pagamento deve ser preenchido com 90=Sem Pagamento.
-        if NF.m_finnfe in[fnComplementar,fnAjuste,fnDevolucao] then
+        if aNF.m_finnfe in[fnComplementar,fnAjuste,fnDevolucao] then
         begin
             p1.tPag :=fpSemPagamento;
             p1.vPag :=0;
@@ -922,10 +965,10 @@ begin
         begin
             //
             // valor recebido
-            p1.vPag :=p1.vPag +N.NFe.pag.vTroco; //+NF.vTroco ;
+            p1.vPag :=p1.vPag +N.NFe.pag.vTroco; //+aNF.vTroco ;
             //
             // valor do troco
-            //N.NFe.pag.vTroco :=N.NFe.pag.vTroco; //+NF.vTroco ;
+            //N.NFe.pag.vTroco :=N.NFe.pag.vTroco; //+aNF.vTroco ;
         end;
     end;
 
@@ -936,10 +979,10 @@ begin
       inf_CredSN :='PERMITE O APROVEITAMENTO DO CRÉDITO DE ICMS NO VALOR DE '+FloatToStrF(tot_vCredICMSSN,ffCurrency,13,2);
       inf_CredSN :=inf_CredSN +'; CORRESPONDENTE À ALÍQUOTA DE '+FloatToStrF(per_CredSN,ffNumber,5,2) +'%, ';
       inf_CredSN :=inf_CredSN +m_reg.devol_me_epp_acontribuinte_nao_sn.Value;
-      N.NFe.InfAdic.infCpl :=NF.m_infCpl +';'+ inf_CredSN;
+      N.NFe.InfAdic.infCpl :=aNF.m_infCpl +';'+ inf_CredSN;
     end
     else begin
-      N.NFe.InfAdic.infCpl :=NF.m_infCpl ;
+      N.NFe.InfAdic.infCpl :=aNF.m_infCpl ;
     end;
 
     //
@@ -955,26 +998,26 @@ begin
 
     //
     // autorizada para DANFE/Distribuicao/Cancelamento
-    if NF.m_codstt =TCNotFis00.CSTT_AUTORIZADO_USO then
+    {if aNF.m_codstt =TCNotFis00.CSTT_AUTORIZADO_USO then
     begin
         if InfProt then
         begin
-            N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
-            N.NFe.procNFe.verAplic:=NF.m_verapp ;
-            N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
-            N.NFe.procNFe.dhRecbto:=NF.m_dhreceb;
-            N.NFe.procNFe.nProt   :=NF.m_numprot;
-            N.NFe.procNFe.cStat   :=NF.m_codstt ;
-            N.NFe.procNFe.xMotivo :=NF.m_motivo ;
+            N.NFe.procNFe.tpAmb   :=aNF.m_tipamb ;
+            N.NFe.procNFe.verAplic:=aNF.m_verapp ;
+            N.NFe.procNFe.chNFe   :=aNF.m_chvnfe ;
+            N.NFe.procNFe.dhRecbto:=aNF.m_dhreceb;
+            N.NFe.procNFe.nProt   :=aNF.m_numprot;
+            N.NFe.procNFe.cStat   :=aNF.m_codstt ;
+            N.NFe.procNFe.xMotivo :=aNF.m_motivo ;
         end;
         N.GerarXML ;
         Exit(N);
-    end;
+    end;}
 
     //
     //se ja foi emitido em contingencia!
     //
-    {if NF.m_codstt =TCNotFis00.CSTT_EMIS_CONTINGE then
+    {if aNF.m_codstt =TCNotFis00.CSTT_EMIS_CONTINGE then
     begin
         N.GerarXML ;
         Exit(N);
@@ -985,7 +1028,7 @@ begin
     except
         on E:EACBrDFeException  do
         begin
-            Self.m_ErrCod :=55;
+            Self.m_ErrCod :=cs.ERR_ASSINA;
             Self.m_ErrMsg :=E.Message ;
             Exit(nil) ;
         end;
@@ -993,46 +1036,46 @@ begin
 
     if N.VerificarAssinatura then
     begin
-        NF.m_chvnfe :=OnlyNumber(N.NFe.infNFe.ID)  ;
-        NF.m_xml    :=N.XMLAssinado ;
+        aNF.m_chvnfe :=OnlyNumber(N.NFe.infNFe.ID)  ;
+        aNF.m_xml    :=N.XMLAssinado ;
         Result :=N;
 
         try
             N.Validar ;
             if N.ValidarRegrasdeNegocios then
             begin
-                if NF.m_tipemi = teNormal then
+                if aNF.m_tipemi = teNormal then
                 begin
-                    NF.m_codstt :=1;
-                    case NF.m_codmod of
-                        55: NF.m_motivo :='NF-e pronta para envio';
-                        65: NF.m_motivo :='NFC-e pronta para envio';
+                    aNF.m_codstt :=1;
+                    case aNF.m_codmod of
+                        55: aNF.m_motivo :='NF-e pronta para envio';
+                        65: aNF.m_motivo :='NFC-e pronta para envio';
                     end;
                 end
                 else begin
-                    NF.m_codstt :=9;
-                    case NF.m_codmod of
-                        55: NF.m_motivo :='NF-e emitida em contingência!';
-                        65: NF.m_motivo :='NFC-e emitida em contingência!';
+                    aNF.m_codstt :=9;
+                    case aNF.m_codmod of
+                        55: aNF.m_motivo :='NF-e emitida em contingência!';
+                        65: aNF.m_motivo :='NFC-e emitida em contingência!';
                     end;
                 end;
             end
             else begin
-                Self.m_ErrCod :=88;
+                Self.m_ErrCod :=cs.ERR_REGRAS;
                 Self.m_ErrMsg :=N.ErroRegrasdeNegocios;
-                NF.m_codstt :=Self.m_ErrCod ;
-                NF.m_motivo :=Self.m_ErrMsg ;
+                aNF.m_codstt :=Self.m_ErrCod ;
+                aNF.m_motivo :=Self.m_ErrMsg ;
             end;
         except
-            Self.m_ErrCod :=77;
+            Self.m_ErrCod :=cs.ERR_SCHEMA;
             //Self.m_ErrMsg :=N.ErroValidacao;
             Self.m_ErrMsg :=N.ErroValidacaoCompleto;
-            NF.m_codstt :=Self.m_ErrCod ;
-            NF.m_motivo :=Self.m_ErrMsg ;
+            aNF.m_codstt :=Self.m_ErrCod ;
+            aNF.m_motivo :=Self.m_ErrMsg ;
         end;
     end
     else begin
-        Self.m_ErrCod :=66;
+        Self.m_ErrCod :=cs.ERR_CHECK_ASSINA;
         Self.m_ErrMsg :=N.ErroValidacao;
     end;
 end;
@@ -1294,9 +1337,15 @@ begin
     // ler parametros da NFE
     // *********************
     m_reg.Load(m_Ini.ReadInteger('Certificado', 'TipoEnvio', 0) =0, m_NSerie);
-    m_NFE.Configuracoes.Certificados.VerificarValidade :=m_reg.cert_chkvalid.Value ;
+    if m_NFE.Configuracoes.WebServices.Ambiente =taProducao then
+        m_reg.tipamb.Value :=0
+    else
+        m_reg.tipamb.Value :=1;
+
     m_reg.xml_prodescri_rdz.Value :=m_Ini.ReadString('NFEProduto','Danfe Nome Reduzido','') = 'S';
     m_reg.xml_procodigo_int.Value :=m_Ini.ReadString('NFEProduto','Danfe Codigo Interno','') = 'S';
+
+    m_NFE.Configuracoes.Certificados.VerificarValidade :=m_reg.cert_chkvalid.Value ;
 
     finally
       m_Ini.Free ;
@@ -1308,7 +1357,6 @@ class function TCBaseACBrNFE.New(const aStatusChange: Boolean): IBaseACBrNFE;
 begin
     Result :=TCBaseACBrNFE.Create(aStatusChange);
     Result.LoadConfig ;
-
 end;
 
 function TCBaseACBrNFE.OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
@@ -1326,7 +1374,7 @@ begin
         Exit(False);
     end;}
 
-    N :=AddNotaFiscal(NF, True, True) ;
+    N :=AddNotaFiscal(NF, True) ;
 
     m_NFE.EventoNFe.Evento.Clear;
 
@@ -1377,7 +1425,7 @@ begin
         Exit(False);
     end;}
 
-    N :=AddNotaFiscal(NF, True, True) ;
+    N :=AddNotaFiscal(NF, True) ;
 
     m_NFE.EventoNFe.Evento.Clear;
     E :=m_NFE.EventoNFe.Evento.Add ;
@@ -1407,22 +1455,23 @@ end;
 
 function TCBaseACBrNFE.OnlyCons(NF: TCNotFis00): Boolean;
 begin
-    //
-    // se NF ja existe com dif. de chave
-    // reset. contingencia
-    if(NF.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
-      ((NF.m_tipemi =teContingencia)or(NF.m_tipemi =teOffLine))then
-    begin
-        //setStatus('Resetando contingência...');
-        NF.setContinge('', True);
-        if AddNotaFiscal(NF, True, False) <> nil then
-        begin
-            NF.setXML() ;
-        end ;
-    end;
-
+//    //
+//    // se NF ja existe com dif. de chave
+//    // reset. contingencia
+//    if(NF.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
+//      ((NF.m_tipemi =teContingencia)or(NF.m_tipemi =teOffLine))then
+//    begin
+//        //setStatus('Resetando contingência...');
+//        NF.setContinge('', True);
+//        if AddNotaFiscal(NF, True) <> nil then
+//        begin
+//            NF.setXML() ;
+//        end ;
+//    end;
+//
     m_NFE.NotasFiscais.Clear;
     m_ErrCod :=0;
+    m_ErrMsg :='';
     Result :=m_NFE.Consultar(NF.m_chvnfe) ;
     Result :=Result and(m_ErrCod =0);
     if Result then
@@ -1433,7 +1482,7 @@ begin
         NF.m_verapp :=m_NFE.WebServices.Consulta.verAplic;
         NF.m_numprot:=m_NFE.WebServices.Consulta.Protocolo;
         NF.m_digval :=m_NFE.WebServices.Consulta.protNFe.digVal;
-    end ;
+    end;
 end;
 
 function TCBaseACBrNFE.OnlyInutiliza(const cnpj, just: String; const ano,
@@ -1459,7 +1508,7 @@ begin
     //
     // gera, assina e valida XML
     //
-    N :=AddNotaFiscal(NF, True, True) ;
+    N :=AddNotaFiscal(NF, True) ;
     if N <> nil then
     begin
         //
@@ -1483,12 +1532,12 @@ begin
     m_ErrCod :=0;
     m_ErrMsg :='';
 
-    Result :=m_NFE.Enviar(NF.m_codseq, False, m_reg.send_sincrono.Value);
+    Result :=m_NFE.Enviar(NF.m_codseq, False, m_reg.send_lotsync.Value);
     Result :=Result and(Self.m_ErrCod =0);
     if Result then
     begin
         //sincrono
-        if m_reg.send_sincrono.Value then
+        if m_reg.send_lotsync.Value then
         begin
             NF.m_indsinc:=Ord(m_NFE.WebServices.Enviar.Sincrono);
             NF.m_tipamb :=m_NFE.WebServices.Enviar.TpAmb ;
@@ -1543,6 +1592,62 @@ begin
     finally
       m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
     end;
+end;
+
+function TCBaseACBrNFE.OnlySendAssync(const aNumLote: Integer): Boolean;
+var
+  nf: TCNotFis00 ;
+  nfe: TNFe;
+var
+  I: Integer ;
+  chv: string;
+begin
+    m_ErrCod :=0;
+    Result :=m_NFE.Enviar(aNumLote, False, False, True);
+    Result :=Result and(m_ErrCod =0);
+    if not Result then
+    begin
+        m_ErrMsg :='Erro ao enviar o lote!' ;
+    end;
+end;
+
+function TCBaseACBrNFE.OnlySendSync(NF: TCNotFis00): Boolean;
+var
+  N: NotaFiscal ;
+  cs: NotFis00CodStatus ;
+begin
+
+    m_ErrCod :=0;
+    m_ErrMsg :='';
+
+    Result :=m_NFE.Enviar(NF.m_codseq, False, True);
+    Result :=Result and(m_ErrCod =0);
+    if Result then
+    begin
+        //
+        // ler retorno
+        NF.m_indsinc:=Ord(m_NFE.WebServices.Enviar.Sincrono);
+        NF.m_tipamb :=m_NFE.WebServices.Enviar.TpAmb ;
+        NF.m_codstt :=m_NFE.WebServices.Enviar.cStat ;
+        NF.m_motivo :=m_NFE.WebServices.Enviar.xMotivo ;
+        NF.m_verapp :=m_NFE.WebServices.Enviar.verAplic ;
+        NF.m_dhreceb:=m_NFE.WebServices.Enviar.dhRecbto ;
+
+        //
+        // chk autorização de Uso
+        if NF.m_codstt in [cs.AUTORIZADO_USO,cs.AUTORIZADO_USO_FORA] then
+        begin
+            //
+            // ler info do protocolo
+            N :=Self.m_NFE.NotasFiscais.Items[0] ;
+            NF.m_codstt :=N.NFe.procNFe.cStat ;
+            NF.m_motivo :=N.NFe.procNFe.xMotivo;
+            NF.m_dhreceb:=N.NFe.procNFe.dhRecbto;
+            NF.m_verapp :=N.NFe.procNFe.verAplic;
+            NF.m_numprot:=N.NFe.procNFe.nProt ;
+            NF.m_digval :=N.NFe.procNFe.digVal;
+        end;
+    end ;
 end;
 
 function TCBaseACBrNFE.OnlyStatusSvc(): Boolean;
@@ -1624,6 +1729,7 @@ end;
 function TCBaseACBrNFE.PrintDANFE(NF: TCNotFis00): Boolean;
 var
   m_Ini: TMemIniFile ;
+  N: NotaFiscal ;
 begin
     m_Ini :=TMemIniFile.Create(ApplicationPath +'Configuracoes.ini') ;
     try
@@ -1674,27 +1780,43 @@ begin
     Result :=m_NFE.DANFE <> nil ;
     if Result then
     begin
-        try
-          m_NFE.DANFE.TipoDANFE  := TpcnTipoImpressao(m_Ini.ReadInteger( 'DANFE','Tipo'       ,0));
-          m_NFE.DANFE.Logo       := m_Ini.ReadString( 'DANFE','LogoMarca'   ,'') ;
-          m_NFE.DANFE.vTribFed :=NF.vTribNac ;
-          m_NFE.DANFE.vTribEst :=NF.vTribEst ;
-          m_NFE.DANFE.vTribMun :=NF.vTribMun ;
+        m_NFE.DANFE.TipoDANFE  := TpcnTipoImpressao(m_Ini.ReadInteger( 'DANFE','Tipo'       ,0));
+        m_NFE.DANFE.Logo       := m_Ini.ReadString( 'DANFE','LogoMarca'   ,'') ;
+        m_NFE.DANFE.vTribFed :=NF.vTribNac ;
+        m_NFE.DANFE.vTribEst :=NF.vTribEst ;
+        m_NFE.DANFE.vTribMun :=NF.vTribMun ;
 
-          AddNotaFiscal(NF, True, True) ;
+        //
+        // load XML
+        if NF.LoadXML then
+        begin
+            N :=AddNotaFiscal(nil, True) ;
+            if N.LerXML(NF.m_xml) then
+            begin
+                N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
+                N.NFe.procNFe.verAplic:=NF.m_verapp ;
+                N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
+                N.NFe.procNFe.dhRecbto:=NF.m_dhreceb;
+                N.NFe.procNFe.nProt   :=NF.m_numprot;
+                N.NFe.procNFe.digVal  :=NF.m_digval ;
+                N.NFe.procNFe.cStat   :=NF.m_codstt ;
+                N.NFe.procNFe.xMotivo :=NF.m_motivo ;
+                N.Imprimir ;
 
-          m_NFE.NotasFiscais.Imprimir;
-
-          if m_Ini.ReadString('Impressora Caixa', 'Guilhotina', '') = 'S' then
-          begin
-              m_DEP.PosPrinter.CortarPapel();
-          end;
-          if m_Ini.ReadString('Impressora Caixa', 'Gaveta', '') = 'S' then
-          begin
-              m_DEP.PosPrinter.AbrirGaveta;
-          end;
-        except
-        end;
+                if m_Ini.ReadString('Impressora Caixa', 'Guilhotina', '') = 'S' then
+                begin
+                    m_DEP.PosPrinter.CortarPapel();
+                end;
+                if m_Ini.ReadString('Impressora Caixa', 'Gaveta', '') = 'S' then
+                begin
+                    m_DEP.PosPrinter.AbrirGaveta;
+                end;
+            end
+            else
+                Result :=False;
+        end
+        else
+            Result :=False;
     end;
     finally
     m_Ini.Free ;
@@ -1732,7 +1854,14 @@ begin
 
         //
         // ad. NF & Protocolo
-        N :=AddNotaFiscal(NF, True, True) ;
+        N :=AddNotaFiscal(NF, True) ;
+        N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
+        N.NFe.procNFe.verAplic:=NF.m_verapp ;
+        N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
+        N.NFe.procNFe.dhRecbto:=NF.m_dhreceb;
+        N.NFe.procNFe.nProt   :=NF.m_numprot;
+        N.NFe.procNFe.cStat   :=NF.m_codstt ;
+        N.NFe.procNFe.xMotivo :=NF.m_motivo ;
 
         //
         // ler config. do proxy
@@ -1938,7 +2067,7 @@ begin
             P.xValor :='1';
             P.Comple :=S.CommaText ;
             P.Catego :=CST_CATEGO;
-            P.Descricao :='Identificação do Ambiente(1=Produção;2=Homologação)' ;
+            P.Descricao :='Ambiente (1=Produção; 2=Homologação)' ;
             P.Save ;
         end;
         tipamb.Value :=p.ReadInt() ;
@@ -1964,35 +2093,35 @@ begin
         //
         // send sincrono
         //
-        send_sincrono.Key :='send_sincrono';
-        p :=params.IndexOf(send_sincrono.Key) ;
+        send_lotsync.Key :='send_sincrono';
+        p :=params.IndexOf(send_lotsync.Key) ;
         if p = nil then
         begin
-            p :=params.AddNew(send_sincrono.Key) ;
+            p :=params.AddNew(send_lotsync.Key) ;
             p.ValTyp:=ftBoolean ;
             P.xValor :=IntToStr(Ord(aSendSync));
             P.Catego :=CST_CATEGO;
-            p.Descricao :='Indicador para envio de lote sincrono';
+            p.Descricao :='Indicador para envio sincrono de lote ';
             P.Save ;
         end;
-        send_sincrono.Value :=p.ReadBoo() ;
+        send_lotsync.Value :=p.ReadBoo() ;
 
 
         //
         // mox nfe lote
         //
-        send_maxnfelot.Key :='send_maxnfelot';
-        p :=params.IndexOf(send_maxnfelot.Key) ;
+        send_lotqtdnfe.Key :='send_maxnfelot';
+        p :=params.IndexOf(send_lotqtdnfe.Key) ;
         if p = nil then
         begin
-            p :=params.AddNew(send_maxnfelot.Key) ;
+            p :=params.AddNew(send_lotqtdnfe.Key) ;
             p.ValTyp:=ftSmallint ;
             P.xValor :='25';
             P.Catego :=CST_CATEGO;
             p.Descricao :='Total maximo de NFE no lote';
             P.Save ;
         end;
-        send_maxnfelot.Value :=p.ReadInt() ;
+        send_lotqtdnfe.Value :=p.ReadInt() ;
 
 
         //
@@ -2070,18 +2199,22 @@ begin
             p.Descricao :='Número de serie (CAIXA)';
             P.Save ;
         end;
-        numero_serie.Value :=p.ReadInt() ;
+        numero_serie.Value :=p.ReadInt() ; }
 
-   arquivos_Salva: TPair<string, Boolean>;
-    arquivos_SeparaPorMes: TPair<string, Boolean>;
-    arquivos_SalvaEvento: TPair<string, Boolean>;
-    arquivos_SeparaPorCNPJ: TPair<string, Boolean>;
-    arquivos_SeparaPorModelo: TPair<string, Boolean>;
-    arquivos_RootPath: TPair<string, string>;
-    arquivos_PathSchemas: TPair<string, string>;
-    arquivos_PathNFe: TPair<string, string>;
-    arquivos_PathInut: TPair<string, string>;
-    arquivos_PathEvento: TPair<string, string>;}
+        //
+        // salva xml no banco
+        {arquivos_Salva_BD.Key :='arquivos.Salva_BD';
+        p :=params.IndexOf(arquivos_Salva_BD.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arquivos_Salva_BD.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador para salvar XML no BD';
+            P.Save ;
+        end;
+        arquivos_Salva_BD.Value :=p.ReadBoo();}
 
         //
         // info resp tec
@@ -2098,7 +2231,6 @@ begin
             P.Save ;
         end;
         indRespTec.Value :=p.ReadBoo();
-
 
     finally
         params.Free ;

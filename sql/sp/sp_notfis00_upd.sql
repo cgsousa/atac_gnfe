@@ -17,6 +17,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+14.06.2019
+[*] Parametro <@indfinal> atualizado de <venda.consumidorfinal>
+
 22.12.2018
 [*] Movido codigo de leitura das inf comple pra k 
 [-] os dados dos transportes que não era gravado na alteração
@@ -144,7 +147,7 @@ as
     @numdoc =nf0_numdoc ,
     @codstt =nf0_codstt ,
     @codufe =nf0_codufe ,
-    @indfinal=nf0_indfinal, 
+    --@indfinal=nf0_indfinal, 
     @codmod =nf0_codmod,
     @rowcount =1
   from notfis00
@@ -231,6 +234,7 @@ as
     ,@usrnome =u.nome 
     ,@funnome =f.nome 
     ,@codcntsnh =case when s.codcontadorsenha is null then 0 else s.codcontadorsenha end
+    ,@indfinal =v.consumidorfinal
 
   from venda v
   --//info cpl
@@ -287,6 +291,7 @@ as
       ,@usrnome =u.nome 
       ,@funnome =f.nome 
       ,@codcntsnh =case when s.codcontadorsenha is null then 0 else s.codcontadorsenha end
+      ,@indfinal =v.consumidorfinal
 
     from histvenda v
     --//info cpl
@@ -378,7 +383,8 @@ as
   
   --//altera capa da nota
   update notfis00 set 
-    nf0_dtemis = case when nf0_codmod = 65 then @dtemis else nf0_dtemis end ,
+    nf0_dtemis  =case when nf0_codmod = 65 then @dtemis else nf0_dtemis end ,
+    nf0_dhsaient=case when nf0_codmod = 65 then @dtemis else nf0_dhsaient end ,
     nf0_dsttippes =@dst_tippes ,
     nf0_dstcnpjcpf =case when nf0_codmod = 65 then
                               case when @cpf_cnpj is not null then @cpf_cnpj else @dst_cnpjcpf end
@@ -416,7 +422,8 @@ as
     nf0_volpsol =@vol_psol,
     nf0_volpsob =@vol_psob,
     
-    nf0_infcpl =@infcpl
+    nf0_infcpl =@infcpl ,
+    nf0_indfinal =@indfinal 
   where nf0_codseq =@codseq
   ;  
 

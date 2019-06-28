@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, SvcMgr, Dialogs,
-  Thread.NFE;
+  ulog, Thread.NFE;
 
 type
   TSvc_NFE = class(TService)
@@ -29,7 +29,8 @@ implementation
 
 {$R *.DFM}
 
-uses Registry;
+uses Registry,
+  unotfis00;
 
 //var
 //  LAppForm: Tfrm_Princ00;
@@ -75,10 +76,17 @@ end;
 
 procedure TSvc_NFE.ServiceStart(Sender: TService; var Started: Boolean);
 // Allocate resources here that you need when the service is running
+var
+  F: TNotFis00Filter;
 begin
+    F.Create(0, 0);
+    F.filTyp :=ftService ;
+    //F.codmod :=m_Rep.CodMod ;
+    F.nserie :=00;
+
     // Create an instance of the secondary thread where your service code is placed
-    m_MySvcThread :=TMySvcThread.Create ;
-    m_MySvcThread.Log.AddSec('%s.ServiceStart',[Self.ClassName]);
+    m_MySvcThread :=TMySvcThread.Create(F) ;
+    //m_MySvcThread.Log.AddSec('%s.ServiceStart',[Self.ClassName]);
     m_MySvcThread.SecBetweenRuns :=100;
     m_MySvcThread.Resume  ;
 end;
@@ -94,7 +102,7 @@ begin
     // Deallocate resources here
     if Assigned(m_MySvcThread) then
     begin
-        m_MySvcThread.Log.AddSec('%s.ServiceStopShutdown',[Self.ClassName]);
+        //m_MySvcThread.Log.AddSec('%s.ServiceStopShutdown',[Self.ClassName]);
         // The TService must WaitFor the thread to finish (and free it)
         // otherwise the thread is simply killed when the TService ends.
         m_MySvcThread.Terminate;

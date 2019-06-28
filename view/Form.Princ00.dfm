@@ -15,37 +15,16 @@ object frm_Princ00: Tfrm_Princ00
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  OnResize = FormResize
   OnShow = FormShow
-  DesignSize = (
-    1018
-    572)
   PixelsPerInch = 96
   TextHeight = 14
-  object html_Status: THTMLabel
-    Left = 5
-    Top = 491
-    Width = 1005
-    Height = 35
-    ColorTo = 11769496
-    BorderWidth = 1
-    BorderStyle = bsSingle
-    Color = 15524577
-    HTMLText.Strings = (
-      
-        '<P align="left">TMS <b>STATUS</b> label</P> <P align="right">TMS' +
-        ' <b>TOTAL</b> label</P>')
-    ParentColor = False
-    Transparent = False
-    Version = '1.9.0.2'
-  end
   object vst_Grid1: TVirtualStringTree
-    Left = 5
+    Left = 295
     Top = 0
-    Width = 1005
-    Height = 485
+    Width = 428
+    Height = 511
+    Align = alClient
     Alignment = taCenter
-    Anchors = [akLeft, akTop, akRight]
     BevelInner = bvNone
     BevelKind = bkTile
     BorderStyle = bsNone
@@ -259,7 +238,7 @@ object frm_Princ00: Tfrm_Princ00
   end
   object pnl_Footer: TJvFooter
     Left = 0
-    Top = 532
+    Top = 511
     Width = 1018
     Height = 40
     Align = alBottom
@@ -277,7 +256,7 @@ object frm_Princ00: Tfrm_Princ00
     object btn_Config: TJvFooterBtn
       Left = 8
       Top = 5
-      Width = 100
+      Width = 90
       Height = 30
       Hint = 'Configura a forma de emiss'#227'o'
       Anchors = [akLeft, akBottom]
@@ -292,9 +271,9 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_ConsSvc: TJvFooterBtn
-      Left = 112
+      Left = 102
       Top = 5
-      Width = 75
+      Width = 80
       Height = 30
       Hint = 'Consulta o status do servi'#231'o'
       Anchors = [akLeft, akBottom]
@@ -309,9 +288,9 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_Filter: TJvFooterBtn
-      Left = 193
+      Left = 188
       Top = 5
-      Width = 75
+      Width = 80
       Height = 30
       Hint = 'Mostra/Esconde o Filtro'
       Anchors = [akLeft, akBottom]
@@ -326,9 +305,9 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_Close: TJvFooterBtn
-      Left = 935
+      Left = 930
       Top = 5
-      Width = 75
+      Width = 80
       Height = 30
       Anchors = [akRight, akBottom]
       Caption = 'Fechar'
@@ -340,7 +319,7 @@ object frm_Princ00: Tfrm_Princ00
     object btn_Items: TJvFooterBtn
       Left = 274
       Top = 5
-      Width = 75
+      Width = 80
       Height = 30
       Hint = 'Itens da Nota Fiscal'
       Anchors = [akLeft, akBottom]
@@ -355,13 +334,13 @@ object frm_Princ00: Tfrm_Princ00
       SpaceInterval = 6
     end
     object btn_Send: TJvFooterBtn
-      Left = 355
+      Left = 360
       Top = 5
-      Width = 75
+      Width = 80
       Height = 30
-      Hint = 'Autoriza Nota Fiscal'
+      Hint = 'Autoriza uso da NFe'
       Anchors = [akLeft, akBottom]
-      Caption = 'Enviar'
+      Caption = 'Autorizar Uso'
       ParentShowHint = False
       ShowHint = True
       TabOrder = 5
@@ -371,12 +350,29 @@ object frm_Princ00: Tfrm_Princ00
       ButtonIndex = 5
       SpaceInterval = 6
     end
-    object btn_Cons: TJvFooterBtn
-      Left = 436
+    object btn_SendAsync: TJvFooterBtn
+      Left = 446
       Top = 5
-      Width = 75
+      Width = 80
       Height = 30
-      Hint = 'Consulta protocolo ou resultado do processamento do lote'
+      Hint = 'Envio de Lote com varias NFE'#180's de mesmo modelo'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Lote'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 9
+      OnClick = btn_SendAsyncClick
+      Alignment = taLeftJustify
+      HintColor = clInfoBk
+      ButtonIndex = 6
+      SpaceInterval = 6
+    end
+    object btn_Cons: TJvFooterBtn
+      Left = 532
+      Top = 5
+      Width = 80
+      Height = 30
+      Hint = 'Consulta info protocolo de autoriza'#231#227'o de uso'
       Anchors = [akLeft, akBottom]
       Caption = 'Protocolo'
       ParentShowHint = False
@@ -385,47 +381,47 @@ object frm_Princ00: Tfrm_Princ00
       OnClick = btn_ConsClick
       Alignment = taLeftJustify
       HintColor = clInfoBk
-      ButtonIndex = 6
+      ButtonIndex = 7
       SpaceInterval = 6
     end
-    object btn_Cancel: TJvFooterBtn
-      Left = 517
+    object btn_Evento: TJvFooterBtn
+      Left = 618
       Top = 5
-      Width = 75
+      Width = 80
       Height = 30
-      Hint = 'Evento da NFE - Cancelamento / Carta de Corre'#231#227'o'
+      Hint = 'Cancelamento / Carta de Corre'#231#227'o'
       Anchors = [akLeft, akBottom]
-      Caption = 'Cancelar NFE CC-e'
-      DropDownMenu = AdvPopupMenu1
+      Caption = 'Evento'
+      DropDownMenu = pm_Evento
       ParentShowHint = False
       ShowHint = True
       TabOrder = 7
       Alignment = taLeftJustify
       HintColor = clInfoBk
-      ButtonIndex = 7
-      SpaceInterval = 6
-    end
-    object btn_Danfe: TJvFooterBtn
-      Left = 598
-      Top = 5
-      Width = 75
-      Height = 30
-      Hint = 'Imprime DANFE'
-      Anchors = [akLeft, akBottom]
-      Caption = 'DANFE'
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 10
-      OnClick = btn_DanfeClick
-      Alignment = taLeftJustify
-      HintColor = clInfoBk
       ButtonIndex = 8
       SpaceInterval = 6
     end
-    object btn_Inut: TJvFooterBtn
-      Left = 679
+    object btn_RelNF: TJvFooterBtn
+      Left = 704
       Top = 5
-      Width = 75
+      Width = 80
+      Height = 30
+      Hint = 'Listagem de Notas Fiscais detalhada/resumida'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Relat'#243'rios'
+      DropDownMenu = pm_Rel
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 10
+      Alignment = taLeftJustify
+      HintColor = clInfoBk
+      ButtonIndex = 9
+      SpaceInterval = 6
+    end
+    object btn_Inut: TJvFooterBtn
+      Left = 790
+      Top = 5
+      Width = 80
       Height = 30
       Hint = 'Inutiliza sequ'#234'ncia de n'#250'meros'
       Anchors = [akLeft, akBottom]
@@ -436,49 +432,16 @@ object frm_Princ00: Tfrm_Princ00
       OnClick = btn_InutClick
       Alignment = taLeftJustify
       HintColor = clInfoBk
-      ButtonIndex = 9
-      SpaceInterval = 6
-    end
-    object btn_export: TJvFooterBtn
-      Left = 760
-      Top = 5
-      Width = 75
-      Height = 30
-      Hint = 'Exporta NFE para um local'
-      Anchors = [akLeft, akBottom]
-      Caption = 'Exportar'
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 9
-      OnClick = btn_exportClick
-      Alignment = taLeftJustify
-      HintColor = clInfoBk
       ButtonIndex = 10
-      SpaceInterval = 6
-    end
-    object btn_RelNF: TJvFooterBtn
-      Left = 841
-      Top = 5
-      Width = 75
-      Height = 30
-      Hint = 'Listagem de Notas Fiscais detalhada/resumida'
-      Anchors = [akLeft, akBottom]
-      Caption = 'Relat'#243'rios'
-      DropDownMenu = pm_Rel
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 11
-      Alignment = taLeftJustify
-      HintColor = clInfoBk
-      ButtonIndex = 11
       SpaceInterval = 6
     end
   end
   object pnl_Filter: TAdvPanel
-    Left = 5
-    Top = 5
+    Left = 0
+    Top = 0
     Width = 295
-    Height = 485
+    Height = 511
+    Align = alLeft
     BevelOuter = bvNone
     BevelWidth = 0
     BorderStyle = bsSingle
@@ -526,24 +489,11 @@ object frm_Princ00: Tfrm_Princ00
     StatusBar.Color = 14606046
     StatusBar.ColorTo = 11119017
     StatusBar.GradientDirection = gdVertical
+    StatusBar.Visible = True
     DesignSize = (
       293
-      483)
+      509)
     FullHeight = 485
-    object chk_EnvLote: TAdvOfficeCheckBox
-      Left = 5
-      Top = 424
-      Width = 283
-      Height = 20
-      Anchors = [akLeft, akBottom]
-      TabOrder = 7
-      OnClick = chk_EnvLoteClick
-      Alignment = taLeftJustify
-      Caption = 'Modo envio de lote com varias NFE'
-      ReturnIsTab = False
-      Themed = True
-      Version = '1.3.7.0'
-    end
     object gbx_DtEmis: TAdvGroupBox
       Left = 5
       Top = 68
@@ -596,15 +546,15 @@ object frm_Princ00: Tfrm_Princ00
       Caption = ' Situa'#231#227'o '
       ParentBackground = False
       TabOrder = 2
-      OnClick = rgx_StatusClick
       Columns = 2
-      ItemIndex = 6
+      ItemIndex = 2
       Items.Strings = (
         'Pronto para envio;'
         'Conting'#234'ncia;'
-        'Processadas;'
-        'Canceladas;'
-        'Inutilizadas;'
+        'Autorizado Uso;'
+        'Uso Denegado;'
+        'Cancelada;'
+        'Inutilizada;'
         'Erros;'
         'Todos.')
       ButtonVertAlign = tlCenter
@@ -617,7 +567,7 @@ object frm_Princ00: Tfrm_Princ00
       Height = 30
       Anchors = [akRight, akBottom]
       Caption = 'Buscar'
-      TabOrder = 8
+      TabOrder = 7
       OnClick = btn_ExecClick
     end
     object gbx_CodPed: TAdvGroupBox
@@ -789,7 +739,9 @@ object frm_Princ00: Tfrm_Princ00
         Height = 22
         EditAlign = eaCenter
         EditType = etNumeric
+        EmptyText = 'S'#233'rie[1..889]'
         EmptyTextStyle = []
+        MaxValue = 889
         LabelCaption = 'N'#250'mero de S'#233'rie:'
         LabelMargin = 3
         LabelTransparent = True
@@ -805,6 +757,7 @@ object frm_Princ00: Tfrm_Princ00
         Lookup.Font.Style = []
         Lookup.Separator = ';'
         Color = clWindow
+        MaxLength = 3
         TabOrder = 1
         Text = '0'
         Visible = True
@@ -812,14 +765,221 @@ object frm_Princ00: Tfrm_Princ00
       end
     end
   end
+  object AdvOfficeStatusBar1: TAdvOfficeStatusBar
+    Left = 0
+    Top = 551
+    Width = 1018
+    Height = 21
+    AnchorHint = False
+    Panels = <
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 
+          '<p><font color="#FFFFFF" bgcolor="#FF0000"><b> Homologa'#231#227'o </b><' +
+          '/font</p>'
+        TimeFormat = 'hh:mm:ss'
+        Width = 90
+      end
+      item
+        Alignment = taCenter
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 'Nenhum'
+        TimeFormat = 'hh:mm:ss'
+        Width = 75
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = 'Total: R$99,999,999.99'
+        TimeFormat = 'hh:mm:ss'
+        Width = 140
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Style = psProgress
+        TimeFormat = 'hh:mm:ss'
+        Width = 250
+      end
+      item
+        AppearanceStyle = psLight
+        DateFormat = 'dd/MM/yyyy'
+        Progress.BackGround = clNone
+        Progress.Indication = piPercentage
+        Progress.Min = 0
+        Progress.Max = 100
+        Progress.Position = 0
+        Progress.Level0Color = clLime
+        Progress.Level0ColorTo = 14811105
+        Progress.Level1Color = clYellow
+        Progress.Level1ColorTo = 13303807
+        Progress.Level2Color = 5483007
+        Progress.Level2ColorTo = 11064319
+        Progress.Level3Color = clRed
+        Progress.Level3ColorTo = 13290239
+        Progress.Level1Perc = 70
+        Progress.Level2Perc = 90
+        Progress.BorderColor = clBlack
+        Progress.ShowBorder = False
+        Progress.Stacked = False
+        Text = '<p>TESTE <font color="#FF8C00">%s</font</p>'
+        TimeFormat = 'hh:mm:ss'
+        Width = 50
+      end>
+    ShowSplitter = True
+    SimplePanel = False
+    Styler = AdvOfficeStatusBarOfficeStyler1
+    Version = '1.5.2.2'
+  end
+  object pnl_Help: TAdvPanel
+    Left = 723
+    Top = 0
+    Width = 295
+    Height = 511
+    Align = alRight
+    BevelOuter = bvNone
+    BevelWidth = 0
+    BorderStyle = bsSingle
+    Color = clWhite
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Trebuchet MS'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 5
+    UseDockManager = True
+    Version = '2.3.0.0'
+    BorderColor = clGray
+    BorderShadow = True
+    Caption.Color = clWhite
+    Caption.ColorTo = clNone
+    Caption.CloseColor = clActiveCaption
+    Caption.CloseButton = True
+    Caption.Font.Charset = DEFAULT_CHARSET
+    Caption.Font.Color = clWindowText
+    Caption.Font.Height = -12
+    Caption.Font.Name = 'Tahoma'
+    Caption.Font.Style = []
+    Caption.Indent = 4
+    Caption.ShadeLight = 255
+    Caption.ShadeType = stRMetal
+    Caption.Text = 
+      '<P align="center"><FONT  size="8"  face="Trebuchet MS">.:Ajuda:.' +
+      '</FONT></P>'
+    Caption.Visible = True
+    CollapsColor = clBtnFace
+    CollapsDelay = 0
+    ColorTo = clInfoBk
+    Padding.Left = 5
+    Padding.Right = 5
+    Padding.Bottom = 3
+    ShadowColor = clBlack
+    ShadowOffset = 0
+    StatusBar.BorderColor = clWhite
+    StatusBar.BorderStyle = bsSingle
+    StatusBar.Font.Charset = DEFAULT_CHARSET
+    StatusBar.Font.Color = clBlack
+    StatusBar.Font.Height = -11
+    StatusBar.Font.Name = 'Tahoma'
+    StatusBar.Font.Style = []
+    StatusBar.Color = 14606046
+    StatusBar.ColorTo = 11119017
+    StatusBar.GradientDirection = gdVertical
+    Text = 
+      '<p><ind x="10"><font color="#0000ff">Ctrl+S</font> Envia XML/DAN' +
+      'FE para o e-mail do destinat'#225'rio</p> <p><ind x="10"><font   colo' +
+      'r="#0000ff">Ctrl+E</font> Exporta o XML da NFe, indepedente de s' +
+      'itua'#231#227'o</p> <p><ind x="10"><font color="#0000ff">Ctrl+K</font> F' +
+      'or'#231'a   gera'#231#227'o XML/Chave com base na forma de emiss'#227'o (CUIDADO !' +
+      '!!)</p> <p><ind x="10"><font color="#0000ff">Alt+X</font> Cria u' +
+      'm serial   (sequ'#234'ncia) da NFe/NFCe no GenSerial</p> '
+    TextVAlign = tvaCenter
+    OnCaptionClick = pnl_HelpCaptionClick
+    FullHeight = 485
+  end
   object AppInstances1: TJvAppInstances
     Active = False
-    Left = 288
-    Top = 496
+    Left = 320
+    Top = 472
   end
   object ActionList1: TActionList
-    Left = 472
-    Top = 496
+    Left = 384
+    Top = 472
     object act_CancNFE: TAction
       Category = 'EVENTO'
       Caption = 'Cancelar NFE'
@@ -847,17 +1007,35 @@ object frm_Princ00: Tfrm_Princ00
       ShortCut = 16466
       OnExecute = act_ListDetalhExecute
     end
+    object act_DANFE: TAction
+      Category = 'REL'
+      Caption = 'DANFe/DANFCe'
+      Hint = 'Documento auxiliar da NFE'
+      ShortCut = 16464
+      OnExecute = act_DANFEExecute
+    end
+    object act_Export: TAction
+      Category = 'REL'
+      Caption = 'Exportar XML'
+      Hint = 'Exporta XML da NFe/NFCe'
+      OnExecute = act_ExportExecute
+    end
   end
-  object AdvPopupMenu1: TAdvPopupMenu
+  object pm_Evento: TAdvPopupMenu
     MenuStyler = AdvMenuStyler1
     Version = '2.5.4.3'
     Left = 528
-    Top = 496
+    Top = 472
     object mnu_CancNFE: TMenuItem
       Action = act_CancNFE
+      Caption = 'Cancelar'
+      Hint = 'Cancela NFe/NFCe'
+      ShortCut = 16430
     end
     object mnu_CCE: TMenuItem
       Action = act_CCE
+      Hint = 'Carta de Core'#231#227'o'
+      ShortCut = 16497
     end
   end
   object AdvMenuStyler1: TAdvMenuStyler
@@ -918,19 +1096,75 @@ object frm_Princ00: Tfrm_Princ00
     ButtonAppearance.CaptionFont.Height = -11
     ButtonAppearance.CaptionFont.Name = 'Segoe UI'
     ButtonAppearance.CaptionFont.Style = []
-    Left = 632
-    Top = 496
+    Left = 624
+    Top = 472
   end
   object pm_Rel: TAdvPopupMenu
     MenuStyler = AdvMenuStyler1
     Version = '2.5.4.3'
     Left = 576
-    Top = 496
+    Top = 472
+    object DANFeDANFCe1: TMenuItem
+      Action = act_DANFE
+    end
+    object N1: TMenuItem
+      Caption = '-'
+    end
     object ListagemDetalhe1: TMenuItem
       Action = act_ListDetalh
     end
     object ListagemResumo1: TMenuItem
       Action = act_ListResumo
     end
+    object N2: TMenuItem
+      Caption = '-'
+    end
+    object actExport1: TMenuItem
+      Action = act_Export
+    end
+  end
+  object AdvOfficeStatusBarOfficeStyler1: TAdvOfficeStatusBarOfficeStyler
+    Style = psTerminal
+    BorderColor = clGray
+    PanelAppearanceLight.BorderColor = clGray
+    PanelAppearanceLight.BorderColorHot = clSilver
+    PanelAppearanceLight.BorderColorDown = clGray
+    PanelAppearanceLight.Color = clBtnFace
+    PanelAppearanceLight.ColorTo = clBtnFace
+    PanelAppearanceLight.ColorHot = clGray
+    PanelAppearanceLight.ColorHotTo = clGray
+    PanelAppearanceLight.ColorDown = clHighlight
+    PanelAppearanceLight.ColorDownTo = clHighlight
+    PanelAppearanceLight.ColorMirror = clBtnFace
+    PanelAppearanceLight.ColorMirrorTo = clBtnFace
+    PanelAppearanceLight.ColorMirrorHot = clGray
+    PanelAppearanceLight.ColorMirrorHotTo = clGray
+    PanelAppearanceLight.ColorMirrorDown = clHighlight
+    PanelAppearanceLight.ColorMirrorDownTo = clHighlight
+    PanelAppearanceLight.TextColor = clBlack
+    PanelAppearanceLight.TextColorHot = clBlack
+    PanelAppearanceLight.TextColorDown = clBlack
+    PanelAppearanceLight.TextStyle = []
+    PanelAppearanceDark.BorderColor = clGray
+    PanelAppearanceDark.BorderColorHot = clSilver
+    PanelAppearanceDark.BorderColorDown = clGray
+    PanelAppearanceDark.Color = clSilver
+    PanelAppearanceDark.ColorTo = clSilver
+    PanelAppearanceDark.ColorHot = clGray
+    PanelAppearanceDark.ColorHotTo = clGray
+    PanelAppearanceDark.ColorDown = clHighlight
+    PanelAppearanceDark.ColorDownTo = clHighlight
+    PanelAppearanceDark.ColorMirror = clSilver
+    PanelAppearanceDark.ColorMirrorTo = clSilver
+    PanelAppearanceDark.ColorMirrorHot = clGray
+    PanelAppearanceDark.ColorMirrorHotTo = clGray
+    PanelAppearanceDark.ColorMirrorDown = clHighlight
+    PanelAppearanceDark.ColorMirrorDownTo = clHighlight
+    PanelAppearanceDark.TextColor = clBlack
+    PanelAppearanceDark.TextColorHot = clBlack
+    PanelAppearanceDark.TextColorDown = clBlack
+    PanelAppearanceDark.TextStyle = []
+    Left = 832
+    Top = 376
   end
 end

@@ -18,6 +18,20 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+26.06.2019
+[*] Mais 2(Autorizado Uso, Uso Denegado) no filtro situação
+
+27.05.2019
+[*] Alinhamento: pnl_Filter[alLeft] e vst_Grid1[alClient]
+    Troca do html_Status ==> AdvStatusBar1
+
+24.05.2019
+[+] Novo button <btn_SendAsync> para envio de LOTE
+    checkbox <chk_EnvLote> descontinuado
+[*] O button <btn_Send> somente autoriza uma unica nfe
+[*] Agrupamento das Actions DANFE, Rel. Detalhe/Resumo e Exportar XML
+    no PopupMenu<pm_Rel> chamado do button <btn_RelNF>
+
 17.05.2019
 [+] Novo atalho(Ctrl+D) chamada do rel resumo de NF (Form.RelNFRL02)
 
@@ -46,52 +60,33 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, Mask, ExtCtrls,
+  Dialogs, StdCtrls, Mask, ExtCtrls, ActnList, Menus,
+  FormBase,
   //JEDI
   JvExStdCtrls, JvExExtCtrls, JvExtComponent, JvCtrls,
-  JvFooter, JvToolEdit, JvGroupBox, JvButton, JvAppInst,
+  JvFooter, JvToolEdit, JvGroupBox, JvButton, JvAppInst, JvExMask, uJVCL,
   //TMS
-  AdvPanel, AdvEdit, JvExMask, AdvGlowButton, AdvOfficeButtons, AdvGroupBox,
-  AdvCombo, HTMLabel, AdvToolBar ,
+  AdvPanel, AdvEdit, AdvGlowButton, AdvOfficeButtons, AdvGroupBox, AdvCombo,
+  AdvToolBar, AdvMenus, AdvOfficeStatusBar, AdvOfficeStatusBarStylers,
+  uStatusBar,
   //
   VirtualTrees, uVSTree,
   //
-  FormBase,
-  uclass, ulog, uTaskDlg, unotfis00, ActnList, AdvMenus, Menus;
-
-
-
-type
-  TJvImgBtn =class(JvCtrls.TJvImgBtn)
-  private
-    m_ShortCut: String ;
-  protected
-  public
-    property ShortCut: String read m_ShortCut write m_ShortCut;
-  end;
-
-  TJvFooterBtn =class(JvFooter.TJvFooterBtn)
-  private
-    m_ShortCut: String ;
-    m_ShortCutFont: TFont;
-    m_Rect: TRect;
-  protected
-    procedure DrawItem(const DrawItemStruct: TDrawItemStruct); override;
-  public
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-    procedure DrawButtonText(TextBounds: TRect; TextEnabled: Boolean); override;
-  end;
+  uclass, unotfis00;
 
 
 type
-  TRunProcTyp = (rtExport);
+  TRunProcTyp = (rtExport, rtLoad);
   TCRunProc = class(TCThreadProcess)
   private
     m_RunTyp: TRunProcTyp;
+    m_Filter: TNotFis00Filter;
+    m_Lote: TCNotFis00Lote;
   protected
+    procedure RunProc; override;
   public
-    constructor Create(aRunTyp: TRunProcTyp);
+    constructor Create(aRunTyp: TRunProcTyp;
+      aLote: TCNotFis00Lote; aFilter: TNotFis00Filter);
   end;
 
 
@@ -112,16 +107,13 @@ type
     btn_Items: TJvFooterBtn;
     btn_Send: TJvFooterBtn;
     btn_Cons: TJvFooterBtn;
-    btn_Cancel: TJvFooterBtn;
+    btn_Evento: TJvFooterBtn;
     btn_Inut: TJvFooterBtn;
-    btn_export: TJvFooterBtn;
-    html_Status: THTMLabel;
-    btn_Danfe: TJvFooterBtn;
+    btn_SendAsync: TJvFooterBtn;
     gbx_CodPed: TAdvGroupBox;
     edt_PedIni: TAdvEdit;
     edt_PedFin: TAdvEdit;
     Label1: TLabel;
-    chk_EnvLote: TAdvOfficeCheckBox;
     chk_ChvNFe: TAdvOfficeCheckBox;
     btn_RelNF: TJvFooterBtn;
     cbx_Ordem: TAdvComboBox;
@@ -133,7 +125,7 @@ type
     ActionList1: TActionList;
     act_CancNFE: TAction;
     act_CCE: TAction;
-    AdvPopupMenu1: TAdvPopupMenu;
+    pm_Evento: TAdvPopupMenu;
     AdvMenuStyler1: TAdvMenuStyler;
     mnu_CancNFE: TMenuItem;
     mnu_CCE: TMenuItem;
@@ -142,37 +134,45 @@ type
     act_ListResumo: TAction;
     ListagemDetalhe1: TMenuItem;
     ListagemResumo1: TMenuItem;
+    N1: TMenuItem;
+    act_DANFE: TAction;
+    DANFeDANFCe1: TMenuItem;
+    N2: TMenuItem;
+    act_Export: TAction;
+    actExport1: TMenuItem;
+    AdvOfficeStatusBar1: TAdvOfficeStatusBar;
+    AdvOfficeStatusBarOfficeStyler1: TAdvOfficeStatusBarOfficeStyler;
+    pnl_Help: TAdvPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btn_FilterClick(Sender: TObject);
     procedure btn_ExecClick(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
-    procedure btn_SendClick(Sender: TObject);
     procedure vst_Grid1Checked(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure vst_Grid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure btn_ConsClick(Sender: TObject);
     procedure btn_InutClick(Sender: TObject);
-    procedure FormResize(Sender: TObject);
-    procedure btn_exportClick(Sender: TObject);
-    procedure btn_DanfeClick(Sender: TObject);
     procedure btn_ConsSvcClick(Sender: TObject);
     procedure vst_Grid1HeaderClick(Sender: TVTHeader;
       HitInfo: TVTHeaderHitInfo);
-    procedure rgx_StatusClick(Sender: TObject);
-    procedure chk_EnvLoteClick(Sender: TObject);
     procedure chk_ChvNFeClick(Sender: TObject);
     procedure btn_ConfigClick(Sender: TObject);
     procedure btn_ItemsClick(Sender: TObject);
     procedure act_CCEExecute(Sender: TObject);
     procedure act_CancNFEExecute(Sender: TObject);
     procedure act_ListDetalhExecute(Sender: TObject);
+    procedure act_DANFEExecute(Sender: TObject);
+    procedure act_ExportExecute(Sender: TObject);
+    procedure btn_SendClick(Sender: TObject);
+    procedure btn_SendAsyncClick(Sender: TObject);
+    procedure pnl_HelpCaptionClick(Sender: TObject);
   private
     { Private declarations }
     m_Service: Boolean ;
     m_Filter: TNotFis00Filter;
     m_Lote: TCNotFis00Lote;
-    m_bSelCodSeq: Int32;
+    //m_bSelCodSeq: Int32;
     m_proDescri, m_proCodInt: Boolean ;
 //    procedure OnButtonDraw(Sender: TObject;
 //      const DrawItemStruct: tagDRAWITEMSTRUCT);
@@ -185,8 +185,6 @@ type
       TextType: TVSTTextType);
 
     function LoadGrid(): Boolean;
-
-    procedure DoUpdateStatus(const AText: string);
 
     procedure OnGenSerial(Sender: TObject);
 
@@ -201,13 +199,21 @@ type
     procedure OnINI(Sender: TObject);
     procedure OnFIN(Sender: TObject);
     procedure OnRunExportXML(Sender: TObject);
+    procedure OnRunLoad(Sender: TObject);
+  private
+    { StatusBar }
+    m_StatusBar: TCStatusBarWidget;
+    m_panelAmb: TAdvOfficeStatusPanel ;
+    m_panelItems: TAdvOfficeStatusPanel ;
+    m_panelVTotal: TAdvOfficeStatusPanel ;
+    m_panelProgress: TAdvOfficeStatusPanel ;
+    m_panelText: TAdvOfficeStatusPanel ;
+    procedure setStatusBar(const aPos: Integer =0) ;
   protected
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     function ChkPwd(const aInput: string): Boolean; override ;
   public
     { Public declarations }
-    m_Log: TCLog ;
-    procedure DoExecute ;
   end;
 
 var
@@ -221,12 +227,9 @@ implementation
 
 uses StrUtils, DateUtils, IOUtils , DB, Clipbrd ,
   JvJCLUtils ,
-  ACBrUtil, ACBrNFeNotasFiscais, pcnConversao, pcnConversaoNFe, pcnNFe,
-  pcnAuxiliar ,
-  uadodb ,
-  //FDM.NFE,
+  pcnConversao, pcnConversaoNFe, pcnNFe, pcnAuxiliar, ACBrUtil, ACBrNFeNotasFiscais,
+  uadodb, ulog, uTaskDlg, ucademp,
   uACBrNFE,
-  //Form.Config,
   Form.ParametroList, Form.NFEStatus,
   Form.Justifica, Form.Inutiliza,
   Form.Ajuda, Form.EnvioLote, Form.Items, Form.CCEList,
@@ -234,16 +237,71 @@ uses StrUtils, DateUtils, IOUtils , DB, Clipbrd ,
   Form.RelNFRL00, Form.RelNFRL02 ;
 
 const
-  Alignments: array [TAlignment] of Word = (DT_LEFT, DT_RIGHT, DT_CENTER);
   COL_CHV_NFE =0;
   COL_COD_PED =1;
   COL_COD_MOD =2;
   COL_NUM_SER =3;
   COL_NUM_DOC =4;
 
-//var
-//  rep_nfe: Tdm_nfe ;
 
+{ TCRunProc }
+
+constructor TCRunProc.Create(aRunTyp: TRunProcTyp;
+  aLote: TCNotFis00Lote; aFilter: TNotFis00Filter);
+begin
+    m_RunTyp :=aRunTyp;
+    m_Lote :=aLote ;
+    m_Filter :=aFilter;
+    inherited Create(True, False);
+end;
+
+procedure TCRunProc.RunProc;
+var
+  Q: TDataSet;
+  fnf0_codseq: TField ;
+  N: TCNotFis00;
+var
+  cmplvl: Integer;
+
+begin
+    //
+    //
+    m_Lote.Items.Clear ;
+
+    //
+    // combatibilidade
+    cmplvl :=TADOQuery.getCompLevel ;
+    if cmplvl > 8 then
+        Q :=TCNotFis00Lote.CLoadSPNotFis00Busca(m_Filter)
+    else
+        Q :=TCNotFis00Lote.CLoad(m_Filter) ;
+
+    //Count :=Q.RecordCount ;
+    //
+    //
+    try
+        fnf0_codseq :=Q.FieldByName('nf0_codseq') ;
+        while not Q.Eof do
+        begin
+            N :=m_Lote.AddNotFis00(fnf0_codseq.AsInteger) ;
+            if cmplvl >8 then
+                N.FillDataSet(Q)
+            else begin
+                if m_Filter.filTyp = ftNormal then
+                begin
+                    N.LoadFromQ(Q);
+                    N.LoadItems;
+                end;
+            end;
+            //
+            // proximo
+            Q.Next ;
+        end;
+
+    finally
+        Q.Free ;
+    end;
+end;
 
 { Tfrm_Princ00 }
 
@@ -291,6 +349,43 @@ begin
     ActiveControl :=vst_Grid1;
 end;
 
+procedure Tfrm_Princ00.act_DANFEExecute(Sender: TObject);
+var
+  N: TCNotFis00 ;
+  rep: IBaseACBrNFE;
+begin
+    if CMsgDlg.Confirm('Deseja imprimir o DANFE?') then
+    begin
+        setStatus('Imprimindo...');
+        try
+            N :=m_Lote.Items[vst_Grid1.IndexItem] ;
+            rep :=TCBaseACBrNFE.New() ;
+            if rep.PrintDANFE(N) then
+            begin
+                CMsgDlg.Info('DANFE impresso com sucesso.') ;
+            end
+            else begin
+                CMsgDlg.Error('DANFE não impresso!') ;
+            end;
+        finally
+            setStatus('');
+        end;
+    end;
+    ActiveControl :=vst_Grid1;
+end;
+
+procedure Tfrm_Princ00.act_ExportExecute(Sender: TObject);
+begin
+    if CMsgDlg.Confirm('Somente as Notas processadas serão exportadas! Deseja continuar?') then
+    begin
+        m_Run :=TCRunProc.Create(rtExport, nil, m_Filter);
+        m_Run.OnBeforeExecute :=OnINI;
+        m_Run.OnTerminate :=OnFIN;
+        m_Run.OnExecute :=OnRunExportXML;
+        m_Run.Start  ;
+    end;
+end;
+
 procedure Tfrm_Princ00.act_ListDetalhExecute(Sender: TObject);
 begin
     if TAction(Sender).Tag > 0 then
@@ -321,46 +416,17 @@ begin
     //
     // load parms nfe
     Tfrm_ParametroList.lp_Show('NFE') ;
+    setStatusBar();
 end;
 
 procedure Tfrm_Princ00.btn_ConsClick(Sender: TObject);
 var
   N: TCNotFis00;
   rep: IBaseACBrNFE;
-  ret: Boolean ;
 begin
     if(vst_Grid1.IndexItem >-1)and CMsgDlg.Confirm('Deseja consultar o Protocolo?')then
     begin
         N :=m_Lote.Items[vst_Grid1.IndexItem] ;
-
-        //DoUpdateStatus('Processando...');
-
-        //
-        // se NF ja existe com dif. de chave
-        // reset. contingencia
-        {if(N.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
-        ((N.m_tipemi =teContingencia)or(N.m_tipemi =teOffLine))then
-        begin
-            setStatus('Resetando contingência...');
-            N.setContinge('', True);
-            if Tdm_nfe.getInstance.AddNotaFiscal(N, True) <> nil then
-            begin
-                N.setXML() ;
-            end ;
-        end;
-
-        ret :=Tdm_nfe.getInstance.OnlyCons(N) ;
-        DoUpdateStatus('');
-        if ret then
-        begin
-            CMsgDlg.Info(N.m_motivo) ;
-            DoUpdateStatus('Gravando protocolo...');
-            N.setStatus();
-            LoadGrid ;
-        end
-        else begin
-            CMsgDlg.Warning(Format('%d-%s',[Tdm_nfe.getInstance.ErrCod,Tdm_nfe.getInstance.ErrMsg])) ;
-        end;}
 
         setStatus('Processando...');
         rep :=TCBaseACBrNFE.New() ;
@@ -381,26 +447,11 @@ end;
 
 procedure Tfrm_Princ00.btn_ConsSvcClick(Sender: TObject);
 var
-//  nfe: Tdm_nfe;
   S: string;
   rep: IBaseACBrNFE ;
 begin
     if CMsgDlg.Confirm('Deseja consultar o status do serviço da NFE?') then
     begin
-        {DoUpdateStatus('Aguarde...');
-        nfe :=Tdm_nfe.getInstance ;
-        nfe.m_NFE.SSL.CarregarCertificadoSeNecessario ;
-        S :=FormatDateTime('"Certificado[CNPJ:%s Vencimento:"dd/mm/yyyy"]"', nfe.m_NFE.SSL.CertDataVenc) ;
-        S :=Format(S,[nfe.m_NFE.SSL.CertCNPJ]);
-        if nfe.OnlyStatusSvc() then
-        begin
-            CMsgDlg.Info(nfe.StatusServico.Msg) ;
-        end
-        else begin
-            CMsgDlg.Warning(nfe.ErrMsg) ;
-        end;
-        DoUpdateStatus(S);
-        Screen.Cursor :=crDefault;}
         setStatus('Aguarde'#13#10'Consultando...');
         try
             rep :=TCBaseACBrNFE.New() ;
@@ -413,32 +464,6 @@ begin
             end
             else
                 CMsgDlg.Error(rep.ErrMsg) ;
-        finally
-            setStatus('');
-        end;
-    end;
-    ActiveControl :=vst_Grid1;
-end;
-
-procedure Tfrm_Princ00.btn_DanfeClick(Sender: TObject);
-var
-  N: TCNotFis00 ;
-  rep: IBaseACBrNFE;
-begin
-    if CMsgDlg.Confirm('Deseja imprimir o DANFE?') then
-    begin
-        setStatus('Imprimindo...');
-        try
-            N :=m_Lote.Items[vst_Grid1.IndexItem] ;
-            rep :=TCBaseACBrNFE.New() ;
-            //if Tdm_nfe.getInstance.PrintDANFE(N) then
-            if rep.PrintDANFE(N) then
-            begin
-                CMsgDlg.Info('DANFE impresso com sucesso.') ;
-            end
-            else begin
-                CMsgDlg.Error('DANFE não impresso!') ;
-            end;
         finally
             setStatus('');
         end;
@@ -474,7 +499,20 @@ begin
         m_Filter.datini :=edt_DatIni.Date ;
         m_Filter.datfin :=edt_DatFin.Date ;
 
-        m_Filter.status :=TNotFis00Status(rgx_Status.ItemIndex) ;
+        if rgx_Status.ItemIndex =rgx_Status.Items.Count -1 then
+            m_Filter.status :=sttNone
+        else if rgx_Status.ItemIndex =rgx_Status.Items.Count -2 then
+            m_Filter.status :=sttError
+        else
+            m_Filter.status :=TNotFis00Status(rgx_Status.ItemIndex) ;
+
+//        case rgx_Status.ItemIndex of
+//            6: m_Filter.status :=sttNone ;
+//            5: m_Filter.status :=sttError;
+//        else
+//            m_Filter.status :=TNotFis00Status(rgx_Status.ItemIndex) ;
+//        end;
+
         if m_Filter.status =sttNone then
         begin
             if edt_DatIni.Date > edt_DatFin.Date then
@@ -484,41 +522,29 @@ begin
                 exit;
             end;
         end;
-        {case rgx_Status.ItemIndex of
-            0: m_Filter.status :=sttDoneSend;
-            1: m_Filter.status :=sttConting ;
-            2: m_Filter.status :=sttProcess ;
-            3: m_Filter.status :=sttCancel ;
-            4: m_Filter.status :=sttError ;
-            5: m_Filter.status :=sttService ;
-        else
-            if edt_DatIni.Date > edt_DatFin.Date then
-            begin
-                CMsgDlg.Info('Data inicial maior que data final!') ;
-                edt_DatIni.SetFocus;
-                exit;
-            end;
-        end;}
+
+        if(edt_NSerie.IntValue > 0)and
+          ((cbx_Modelo.ItemIndex <0)or(cbx_Modelo.ItemIndex > 1))then
+        begin
+            CMsgDlg.Info('O Modelo deve ser selecionado quando informar a série!') ;
+            cbx_Modelo.SetFocus;
+            exit;
+        end;
 
         case cbx_Modelo.ItemIndex of
             0: m_Filter.codmod :=55 ;
             1: m_Filter.codmod :=65 ;
-        else
-            m_Filter.codmod :=0;
-            m_Filter.nserie :=0;
         end;
         m_Filter.nserie :=edt_NSerie.IntValue ;
 
     end;
 
-    {case gbx_Modelo.ItemIndex of
-      0: m_Filter.codmod :=55;
-      1: m_Filter.codmod :=65;
-    else
-        m_Filter.codmod :=0;
-    end;}
-
-//    m_Filter.chvnfe :=chk_ChvNFe.Checked ;
+    //
+    // thread aqui
+    m_Run :=TCRunProc.Create(rtExport, m_Lote, m_Filter);
+    m_Run.OnBeforeExecute :=OnINI;
+    m_Run.OnTerminate :=OnFIN;
+    m_Run.Start  ;
 
     if LoadGrid then
     begin
@@ -526,7 +552,7 @@ begin
         btn_Items.Enabled :=True;
         btn_RelNF.Enabled :=True ;
         btn_Cons.Enabled :=True  ;
-        btn_export.Enabled :=True;
+        act_export.Enabled :=True;
     end
     else begin
         CMsgDlg.Info('Nenhuma nota encontrada neste filtro!') ;
@@ -535,25 +561,9 @@ begin
         btn_Send.Enabled :=False;
         btn_Cons.Enabled :=False;
         btn_RelNF.Enabled :=False;
-        btn_export.Enabled :=True;
+        act_export.Enabled :=True;
     end;
-end;
 
-procedure Tfrm_Princ00.btn_exportClick(Sender: TObject);
-begin
-    if CMsgDlg.Confirm('Somente as Notas processadas serão exportadas! Deseja continuar?') then
-    begin
-        {m_Service :=False;
-        CRec.OnIni :=OnINI;
-        CRec.OnEnd :=OnEND;
-        CRec.CProc :=DoRun;
-        CRec.CExec :=TCThreadProc.Create(CRec);}
-        m_Run :=TCRunProc.Create(rtExport);
-        m_Run.OnBeforeExecute :=OnINI;
-        m_Run.OnTerminate :=OnFIN;
-        m_Run.OnExecute :=OnRunExportXML;
-        m_Run.Start  ;
-    end;
 end;
 
 procedure Tfrm_Princ00.btn_FilterClick(Sender: TObject);
@@ -593,32 +603,25 @@ begin
     ActiveControl :=vst_Grid1;
 end;
 
+procedure Tfrm_Princ00.btn_SendAsyncClick(Sender: TObject);
+begin
+    //
+    // se confirmou, atualiza grid
+    if Tfrm_EnvLote.fn_Show() then
+    begin
+        LoadGrid ;
+    end;
+end;
+
 procedure Tfrm_Princ00.btn_SendClick(Sender: TObject);
 var
   N: TCNotFis00 ;
   rep: IBaseACBrNFE;
   S: string;
   ret: Boolean ;
-var
-  proDescri, proCodInt: Boolean ;
 begin
-    N :=nil;
-
-    //
-    // envio do lote com varias NF´s (assincrono)
-    if chk_EnvLote.Checked then
+    if CMsgDlg.Confirm('Deseja Autorizar o USO da NF?') then
     begin
-        //
-        // se confirmou, atualiza grid
-        if Tfrm_EnvLote.fn_Show(m_Filter) then
-        begin
-            LoadGrid ;
-        end;
-    end
-
-    //
-    // envio do lote com uma NF (sincrono)
-    else begin
         N :=m_Lote.Items[vst_Grid1.IndexItem] ;
         try
             rep :=TCBaseACBrNFE.New() ;
@@ -673,35 +676,6 @@ begin
     end;
 end;
 
-procedure Tfrm_Princ00.chk_EnvLoteClick(Sender: TObject);
-var
-  C: TVirtualTreeColumn;
-begin
-    //
-    // set cab.column main
-    //
-  {
-    C :=vst_Grid1.Header.Columns[0] ;
-    C.CheckBox :=chk_EnvLote.Checked ;
-    if C.CheckBox then
-        C.CheckState :=csCheckedNormal
-    else
-        C.CheckState :=csUncheckedNormal;
-  }
-    btn_Send.Enabled :=chk_EnvLote.Checked ;
-end;
-
-procedure Tfrm_Princ00.DoExecute;
-// procedure a ser executa quando estiver chamando como serviço
-// nao executa o SHOW do formulário
-begin
-    m_Log.AddSec('%s.DoExec',[Self.ClassName]) ;
-    m_Service :=True ;
-    //m_Filter.status:=sttService;
-//    Tdm_nfe.getInstance.setStatusChange(false);
-//    DoRun() ;
-end;
-
 procedure Tfrm_Princ00.DoStop;
 begin
     m_Run.Terminate;
@@ -727,53 +701,11 @@ begin
     end;
 end;
 }
-procedure Tfrm_Princ00.DoUpdateStatus(const AText: string);
-var
-  N: TCNotFis00 ;
-  P: string;
-begin
-    html_Status.HTMLText.Clear;
-    if AText <> '' then
-    begin
-        html_Status.VAlignment :=tvaCenter ;
-        html_Status.HTMLText.Add(Format('<P align="center"><B>%s</B></P>',[AText]));
-        Screen.Cursor :=crHourGlass;
-    end
-    else begin
-        if vst_Grid1.RootNodeCount > 0 then
-        begin
-            html_Status.VAlignment :=tvaTop ;
-            html_Status.HTMLText.Add(Format('<P align="right"><B>TOTAL => %d nota(s), %15.2m</B></P>',[
-            m_Lote.Items.Count, m_Lote.vTotalNF ]));
-
-            N :=m_Lote.Items[vst_Grid1.IndexItem];
-            if N.CStatProcess then
-            begin
-                P :=Format('<P align="left"><FONT color="#006400"><B>%s</B></FONT></P>',[N.m_motivo]);
-            end
-            else if N.CstatCancel then
-            begin
-                P :=Format('<P align="left"><FONT color="#FF8C00"><B>%s</B></FONT></P>',[N.m_motivo]);
-            end
-            else begin
-                P :=Format('<P align="left"><FONT color="#8B0000"><B>%s</B></FONT></P>',[N.m_motivo]);
-            end;
-            html_Status.HTMLText.Add(P);
-        end
-        else begin
-            html_Status.VAlignment :=tvaCenter ;
-            html_Status.HTMLText.Add('<P align="center">Nenhuma nota !</P>');
-        end;
-        Screen.Cursor :=crDefault;
-    end;
-    html_Status.Refresh ;
-end;
 
 procedure Tfrm_Princ00.FormCreate(Sender: TObject);
 begin
     m_Service :=False ;
     m_Lote :=TCNotFis00Lote.Create ;
-    m_Log :=nil;
 
     TCExeInfo.getInstance.GetVersionInfoOfApp(Application.ExeName);
     Self.Caption :=Format('%s(Ver.:%d.%d.%d%d)',[ Self.Caption,
@@ -783,19 +715,28 @@ begin
                                                   TCExeInfo.getInstance.BuildNumber
                                                  ]);
     AppInstances1.Active :=True;
+    //
+    //
+    m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
+    m_panelAmb:=m_StatusBar.AddPanel(psHTML, '', 90, taCenter) ;
+    m_panelItems:=m_StatusBar.AddPanel(psHTML, '', 80, taCenter) ;
+    m_panelVTotal:=m_StatusBar.AddPanel(psHTML, '', 140, taRightJustify) ;
+    m_panelProgress:=m_StatusBar.AddPanel(psProgress, '', 250) ;
+    m_panelText:=m_StatusBar.AddPanel(psHTML) ;
+
+    ConnectionADO :=NewADOConnFromIniFile('Configuracoes.ini') ;
+    ConnectionADO.Connected :=True;
+
+    Empresa :=TCEmpresa.Instance ;
+    Empresa.DoLoad(1);
+
+    CadEmp :=TCCadEmp.New(1) ;
+
 end;
 
 procedure Tfrm_Princ00.FormDestroy(Sender: TObject);
 begin
     m_Lote.Destroy ;
-
-end;
-
-procedure Tfrm_Princ00.FormResize(Sender: TObject);
-begin
-    vst_Grid1.Anchors :=vst_Grid1.Anchors +[akBottom];
-    pnl_Filter.Anchors:=[akLeft,akTop,akBottom];
-    html_Status.Anchors:=[akLeft,akRight,akBottom];
 
 end;
 
@@ -816,27 +757,21 @@ begin
 
     ActiveControl :=edt_PedIni;
 
-    DoEnabledControls(pnl_Footer, False);
-    btn_Config.Enabled  :=True;
-    btn_Filter.Enabled  :=True;
-    btn_ConsSvc.Enabled :=True;
-    btn_Inut.Enabled  :=True;
-    btn_Close.Enabled :=True;
+    //DoEnabledControls(pnl_Footer, False);
+    btn_Items.Enabled :=False;
+    btn_Send.Enabled :=False;
+    btn_Cons.Enabled :=False;
+    btn_Evento.Enabled :=False;
+    act_DANFE.Enabled :=False;
+    act_export.Enabled :=False;
+    btn_RelNF.Enabled :=False;
 
 //    btn_Filter.m_ShortCut :='F2';
 //    btn_Items.m_ShortCut :='Alt+I';
 
-    DoUpdateStatus('');
-    m_bSelCodSeq :=0;
+    setStatusBar();
 
-    ConnectionADO :=NewADOConnFromIniFile('Configuracoes.ini') ;
-    ConnectionADO.Connected :=True;
-
-    Empresa :=TCEmpresa.Instance ;
-    Empresa.DoLoad(1);
-
-//    rep_nfe :=Tdm_nfe.getInstance;
-
+    pnl_Help.Visible :=False ;
 
 end;
 
@@ -845,18 +780,18 @@ var
   N: TCNotFis00 ;
   rep: IBaseACBrNFE;
   nfe: NotaFiscal;
-  chave,conf: string;
+  chave,conf,F: string;
 begin
 
     case Key of
-        VK_F1: Tfrm_Ajuda.CP_Show ;
+        VK_F1: pnl_Help.Visible :=not pnl_Help.Visible ;
         VK_F2: btn_Filter.Click ;
         VK_F5: if btn_Exec.Visible then btn_Exec.Click ;
     end;
 
     // Alt press
     // cria um serial (sequencia) da NFe/NFCe
-    if (ssAlt in Shift)and(Key =Ord('K'))or(Key =Ord('k'))then
+    if (ssAlt in Shift)and(Key =Ord('X'))or(Key =Ord('x'))then
     begin
         OnGenSerial(nil);
     end;
@@ -871,6 +806,9 @@ begin
             CMsgDlg.Warning('Selecione uma NF') ;
             Exit ;
         end;
+
+        //
+        // seleciona NF do Grid
         N :=m_Lote.Items[vst_Grid1.IndexItem] ;
 
         //
@@ -898,13 +836,45 @@ begin
             end;
 
             rep :=TCBaseACBrNFE.New() ;
-            nfe :=rep.AddNotaFiscal(N,True,True) ;
-            if nfe <> nil then
+            if not N.LoadXML then
             begin
-                nfe.GerarXML ;
-                nfe.GravarXML(Format('%s-procNFe.XML',[N.m_chvnfe]), ApplicationPath);
-                CMsgDlg.Info('XML gravado em %s',[ApplicationPath]) ;
+                nfe :=rep.AddNotaFiscal(N, True) ;
+                if nfe <> nil then
+                    N.setXML()
+                else begin
+                    CMsgDlg.Error('NFE não gerada: %s',[rep.ErrMsg]) ;
+                    Exit;
+                end;
+            end
+            else begin
+                nfe :=rep.AddNotaFiscal(nil, True) ;
+                if not nfe.LerXML(N.m_xml) then
+                begin
+                    CMsgDlg.Warning('XML inválido!') ;
+                    Exit;
+                end;
             end;
+            //
+            // chk NF se process
+            if N.CStatProcess or N.CStatCancel then
+            begin
+                //
+                // add info de protocolo
+                nfe.NFe.procNFe.tpAmb   :=N.m_tipamb ;
+                nfe.NFe.procNFe.verAplic:=N.m_verapp ;
+                nfe.NFe.procNFe.chNFe   :=N.m_chvnfe ;
+                nfe.NFe.procNFe.dhRecbto:=N.m_dhreceb;
+                nfe.NFe.procNFe.nProt   :=N.m_numprot;
+                nfe.NFe.procNFe.digVal  :=N.m_digval ;
+                nfe.NFe.procNFe.cStat   :=N.m_codstt ;
+                nfe.NFe.procNFe.xMotivo :=N.m_motivo ;
+                F :=Format('%s-procNFe.XML',[N.m_chvnfe]);
+            end
+            else
+                F :=Format('%s-NFe.XML',[N.m_chvnfe]);
+            nfe.GerarXML ;
+            nfe.GravarXML(F, ApplicationPath);
+            CMsgDlg.Info('XML gravado em %s',[ApplicationPath]) ;
         end;
 
         //
@@ -913,38 +883,23 @@ begin
         if(Key =Ord('K'))or(Key =Ord('k')) then
         begin
             rep :=TCBaseACBrNFE.New() ;
-            nfe :=rep.AddNotaFiscal(N,True,True) ;
-            try
-                nfe.Assinar ;
-                N.m_chvnfe :=OnlyNumber(nfe.NFe.infNFe.ID)  ;
-                N.m_xml    :=nfe.XMLAssinado ;
-                N.setXML ;
+            if N.Items.Count = 0 then
+            begin
+                N.LoadItems ;
+                N.LoadFormaPgto ;
+            end;
+
+            nfe :=rep.AddNotaFiscal(N, True) ;
+            if nfe <> nil then
+            begin
+                N.setXML() ;
                 CMsgDlg.Info('XML/Chave gerado com sucesso') ;
-            except
-                on E:Exception  do
-                begin
-                    CMsgDlg.Warning('Não foi possível gerar o XML/Chave!'#13 +E.Message) ;
-                end;
+            end
+            else begin
+                CMsgDlg.Error('NFE não gerada: %s',[rep.ErrMsg]) ;
+                Exit;
             end;
         end;
-
-        {DESCONTINUADO !!!
-        //
-        // ativa protocolo
-        //
-        if(Key =Ord('P'))or(Key =Ord('p')) then
-        begin
-            if not InputQueryDlg('Confirmar senha','Informe a senha:',conf) then
-            begin
-                Exit;
-            end;
-            if not ChkPwd(conf) then
-            begin
-                CMsgDlg.Warning('Senha inválida!') ;
-                Exit;
-            end;
-            btn_Cons.Enabled :=True ;
-        end;}
 
         //
         // envio da NFE por email
@@ -969,52 +924,47 @@ end;
 function Tfrm_Princ00.LoadGrid: Boolean;
 var
   N: TCNotFis00 ;
-  P: PVirtualNode;
 begin
     vst_Grid1.Clear ;
-    DoUpdateStatus('Carregando Notas Fiscais, Aguarde...');
+    setStatus('Carregando Notas Fiscais'#13#10'Aguarde...',crSQLWait);
     try
-
+      m_Filter.save :=FindCmdLineSwitch('sql', ['-', '\', '/'], true) ;
       Result :=m_Lote.Load(m_Filter);
       if Result then
       begin
-
-          for N in m_Lote.Items do
-          begin
-              P :=vst_Grid1.AddChild(nil) ;
-              {if chk_EnvLote.Checked then
-              begin
-                  N.Checked :=True ;
-                  P.CheckType :=ctCheckBox ;
-                  P.CheckState:=csCheckedNormal ;
-              end; }
-          end;
-
+          vst_Grid1.RootNodeCount :=m_Lote.Items.Count ;
           vst_Grid1.IndexItem :=0;
           vst_Grid1.Refresh ;
 
           ActiveControl :=vst_Grid1;
-
-          //btn_Send.Enabled :=False;
-          //btn_Cons.Enabled :=False;
-          //btn_Cancel.Enabled :=False;
-          btn_export.Enabled :=True;
-
-      end
-      else
-          m_bSelCodSeq :=0;
+          act_export.Enabled :=True;
+      end;
 
     finally
-      DoUpdateStatus('');
+      setStatus('');
     end;
 end;
 
 procedure Tfrm_Princ00.OnFIN(Sender: TObject);
 begin
-    setStatus('');
-    btn_export.Enabled :=True ;
-    CMsgDlg.Info('%s'#13#10'Total de NF(s) exportadas: %d'#13#10'Total de NF(s) não exportadas: %d',
-    [m_Local,m_totSucess,m_totError]);
+    case TCRunProc(Sender).m_RunTyp of
+        rtExport:
+        begin
+            setStatus('');
+            act_export.Enabled :=True ;
+            CMsgDlg.Info('%s'#13#10'Total de NF(s) exportadas: %d'#13#10'Total de NF(s) não exportadas: %d',
+            [m_Local,m_totSucess,m_totError]);
+
+        end;
+
+        rtLoad:
+        begin
+            btn_Exec.Enabled :=True ;
+            vst_Grid1.Enabled :=True;
+            setStatus('');
+            pnl_Footer.Enabled :=True;
+        end;
+    end;
 end;
 
 procedure Tfrm_Princ00.OnFormatText(Sender: TBaseVirtualTree;
@@ -1064,9 +1014,17 @@ begin
     case TCRunProc(Sender).m_RunTyp of
         rtExport:
         begin
-            btn_export.Enabled :=False ;
+            act_export.Enabled :=False ;
             m_totSucess:=0;
             m_totError :=0;
+        end;
+        rtLoad:
+        begin
+            btn_Exec.Enabled :=False ;
+            vst_Grid1.Clear ;
+            vst_Grid1.Enabled :=False ;
+            setStatus('Carregando Notas Fiscais'#13#10'Aguarde...');
+            pnl_Footer.Enabled :=False ;
         end;
     end;
 end;
@@ -1100,8 +1058,8 @@ end;
 
 procedure Tfrm_Princ00.OnRunExportXML(Sender: TObject);
 var
-  NF: TCNotFis00;
   rep: IBaseACBrNFE;
+  NF: TCNotFis00;
   N: NotaFiscal ;
 var
   yy,mm,dd: Word ;
@@ -1112,7 +1070,8 @@ begin
     mm :=0;
 
     root :=ExcludeTrailingPathDelimiter( ExtractFilePath(Application.ExeName)) ;
-    root :=root +Format('\arquivos\DFe\NFe\%s', [Empresa.CNPJ]) ;
+    //root :=root +Format('\arquivos\DFe\NFe\%s', [Empresa.CNPJ]) ;
+    root :=root +Format('\arquivos\DFe\exporta_xml\%s', [Empresa.CNPJ]) ;
 
     setStatus(Format('Local: %s',[root]));
 
@@ -1134,14 +1093,13 @@ begin
 
             if NF.m_chvnfe <> '' then
             begin
-                setStatus(Format('Carregando NFe[Mod:%d,Série:%.3d,Número:%d]',[
-                                NF.m_codmod,NF.m_nserie,NF.m_numdoc]));
+                setStatus(Format('Carregando XML: NFe[%s]',[NF.m_chvnfe]));
                 if NF.LoadXML() then
                 begin
-                    N :=rep.AddNotaFiscal(NF, True, True) ;
-                    if N <> nil then
+                    //N :=rep.AddNotaFiscal(NF, True, True) ;
+                    N :=rep.AddNotaFiscal(nil, True) ;
+                    if N.LerXML(NF.m_xml) then
                     begin
-                        N.LerXML(NF.m_xml) ;
                         N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
                         N.NFe.procNFe.verAplic:=NF.m_verapp ;
                         N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
@@ -1155,8 +1113,12 @@ begin
                         F :=Format('%s-procNFe.XML',[NF.m_chvnfe]);
                         N.GravarXML(F, local);
                     end;
+                    Inc(m_totSucess) ;
+                end
+                else begin
+                    setStatus(Format('XML não encontrado!: NFe[%s]',[NF.m_chvnfe]));
+                    Inc(m_totError) ;
                 end;
-                Inc(m_totSucess) ;
             end
             else begin
                 setStatus(Format('NFe[Mod:%d,Série:%.3d,Número:%d]'#13#10'Error',[
@@ -1168,12 +1130,67 @@ begin
     end;
 end;
 
-procedure Tfrm_Princ00.rgx_StatusClick(Sender: TObject);
+procedure Tfrm_Princ00.OnRunLoad(Sender: TObject);
 begin
-    if rgx_Status.ItemIndex =4 then
-        chk_EnvLote.Checked :=True
-    else
-        chk_EnvLote.Checked :=False;
+
+end;
+
+procedure Tfrm_Princ00.pnl_HelpCaptionClick(Sender: TObject);
+begin
+    pnl_Help.Visible :=False ;
+end;
+
+procedure Tfrm_Princ00.setStatusBar(const aPos: Integer) ;
+var
+  rep: IBaseACBrNFE ;
+  N: TCNotFis00 ;
+var
+  s_frmt, s_text: string;
+begin
+    if aPos > 0 then
+    begin
+        m_panelProgress.Progress.Position :=aPos ;
+    end
+    else begin
+        rep :=TCBaseACBrNFE.New() ;
+        //
+        // ind. tipo ambiente
+        if TpcnTipoAmbiente(rep.param.tipamb.Value) =taProducao then
+        begin
+            s_frmt :='<p><font color="#FFFFFF" bgcolor="#00BF00"><b>%s</b></font</p>';
+            s_text :=PadCenter('Produção', 13) ;
+        end
+        else begin
+            s_frmt :='<p><font color="#FFFFFF" bgcolor="#FF0000"><b>%s</b></font</p>';
+            s_text :=PadCenter('Homologação', 13) ;
+        end;
+        m_panelAmb.Text :=Format(s_frmt,[s_text]);
+
+        if m_Lote.Items.Count > 0 then
+        begin
+            N :=m_Lote.Items[vst_Grid1.IndexItem];
+            m_panelItems.Text :=Format('NF''''s:<b>%d</b>',[m_Lote.Items.Count]);
+            m_panelVTotal.Text :=Format('Total:<b>%10.2m</b>',[m_Lote.vTotalNF]);
+
+            if N.CStatProcess then
+            begin
+                m_panelText.Text :=Format('<p>Situação: <font color="#006400">%s</font</p>',[N.m_motivo]);
+            end
+            else if N.CstatCancel then
+            begin
+                m_panelText.Text :=Format('<p>Situação: <font color="#FF8C00">%s</font</p>',[N.m_motivo]);
+            end
+            else begin
+              m_panelText.Text :=Format('<p>Situação: <font color="#8B0000">%s</font</p>',[N.m_motivo]);
+            end;
+        end
+        else begin
+            m_panelItems.Text :='Nenhum';
+            m_panelVTotal.Text :='';
+            m_panelText.Text :='';
+        end;
+    end;
+//    m_panelText:=m_StatusBar.AddPanel(psText) ;
 end;
 
 procedure Tfrm_Princ00.vst_Grid1Change(Sender: TBaseVirtualTree;
@@ -1181,11 +1198,11 @@ procedure Tfrm_Princ00.vst_Grid1Change(Sender: TBaseVirtualTree;
 var
   N: TCNotFis00 ;
   process, cancel: Boolean ;
+  cs: NotFis00CodStatus ;
 begin
     if Assigned(Node) then
     begin
         N :=m_Lote.Items[Node.Index] ;
-        m_bSelCodSeq :=N.m_codseq ;
 
         process :=N.m_codstt in[100, 110, 150];
         process :=process or
@@ -1195,38 +1212,47 @@ begin
         cancel  :=N.m_codstt in[101, 151, 155];
 
         btn_Send.Enabled := ((not process)and(not cancel) )or
-                            (N.m_codstt in[0,1,9,77,88]   )or
-                            chk_EnvLote.Checked ;
-        if (not N.m_codstt in[0,1,9,77,88]   ) then
+                            (N.m_codstt in[0, cs.DONE_SEND,
+                                              cs.CONTING_OFFLINE,
+                                              cs.ERR_SCHEMA,
+                                              cs.ERR_REGRAS]
+                            );
+        if(not N.m_codstt in[0, cs.DONE_SEND,cs.CONTING_OFFLINE,cs.ERR_SCHEMA,
+                                cs.ERR_REGRAS]
+          )then
         begin
             btn_Send.Enabled :=True;
         end;
 
 
-        btn_Cons.Enabled :=(N.m_codstt in[TCNotFis00.CSTT_RET_PENDENTE,
-                                        TCNotFis00.CSTT_DUPL, 206, 218 ,
-                                        TCNotFis00.CSTT_EM_PROCESS])or
-                           (N.m_codstt =TCNotFis00.CSTT_DUPL_DIF_CHV)or
-                           (N.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD);
-//                            process or
-//                            cancel  ;
+        btn_Cons.Enabled :=(N.m_codstt in[cs.RET_PENDENTE,
+                                          cs.EM_PROCESS,
+                                          cs.DUPL,
+                                          cs.NFE_JA_INUT,
+                                          cs.NFE_JA_CANCEL])or
+                           (N.m_codstt =cs.DUPL_DIF_CHV)or
+                           (N.m_codstt =cs.CHV_DIF_BD);
 
-        btn_Cancel.Enabled :=N.m_codstt =TCNotFis00.CSTT_AUTORIZADO_USO;
+        btn_Evento.Enabled :=N.m_codstt in[ cs.AUTORIZADO_USO,
+                                            cs.AUTORIZADO_USO_FORA];
 
-        btn_Danfe.Enabled :=N.m_codstt in[TCNotFis00.CSTT_EMIS_CONTINGE,
-                                          TCNotFis00.CSTT_AUTORIZADO_USO];
+        act_DANFE.Enabled :=N.m_codstt in[cs.CONTING_OFFLINE,
+                                          cs.AUTORIZADO_USO,
+                                          cs.AUTORIZADO_USO_FORA];
 
         //
         // actions:
         //act_CancNFE.Enabled :=
 
-        DoUpdateStatus('');
+        //
+        //DoUpdateStatus('');
+        setStatusBar();
     end
     else begin
         btn_Send.Enabled :=False;
         btn_Cons.Enabled :=False;
-        btn_Cancel.Enabled:=False;
-        btn_export.Enabled :=False;
+        btn_Evento.Enabled:=False;
+        act_export.Enabled :=False;
     end;
 end;
 
@@ -1271,114 +1297,6 @@ begin
     end;
 end;
 
-{ TJvFooterBtn }
 
-constructor TJvFooterBtn.Create(AOwner: TComponent);
-begin
-    inherited Create(AOwner);
-    m_ShortCutFont :=TFont.Create;
-    m_ShortCutFont.Name :='Times New Roman';
-    m_ShortCutFont.Size :=6;
-    m_ShortCutFont.Style:=[fsBold];
-end;
-
-destructor TJvFooterBtn.Destroy;
-begin
-    m_ShortCutFont.Destroy ;
-    inherited;
-end;
-
-procedure TJvFooterBtn.DrawButtonText(TextBounds: TRect; TextEnabled: Boolean);
-var
-  Flags: DWORD;
-  RealCaption: string;
-  fontName: string;
-  fontSize: Word;
-  fontStyl: TFontStyles;
-begin
-    Flags := DrawTextBiDiModeFlags(DT_VCENTER or Alignments[Alignment]);
-    if WordWrap then
-        Flags := Flags or DT_WORDBREAK;
-
-    RealCaption := GetRealCaption;
-
-    fontName :=Canvas.Font.Name;
-    fontSize :=Canvas.Font.Size;
-    fontStyl :=Canvas.Font.Style;
-
-    Canvas.Brush.Style := bsClear;
-    if TextEnabled then
-    begin
-        JvJCLUtils.DrawText(Canvas, RealCaption, Length(RealCaption), TextBounds, Flags);
-        //atalho
-        if m_ShortCut <> '' then
-        begin
-            Canvas.Font.Name :=m_ShortCutFont.Name;
-            Canvas.Font.Size :=m_ShortCutFont.Size;
-            Canvas.Font.Style :=m_ShortCutFont.Style;
-            Canvas.TextOut(m_Rect.Left, m_Rect.Bottom -Canvas.TextHeight(m_ShortCut), m_ShortCut);
-        end;
-    end
-    else begin
-        OffsetRect(TextBounds, 1, 1);
-        Canvas.Font.Color := clBtnHighlight;
-        JvJCLUtils.DrawText(Canvas, RealCaption, Length(RealCaption), TextBounds, Flags);
-        OffsetRect(TextBounds, -1, -1);
-        Canvas.Font.Color := clBtnShadow;
-        JvJCLUtils.DrawText(Canvas, RealCaption, Length(RealCaption), TextBounds, Flags);
-        //atalho
-        Canvas.Font.Name :=m_ShortCutFont.Name;
-        Canvas.Font.Size :=m_ShortCutFont.Size;
-        Canvas.Font.Style :=m_ShortCutFont.Style;
-        Canvas.TextOut(m_Rect.Left, m_Rect.Bottom -Canvas.TextHeight(m_ShortCut), m_ShortCut);
-    end;
-    Canvas.Font.Name :=fontName;
-    Canvas.Font.Size :=fontSize;
-    Canvas.Font.Style :=fontStyl;
-end;
-
-procedure TJvFooterBtn.DrawItem(const DrawItemStruct: TDrawItemStruct);
-var
-  R, RectContent, RectText, RectImage, RectArrow: TRect;
-begin
-  DrawButtonFrame(DrawItemStruct, RectContent);
-
-  //R := ClientRect;
-  //InflateRect(R, -4, -4);
-  R :=RectContent;
-  if not DisableDrawDown and (DrawItemStruct.itemState and ODS_SELECTED <> 0) and Enabled then
-  begin
-    {$IFDEF JVCLThemesEnabled}
-    if StyleServices.Enabled then
-      OffsetRect(R, 1, 0)
-    else
-    {$ENDIF JVCLThemesEnabled}
-      OffsetRect(R, 1, 1);
-  end;
-
-  CalcButtonParts(R, RectText, RectImage);
-  if DropArrow and Assigned(DropDownMenu) then
-  begin
-    RectArrow := Rect(Width - 16, Height div 2, Width - 9, Height div 2 + 7);
-    if (DrawItemStruct.itemState and ODS_SELECTED <> 0) then
-      OffsetRect(RectArrow, 1, 1);
-    DrawDropArrow(Canvas, RectArrow);
-    if (DrawItemStruct.itemState and ODS_SELECTED <> 0) then
-      OffsetRect(RectContent, 1, -1)
-  end;
-  m_Rect :=R;
-  DrawButtonText(RectText, Enabled);
-  DrawButtonImage(RectImage);
-  DrawButtonFocusRect(RectContent);
-end;
-
-
-{ TCRunProc }
-
-constructor TCRunProc.Create(aRunTyp: TRunProcTyp);
-begin
-    m_RunTyp :=aRunTyp;
-    inherited Create(True, False);
-end;
 
 end.

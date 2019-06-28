@@ -26,64 +26,16 @@ if not exists(select 1 from sysobjects where id = object_id('nome_foreignkey') a
     add constraint [nome_foreignkey] foreign key (campo_chave) references tabela(campo_chave)
 go
 
-
 */
 
 use comercio
 go
 
-/*
---// (+)
---// 20.3.2018
---// Campo para controle de agrupamento de pontos de impressão
-if not exists(select 1 from syscolumns where id = object_id('printerpp00') and name = 'pp0_codppr')
-alter table printerpp00 
-  add pp0_codppr smallint null ,
-  constraint fk__pp0_codppr foreign key (pp0_codppr) references printerpp00(pp0_codseq) 
-
--- (+)
--- 12.04.2018
--- numero de copias e tentativas de impressão
-alter table printerpp01 
-  add pp1_numcop smallint not null default 1,
-  pp1_numttv smallint ,
-  pp1_maxttv smallint ;
-
-alter table printer01 add
-  pr1_typptr smallint null ,
-  pr1_buffer text null 
-
 
 -- //descotinuada
-if not exists (select *from dbo.sysobjects where id = object_id(N'emisnfe') and objectproperty(id, N'IsTable') = 1)
-begin
-  create table emisnfe(emi_codseq smallint not null identity(1,1) ,
-    emi_codemp smallint not null ,
-    emi_cnpj char(14) null ,
-    emi_insest varchar(12) null ,
-    emi_codmun int null ,
-    emi_codufe smallint	null ,
-
-    emi_tipamb smallint not null ,
-    emi_tipemi smallint not null ,
-    emi_tipimp smallint not null ,
-    
-    emi_ssllib smallint null ,
-    emi_cryptlib smallint null ,
-    emi_httplib smallint null ,
-    emi_xmlsignlib smallint null ,
-    
-    emi_certif image null ,
-    emi_xsenha varchar(20) null,
-    emi_serial char(16) null 
-    emi_codstt smallint null ,
-    emi_ultcons datetime null ,
-    emi_chksvc smallint not null default(1) ,
-    emi_active smallint null
-  )
-end
+if exists (select *from dbo.sysobjects where id = object_id(N'emisnfe') and objectproperty(id, N'IsTable') = 1)
+  drop table emisnfe 
 go
-*/
 
 
 if not exists (select *from dbo.sysobjects where id = object_id(N'notfis00') and objectproperty(id, N'IsTable') = 1)
@@ -206,19 +158,9 @@ if not exists(select 1 from syscolumns where id = object_id('notfis00') and name
     nf0_volpsob numeric(12,3)
 go  
 
-if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_consumo')
-  alter table notfis00 add nf0_consumo smallint null
-go  
-
-
 if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_codped')
   alter table notfis00 add nf0_codped int 
 go  
-
-if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_infcpl')
-  alter table notfis00 add nf0_infcpl varchar(2048) null
-go  
-
 
 if not exists (select name from sysindexes
             where name = 'idx_notfis00_dtemis_codstt_01')
@@ -243,6 +185,32 @@ if not exists (select name from sysindexes
 create nonclustered index idx_notfis00_codmod_nserie_03
     on notfis00 (nf0_dtemis, nf0_codmod, nf0_nserie)
 go
+
+if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_consumo')
+  alter table notfis00 add nf0_consumo smallint null
+go  
+
+if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_infcpl')
+  alter table notfis00 add nf0_infcpl varchar(2048) null
+go  
+
+--//
+--// 
+if not exists(select 1from syscolumns where id = object_id('notfis00') and name = 'nf0_codlot')
+  alter table notfis00 add nf0_codlot int null
+go
+
+--//
+--// chk compatibilidade
+declare @versql sysname; set @versql =convert(sysname, serverproperty('ProductVersion'));
+declare @posdot smallint; set @posdot =charindex('.',@versql);
+declare @cmplvl smallint; set @cmplvl =substring(@versql,1,@posdot-1);
+if(@cmplvl >= 9)and --sql 2005
+  (not exists(select 1from syscolumns where id = object_id('notfis00') and name = 'nf0_xmltyp'))
+begin
+    exec ('alter table notfis00 add nf0_xmltyp xml null')
+end
+
 
 
 if not exists (select *from dbo.sysobjects where id = object_id(N'notfis01') and objectproperty(id, N'IsTable') = 1)
@@ -484,4 +452,12 @@ create table eventocce (cce_codseq int not null identity(1,1) ,
   cce_dhreceb datetime null ,
   cce_numprot char(15) null
 )
+go
+
+--//
+--// 24.06.2019
+--// aumenta tamanho do campo <cce_xcorrecao> para 1000
+--// maximo permitido pelo doc
+if (select character_maximum_length from information_schema.columns where table_name='eventocce' and column_name ='cce_xcorrecao')<1000
+  alter table eventocce alter column cce_xcorrecao varchar(1000) null
 go

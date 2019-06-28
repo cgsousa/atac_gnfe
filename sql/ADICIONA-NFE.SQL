@@ -17,6 +17,12 @@ go
 * Nota: deve-se executar antes o script adiciona.sql 
 */
 
+-- //descotinuada
+if exists (select *from dbo.sysobjects where id = object_id(N'emisnfe') and objectproperty(id, N'IsTable') = 1)
+  drop table emisnfe
+go
+
+
 if not exists (select *from dbo.sysobjects where id = object_id(N'notfis00') and objectproperty(id, N'IsTable') = 1)
   create table notfis00(nf0_codseq int not null identity(1,1),
     nf0_codemp smallint not null ,
@@ -141,14 +147,6 @@ if not exists(select 1 from syscolumns where id = object_id('notfis00') and name
   alter table notfis00 add nf0_codped int 
 go  
 
-if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_consumo')
-  alter table notfis00 add nf0_consumo smallint null
-go  
-
-if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_infcpl')
-  alter table notfis00 add nf0_infcpl varchar(2048) null
-go  
-
 if not exists (select name from sysindexes
             where name = 'idx_notfis00_dtemis_codstt_01')
 create nonclustered index idx_notfis00_dtemis_codstt_01
@@ -166,6 +164,38 @@ if not exists (select name from sysindexes
 create nonclustered index idx_notfis00_codmod_nserie_codstt_04
     on notfis00 (nf0_codmod, nf0_nserie, nf0_codstt)
 go
+
+if not exists (select name from sysindexes
+            where name = 'idx_notfis00_codmod_nserie_03')
+create nonclustered index idx_notfis00_codmod_nserie_03
+    on notfis00 (nf0_dtemis, nf0_codmod, nf0_nserie)
+go
+
+if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_consumo')
+  alter table notfis00 add nf0_consumo smallint null
+go  
+
+if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_infcpl')
+  alter table notfis00 add nf0_infcpl varchar(2048) null
+go  
+
+--//
+--// 
+if not exists(select 1from syscolumns where id = object_id('notfis00') and name = 'nf0_codlot')
+  alter table notfis00 add nf0_codlot int null
+go
+
+--//
+--// chk compatibilidade
+declare @versql sysname; set @versql =convert(sysname, serverproperty('ProductVersion'));
+declare @posdot smallint; set @posdot =charindex('.',@versql);
+declare @cmplvl smallint; set @cmplvl =substring(@versql,1,@posdot-1);
+if(@cmplvl >= 9)and --sql 2005
+  (not exists(select 1from syscolumns where id = object_id('notfis00') and name = 'nf0_xmltyp'))
+begin
+    exec ('alter table notfis00 add nf0_xmltyp xml null')
+end
+
 
 if not exists (select *from dbo.sysobjects where id = object_id(N'notfis01') and objectproperty(id, N'IsTable') = 1)
   create table notfis01(nf1_codseq int not null identity(1,1),
@@ -2113,6 +2143,12 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+14.06.2019
+[*] Parametro <@indfinal> atualizado de <venda.consumidorfinal>
+
+20.05.2019
+[*] Mais dois novos tipos para @modFret: proprio remetente, proprio destinatario
+
 22.12.2018
 [*] Movido codigo de leitura das inf comple pra k 
 
@@ -2346,10 +2382,12 @@ as
     @vlrfret=isnull(v.frete,0) ,
     @vlroutr=isnull(v.totala,0) +isnull(v.valortxentrega,0),
     --//transportes
-    @modfret =case  when lower(v.modofrete)='emitente' then 0 
-                    when lower(v.modofrete)='destinatario' then 1
-                    when lower(v.modofrete)='conta terceiros' then 2 
-                    when lower(v.modofrete)='sem frete' then 5
+    @modfret =case  when lower(v.modofrete)='emitente' then 0 --mfContaEmitente
+                    when lower(v.modofrete)='destinatario' then 1 --mfContaDestinatario
+                    when lower(v.modofrete)='conta terceiros' then 2 --mfContaTerceiros
+                    when lower(v.modofrete)='proprio remetente' then 3 --mfProprioRemetente
+                    when lower(v.modofrete)='proprio destinatario' then 4 --mfProprioDestinatario
+                    when lower(v.modofrete)='sem frete' then 5 -- mfSemFrete
               else null --//tratar outros no futuro
               end  ,
     @tra_cnpjcpf =replace(replace(replace(v.transcnpj,'.',''),'/',''),'-',''),
@@ -2380,7 +2418,7 @@ as
     ,@usrnome =u.nome 
     ,@funnome =f.nome 
     ,@codcntsnh =case when s.codcontadorsenha is null then 0 else s.codcontadorsenha end
-
+    ,@indfinal =v.consumidorfinal
   from venda v
   --//info cpl
   left join usuario u on u.codusuario =v.codusuario            
@@ -2443,6 +2481,7 @@ as
       ,@usrnome =u.nome 
       ,@funnome =f.nome 
       ,@codcntsnh =case when s.codcontadorsenha is null then 0 else s.codcontadorsenha end
+      ,@indfinal =v.consumidorfinal
 
     from histvenda v
     --//info cpl
@@ -2765,6 +2804,10 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+
+14.06.2019
+[*] Parametro <@indfinal> atualizado de <venda.consumidorfinal>
+
 22.12.2018
 [*] Movido codigo de leitura das inf comple pra k 
 [-] os dados dos transportes que não era gravado na alteração
@@ -2892,7 +2935,7 @@ as
     @numdoc =nf0_numdoc ,
     @codstt =nf0_codstt ,
     @codufe =nf0_codufe ,
-    @indfinal=nf0_indfinal, 
+    --@indfinal=nf0_indfinal, 
     @codmod =nf0_codmod,
     @rowcount =1
   from notfis00
@@ -2979,6 +3022,7 @@ as
     ,@usrnome =u.nome 
     ,@funnome =f.nome 
     ,@codcntsnh =case when s.codcontadorsenha is null then 0 else s.codcontadorsenha end
+    ,@indfinal =v.consumidorfinal
 
   from venda v
   --//info cpl
@@ -3035,6 +3079,7 @@ as
       ,@usrnome =u.nome 
       ,@funnome =f.nome 
       ,@codcntsnh =case when s.codcontadorsenha is null then 0 else s.codcontadorsenha end
+      ,@indfinal =v.consumidorfinal
 
     from histvenda v
     --//info cpl
@@ -3053,10 +3098,6 @@ as
     --// 
     return @ret_noped
   end;
-
- --//
-  --// NFCe não tem frete
-  select @modfret =case when @codmod =65 then 5 else @modfret end;
 
   --//
   --// monta info comple
@@ -3114,6 +3155,11 @@ as
   from cliente d
   where d.codcliente =@codcli;  
 
+
+  --//
+  --// NFCe não tem frete
+  select @modfret =case when @codmod =65 then 5 else @modfret end;
+
   --//garante consistencia
   if @begintran = 1
   begin
@@ -3125,7 +3171,8 @@ as
   
   --//altera capa da nota
   update notfis00 set 
-    nf0_dtemis = case when nf0_codmod = 65 then @dtemis else nf0_dtemis end ,
+    nf0_dtemis  =case when nf0_codmod = 65 then @dtemis else nf0_dtemis end ,
+    nf0_dhsaient=case when nf0_codmod = 65 then @dtemis else nf0_dhsaient end ,
     nf0_dsttippes =@dst_tippes ,
     nf0_dstcnpjcpf =case when nf0_codmod = 65 then
                               case when @cpf_cnpj is not null then @cpf_cnpj else @dst_cnpjcpf end
@@ -3163,7 +3210,8 @@ as
     nf0_volpsol =@vol_psol,
     nf0_volpsob =@vol_psob,
     
-    nf0_infcpl =@infcpl
+    nf0_infcpl =@infcpl ,
+    nf0_indfinal =@indfinal 
   where nf0_codseq =@codseq
   ;  
 
@@ -3280,5 +3328,12 @@ create table eventocce (cce_codseq int not null identity(1,1) ,
 )
 go
 
+--//
+--// 24.06.2019
+--// aumenta tamanho do campo <cce_xcorrecao> para 1000
+--// maximo permitido pelo doc
+if (select character_maximum_length from information_schema.columns where table_name='eventocce' and column_name ='cce_xcorrecao')<1000
+  alter table eventocce alter column cce_xcorrecao varchar(1000) null
+go
 
 

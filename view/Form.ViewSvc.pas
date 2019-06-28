@@ -17,6 +17,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+23.05.2019
+[*] Controle de LOG agora aqui
+
 30.01.2019
 [*] Removido o timer <tm_Alert>. O contrele da alerta agora esta na Thread.NFE,
     com o método CallOnCertif()
@@ -38,10 +41,10 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls,
-  AdvGlowButton,
-  JvComponentBase, JvTrayIcon, ExtCtrls, JvAppInst,
   FormBase ,
-  Thread.NFE, FDM.NFE, AdvOfficeButtons;
+  JvComponentBase, JvTrayIcon, ExtCtrls, JvAppInst,
+  AdvGlowButton, AdvOfficeButtons,
+  ulog, Thread.NFE ;
 
 type
   Tfrm_ViewSvc = class(TBaseForm)
@@ -63,6 +66,7 @@ type
     procedure chk_ContingClick(Sender: TObject);
   private
     { Private declarations }
+    m_Log: TCLog;
     m_MySvc: TMySvcThread;
     procedure doStart();
     procedure doStop();
@@ -72,6 +76,7 @@ type
     procedure OnEND(Sender: TObject);
     procedure OnAlert(const aCNPJ: string; const aDays: Word);
     procedure OnContingOffLine(const aFlag: Boolean) ;
+    procedure OnUpdateStr(const aStr: string);
 
     procedure setConting(const aValue: Boolean) ;
   protected
@@ -86,7 +91,7 @@ implementation
 {$R *.dfm}
 
 uses DateUtils,
-  uTaskDlg, ulog, uadodb,
+  uTaskDlg, uadodb, uACBrNFE, unotfis00,
   JvBaseDlg, JvDesktopAlert ;
 
 
@@ -134,7 +139,7 @@ end;
 procedure Tfrm_ViewSvc.chk_ContingClick(Sender: TObject);
 var
   msg: string ;
-  m_rep: Tdm_nfe ;
+  rep: IBaseACBrNFE;
   confirm: Boolean;
 begin
     if ConnectionADO = nil then
@@ -151,7 +156,7 @@ begin
 
         //
         // carga conteiner do ACBr
-        m_rep :=Tdm_nfe.getInstance;
+        rep :=TCBaseACBrNFE.New(False);
 
         if chk_Conting.Checked then
         begin
@@ -177,7 +182,7 @@ begin
         //
         if confirm then
         begin
-            m_rep.Parametro.setContingOffLine(chk_Conting.Checked) ;
+            rep.param.setContingOffLine(chk_Conting.Checked) ;
             setConting(chk_Conting.Checked);
         end;
         finally
@@ -189,16 +194,30 @@ begin
             CMsgDlg.Error('Erro: %s',[E.Message]);
         end;
     end;
-
 end;
 
 procedure Tfrm_ViewSvc.doStart;
+var
+  F: TNotFis00Filter;
 begin
-    m_MySvc :=TMySvcThread.Create ;
+
+
+    //
+    // inicia LOG
+    m_Log :=TCLog.Create('', True) ;
+    m_Log.AddSec('%s.doStart',[Self.ClassName]);
+
+    F.Create(0, 0);
+    F.filTyp :=ftService ;
+    F.codmod :=00;
+    F.nserie :=00;
+
+    m_MySvc :=TMySvcThread.Create(F) ;
     m_MySvc.OnBeforeExecute :=OnINI;
     m_MySvc.OnTerminate :=OnEND;
     m_MySvc.OnCertif :=OnAlert;
     m_MySvc.OnBooProc :=OnContingOffLine;
+    m_MySvc.OnStrProc :=OnUpdateStr;
     m_MySvc.Start  ;
 end;
 
@@ -216,7 +235,6 @@ begin
         btn_StopClick(nil);
         CanClose :=True ;
     end;
-
 end;
 
 procedure Tfrm_ViewSvc.FormCreate(Sender: TObject);
@@ -335,6 +353,7 @@ end;
 procedure Tfrm_ViewSvc.OnContingOffLine(const aFlag: Boolean);
 begin
     Self.setConting(aFlag);
+
 end;
 
 procedure Tfrm_ViewSvc.OnEND(Sender: TObject);
@@ -344,15 +363,25 @@ begin
     pnl_Status.Caption :='Serviço Parado!';
     pnl_Status.Font.Color :=clRed ;
     chk_Conting.Enabled :=True;
+    m_Log.AddSec('%s.OnEND',[Self.ClassName]);
+    m_Log.Free ;
 end;
 
 procedure Tfrm_ViewSvc.OnINI(Sender: TObject);
 begin
+    //
+    //
     btn_Start.Enabled :=False;
     btn_Stop.Enabled  :=True ;
     pnl_Status.Caption :='Serviço em Operação';
     pnl_Status.Font.Color :=clGreen ;
     chk_Conting.Enabled :=False;
+end;
+
+procedure Tfrm_ViewSvc.OnUpdateStr(const aStr: string);
+begin
+    m_Log.AddSec(aStr) ;
+
 end;
 
 procedure Tfrm_ViewSvc.setConting(const aValue: Boolean);
@@ -374,13 +403,13 @@ procedure Tfrm_ViewSvc.tm_MLogTimer(Sender: TObject);
 var
   H, M, S, MS: Word ;
 begin
-    // Timer1.Enabled :=False ;
+    //tm_MLog.Enabled :=False ;
     DecodeTime(Now, H, M, S, MS);
     if Assigned(m_MySvc) then
     begin
         //
         // se execute a mais de 24h
-        if HoursBetween(Now, m_MySvc.Log.dhCreate) >= 12 then
+        if HoursBetween(Now, m_Log.dhCreate) >= 12 then
         begin
             //
             // stop auto, para fechar recursos

@@ -127,7 +127,7 @@ begin
         C.AddCmd('declare @cce_tipamb smallint     ; set @cce_tipamb =%d;',[Ord(m_tipamb)]);
         C.AddCmd('declare @cce_cnpj varchar(14)    ; set @cce_cnpj   =%s;',[C.FStr(m_cnpj)]);
         C.AddCmd('declare @cce_chvnfe varchar(44)  ; set @cce_chvnfe =%s;',[C.FStr(m_chvnfe)]);
-        C.AddCmd('declare @cce_corige varchar(125) ; set @cce_corige =%s;',[C.FStr(m_xcorrecao)]);
+        C.AddCmd('declare @cce_corige varchar(1000); set @cce_corige =%s;',[C.FStr(m_xcorrecao)]);
         C.AddCmd('declare @cce_verapp varchar(20)  ; set @cce_verapp =%s;',[C.FStr(m_verapp)]);
         C.AddCmd('declare @cce_codorgaut smallint  ; set @cce_codorgaut =%d;',[m_codorgaut]);
         C.AddCmd('declare @cce_codstt smallint     ; set @cce_codstt =%d;',[m_codstt]);

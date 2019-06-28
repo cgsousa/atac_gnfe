@@ -127,7 +127,8 @@ begin
         case m_Lote.Filter.status of
             sttDoneSend: S :=S +', [Pronto para envio]';
             sttConting: S :=S +', [Contingência]';
-            sttProcess: S :=S +', [Processadas]';
+            sttAutoriza: S :=S +', [Autorizado Uso]';
+            sttDenega: S :=S +', [Uso Denegado]';
             sttCancel: S :=S +', [Canceladas]';
             sttError: S :=S +', [Erros]';
         else
@@ -156,10 +157,10 @@ begin
 
   with RL_NF.Margins do
   begin
-      TopMargin     :=2;
+      TopMargin     :=5;
       BottomMargin  :=20;
-      LeftMargin    :=1;
-      RightMargin   :=1;
+      LeftMargin    :=3;
+      RightMargin   :=3;
   end;
 
   InitDados ;

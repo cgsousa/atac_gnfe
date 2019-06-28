@@ -19,9 +19,9 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
     Top = 0
     Width = 302
     Height = 1512
-    Margins.LeftMargin = 1.000000000000000000
-    Margins.TopMargin = 2.000000000000000000
-    Margins.RightMargin = 1.000000000000000000
+    Margins.LeftMargin = 3.000000000000000000
+    Margins.TopMargin = 5.000000000000000000
+    Margins.RightMargin = 3.000000000000000000
     Margins.BottomMargin = 20.000000000000000000
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
@@ -34,9 +34,9 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
     BeforePrint = RL_NFBeforePrint
     OnDataRecord = RL_NFDataRecord
     object band_Cab: TRLSubDetail
-      Left = 4
-      Top = 8
-      Width = 294
+      Left = 11
+      Top = 19
+      Width = 280
       Height = 195
       Borders.Sides = sdCustom
       Borders.DrawLeft = False
@@ -63,13 +63,13 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
       object bnd_InfoCliche: TRLBand
         Left = 0
         Top = 0
-        Width = 294
+        Width = 280
         Height = 109
         AutoSize = True
         object pnl_Cliche: TRLPanel
           Left = 0
           Top = 0
-          Width = 294
+          Width = 280
           Height = 109
           Align = faClientTop
           AutoExpand = True
@@ -82,7 +82,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
           object lbl_Company: TRLLabel
             Left = 0
             Top = 0
-            Width = 294
+            Width = 280
             Height = 18
             Align = faTop
             Alignment = taCenter
@@ -97,7 +97,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
             Tag = 703
             Left = 0
             Top = 18
-            Width = 294
+            Width = 280
             Height = 36
             Align = faTop
             Alignment = taCenter
@@ -115,7 +115,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
           object lbl_SystemName: TRLLabel
             Left = 0
             Top = 54
-            Width = 294
+            Width = 280
             Height = 18
             Align = faTop
             Font.Charset = DEFAULT_CHARSET
@@ -141,7 +141,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
             Text = 'Data: '
           end
           object lbl_Now: TRLSystemInfo
-            Left = 180
+            Left = 166
             Top = 72
             Width = 114
             Height = 18
@@ -162,7 +162,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
       object band_Column: TRLBand
         Left = 0
         Top = 109
-        Width = 294
+        Width = 280
         Height = 57
         AutoSize = True
         Borders.Sides = sdCustom
@@ -176,7 +176,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
         object lbl_Title: TRLLabel
           Left = 0
           Top = 0
-          Width = 294
+          Width = 280
           Height = 12
           Align = faTop
           Alignment = taCenter
@@ -185,7 +185,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
         object lbl_Columns: TRLLabel
           Left = 0
           Top = 40
-          Width = 294
+          Width = 280
           Height = 16
           Align = faTop
           AutoSize = False
@@ -195,7 +195,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
         object lbl_SubTitle1: TRLLabel
           Left = 0
           Top = 12
-          Width = 294
+          Width = 280
           Height = 12
           Align = faTop
           Layout = tlCenter
@@ -203,7 +203,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
         object lbl_SubTitle2: TRLLabel
           Left = 0
           Top = 24
-          Width = 294
+          Width = 280
           Height = 16
           Align = faTop
           Alignment = taRightJustify
@@ -220,9 +220,9 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
       end
     end
     object band_Footer: TRLBand
-      Left = 4
-      Top = 225
-      Width = 294
+      Left = 11
+      Top = 236
+      Width = 280
       Height = 15
       BandType = btSummary
       Borders.Sides = sdCustom
@@ -245,7 +245,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
         Caption = 'Atac Sistemas / atacsistemas.com'
       end
       object RLLabel2: TRLLabel
-        Left = 219
+        Left = 205
         Top = 1
         Width = 75
         Height = 13
@@ -255,16 +255,16 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
       end
     end
     object band_SubItems: TRLSubDetail
-      Left = 4
-      Top = 203
-      Width = 294
+      Left = 11
+      Top = 214
+      Width = 280
       Height = 22
       AllowedBands = [btDetail]
       OnDataRecord = band_SubItemsDataRecord
       object band_Detail: TRLBand
         Left = 0
         Top = 0
-        Width = 294
+        Width = 280
         Height = 12
         AutoSize = True
         Borders.Sides = sdCustom
@@ -277,7 +277,7 @@ object frm_RelNFRL02: Tfrm_RelNFRL02
         object lbl_LinItem: TRLLabel
           Left = 0
           Top = 0
-          Width = 294
+          Width = 280
           Height = 12
           Align = faTop
           Caption = '123456789012345678901234567890123456789012345678901234'

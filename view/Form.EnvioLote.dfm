@@ -2,8 +2,8 @@ object frm_EnvLote: Tfrm_EnvLote
   Left = 0
   Top = 0
   BorderStyle = bsDialog
-  Caption = '.:Envio autom'#225'tico de lote NFE:.'
-  ClientHeight = 594
+  Caption = '.:Envio de Lote:.'
+  ClientHeight = 572
   ClientWidth = 794
   Color = clWindow
   Ctl3D = False
@@ -19,7 +19,7 @@ object frm_EnvLote: Tfrm_EnvLote
   TextHeight = 14
   object pnl_Footer: TJvFooter
     Left = 0
-    Top = 554
+    Top = 532
     Width = 794
     Height = 40
     Align = alBottom
@@ -34,18 +34,6 @@ object frm_EnvLote: Tfrm_EnvLote
     DesignSize = (
       794
       40)
-    object btn_OK: TJvFooterBtn
-      Left = 582
-      Top = 5
-      Width = 100
-      Height = 30
-      Anchors = [akRight, akBottom]
-      Caption = 'Confirmar'
-      TabOrder = 0
-      OnClick = btn_OKClick
-      ButtonIndex = 0
-      SpaceInterval = 6
-    end
     object btn_Close: TJvFooterBtn
       Left = 686
       Top = 5
@@ -53,9 +41,9 @@ object frm_EnvLote: Tfrm_EnvLote
       Height = 30
       Anchors = [akRight, akBottom]
       Caption = 'Fechar'
-      TabOrder = 1
+      TabOrder = 0
       OnClick = btn_CloseClick
-      ButtonIndex = 1
+      ButtonIndex = 0
       SpaceInterval = 6
     end
     object btn_Start: TJvFooterBtn
@@ -66,10 +54,10 @@ object frm_EnvLote: Tfrm_EnvLote
       Anchors = [akLeft, akBottom]
       Caption = 'Iniciar'
       Enabled = False
-      TabOrder = 2
+      TabOrder = 1
       OnClick = btn_StartClick
       Alignment = taLeftJustify
-      ButtonIndex = 2
+      ButtonIndex = 1
       SpaceInterval = 6
     end
     object btn_Stop: TJvFooterBtn
@@ -80,191 +68,109 @@ object frm_EnvLote: Tfrm_EnvLote
       Anchors = [akLeft, akBottom]
       Caption = 'Parar'
       Enabled = False
-      TabOrder = 3
+      TabOrder = 2
       OnClick = btn_StopClick
       Alignment = taLeftJustify
-      ButtonIndex = 3
+      ButtonIndex = 2
       SpaceInterval = 6
     end
   end
-  object pag_Control1: TAdvPageControl
-    Left = 0
-    Top = 0
-    Width = 794
-    Height = 554
-    ActivePage = tab_LOG
-    ActiveFont.Charset = DEFAULT_CHARSET
-    ActiveFont.Color = clWindowText
-    ActiveFont.Height = -11
-    ActiveFont.Name = 'Tahoma'
-    ActiveFont.Style = []
+  object gbx_Opt: TAdvGroupBox
+    AlignWithMargins = True
+    Left = 3
+    Top = 3
+    Width = 788
+    Height = 50
+    Align = alTop
+    Caption = ' Op'#231#245'es do CAIXA '
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Trebuchet MS'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 0
+    object cbx_Modelo: TAdvComboBox
+      Left = 166
+      Top = 18
+      Width = 100
+      Height = 26
+      Color = clWindow
+      Version = '1.5.1.0'
+      Visible = True
+      Style = csDropDownList
+      EmptyTextStyle = []
+      DropWidth = 0
+      Enabled = True
+      ItemIndex = 2
+      Items.Strings = (
+        'NF-e(55)'
+        'NFC-e(65)'
+        'TODOS')
+      LabelCaption = 'Modelo:'
+      LabelMargin = 2
+      LabelTransparent = True
+      LabelFont.Charset = DEFAULT_CHARSET
+      LabelFont.Color = clNavy
+      LabelFont.Height = -11
+      LabelFont.Name = 'Tahoma'
+      LabelFont.Style = []
+      TabOrder = 0
+      Text = 'TODOS'
+    end
+    object edt_NSerie: TAdvEdit
+      Left = 342
+      Top = 18
+      Width = 100
+      Height = 24
+      EditAlign = eaCenter
+      EditType = etNumeric
+      EmptyText = 'S'#233'rie[1..889]'
+      EmptyTextStyle = []
+      MaxValue = 889
+      LabelCaption = 'N'#250'mero:'
+      LabelMargin = 3
+      LabelTransparent = True
+      LabelFont.Charset = DEFAULT_CHARSET
+      LabelFont.Color = clWindowText
+      LabelFont.Height = -11
+      LabelFont.Name = 'Tahoma'
+      LabelFont.Style = []
+      Lookup.Font.Charset = DEFAULT_CHARSET
+      Lookup.Font.Color = clWindowText
+      Lookup.Font.Height = -11
+      Lookup.Font.Name = 'Arial'
+      Lookup.Font.Style = []
+      Lookup.Separator = ';'
+      Color = clWindow
+      MaxLength = 3
+      TabOrder = 1
+      Text = '0'
+      Visible = True
+      Version = '3.3.2.0'
+    end
+  end
+  object txt_RichLOG: TRichEdit
+    AlignWithMargins = True
+    Left = 3
+    Top = 59
+    Width = 788
+    Height = 470
     Align = alClient
-    TabBackGroundColor = clBtnFace
-    TabMargin.RightMargin = 0
-    TabOverlap = 0
-    Version = '2.0.0.4'
-    PersistPagesState.Location = plRegistry
-    PersistPagesState.Enabled = False
-    TabOrder = 1
-    object tab_Grid1: TAdvTabSheet
-      Caption = 'Notas fiscais'
-      Color = clWindow
-      ColorTo = clNone
-      TabVisible = False
-      TabColor = clBtnFace
-      TabColorTo = clNone
-      object lbl_MaxLot: TGradientLabel
-        Left = 0
-        Top = 508
-        Width = 786
-        Height = 17
-        Align = alBottom
-        AutoSize = False
-        Caption = 'Nenhum'
-        Color = clInfoBk
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Trebuchet MS'
-        Font.Style = []
-        ParentColor = False
-        ParentFont = False
-        ColorTo = clWindow
-        EllipsType = etNone
-        GradientType = gtFullHorizontal
-        GradientDirection = gdLeftToRight
-        Indent = 0
-        Orientation = goHorizontal
-        TransparentText = False
-        VAlignment = vaCenter
-        Version = '1.2.0.0'
-        ExplicitTop = 506
-      end
-      object vst_Grid1: TVirtualStringTree
-        Left = 0
-        Top = 0
-        Width = 786
-        Height = 508
-        Align = alClient
-        Alignment = taCenter
-        BevelInner = bvNone
-        BevelKind = bkTile
-        BorderStyle = bsNone
-        Colors.DropTargetColor = 7063465
-        Colors.DropTargetBorderColor = 4958089
-        Colors.FocusedSelectionColor = clActiveCaption
-        Colors.FocusedSelectionBorderColor = clActiveCaption
-        Colors.GridLineColor = clBtnShadow
-        Colors.UnfocusedSelectionBorderColor = clBtnShadow
-        DefaultNodeHeight = 22
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -13
-        Font.Name = 'Trebuchet MS'
-        Font.Style = []
-        Header.AutoSizeIndex = 0
-        Header.Background = clBtnHighlight
-        Header.Height = 21
-        Header.Options = [hoColumnResize, hoDrag, hoShowImages, hoShowSortGlyphs, hoVisible]
-        Header.ParentFont = True
-        Header.Style = hsPlates
-        ParentFont = False
-        RootNodeCount = 30
-        TabOrder = 0
-        TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScroll, toAutoTristateTracking]
-        TreeOptions.MiscOptions = [toAcceptOLEDrop, toCheckSupport, toInitOnSave, toToggleOnDblClick, toWheelPanning]
-        TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
-        TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
-        OnChange = vst_Grid1Change
-        OnGetText = vst_Grid1GetText
-        Columns = <
-          item
-            Color = 15000804
-            Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coFixed, coAllowFocus]
-            Position = 0
-            Width = 315
-            WideText = 'Chave'
-          end
-          item
-            Alignment = taCenter
-            Position = 1
-            Width = 75
-            WideText = 'Cod.Venda'
-          end
-          item
-            Alignment = taCenter
-            Color = clWindow
-            Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coAllowFocus]
-            Position = 2
-            WideText = 'Mod'
-          end
-          item
-            Alignment = taCenter
-            Color = clWindow
-            Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coAllowFocus]
-            Position = 3
-            Width = 45
-            WideText = 'S'#233'rie'
-          end
-          item
-            Alignment = taCenter
-            Color = clWindow
-            Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coAllowFocus]
-            Position = 4
-            Width = 75
-            WideText = 'Num.NF'
-          end
-          item
-            Position = 5
-            Width = 200
-            WideText = 'Situa'#231#227'o'
-          end>
-      end
-    end
-    object tab_LOG: TAdvTabSheet
-      Caption = 'LOG'
-      Color = clWindow
-      ColorTo = clNone
-      TabColor = clBtnFace
-      TabColorTo = clNone
-      object txt_Log: TJvRichEdit
-        Left = 0
-        Top = 0
-        Width = 786
-        Height = 65
-        Align = alTop
-        ClipboardCommands = [caCopy, caClear]
-        Flat = True
-        Font.Charset = ANSI_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        ParentFont = False
-        ReadOnly = True
-        ScrollBars = ssVertical
-        TabOrder = 0
-        Visible = False
-        WordWrap = False
-      end
-      object txt_RichLOG: TRichEdit
-        Left = 0
-        Top = 65
-        Width = 786
-        Height = 460
-        Align = alClient
-        Font.Charset = ANSI_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Trebuchet MS'
-        Font.Style = []
-        Lines.Strings = (
-          'txt_RichLOG')
-        ParentFont = False
-        ReadOnly = True
-        ScrollBars = ssVertical
-        TabOrder = 1
-      end
-    end
+    BorderWidth = 1
+    Color = clInfoBk
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Trebuchet MS'
+    Font.Style = []
+    HideScrollBars = False
+    Lines.Strings = (
+      'txt_RichLOG')
+    ParentFont = False
+    PlainText = True
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 2
   end
 end
