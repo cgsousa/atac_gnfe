@@ -1,4 +1,4 @@
-use comercio
+use comercio1
 go
 
 
@@ -228,9 +228,9 @@ as
                  else 1 end
     --//
     --// emitente
-    ,@tipemi =case when emi_tipemi is null then 0 else emi_tipemi end 
+    --,@tipemi =case when emi_tipemi is null then 0 else emi_tipemi end 
   from loja e
-  left join emisnfe on emi_codemp =e.codloja
+  --left join emisnfe on emi_codemp =e.codloja
   where e.codloja =@codemp;
 
   if @emi_cnpj is null 

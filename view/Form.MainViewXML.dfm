@@ -135,7 +135,6 @@ object frm_MainView: Tfrm_MainView
       Appearance.ColorMirrorCheckedTo = 16768988
       Appearance.ColorMirrorDisabled = 11974326
       Appearance.ColorMirrorDisabledTo = 15921906
-      ExplicitTop = 23
     end
     object btn_Stop: TAdvGlowButton
       Left = 6

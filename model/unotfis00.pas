@@ -232,7 +232,6 @@ type
     sttSet: TNotFis00StatusSet;
     save: Boolean;
     codlot: Int32;
-    sumitm: Boolean;
     constructor Create(const codseq, codped: Integer);
   end;
 
@@ -243,7 +242,7 @@ type
 
   //
   // capa nota fiscal
-  TCNotFis00 = class(TPersistent)
+  TCNotFis00 = class //(TPersistent)
   private
     m_Parent: TCNotFis00Lote;
     m_ItemIndex: Int32;
@@ -351,6 +350,10 @@ type
     // consumo indevido
     m_consumo: Int16 ;
 
+    //
+    // flag
+    m_tag: Int16 ;
+
     function UpdateNFe(const dtemis: Tdatetime;
       const pro_nomrdz, pro_codint: SmallInt;
       out err_msg: string): Boolean ;
@@ -431,7 +434,7 @@ type
 
   //
   // item de nota fiscal
-  TCNotFis01 = class(TPersistent)
+  TCNotFis01 = class //(TPersistent)
   private
     m_oParent: TCNotFis00;
     m_ItemIndex: Int32;
@@ -549,7 +552,7 @@ type
 
   //
   // item / combustivel
-  TCNotFis02comb = class(TPersistent)
+  TCNotFis02comb = class //(TPersistent)
   private
     m_oParent: TCNotFis01;
   public
@@ -571,14 +574,14 @@ type
     m_CodSeq: Int32;
     m_vTotalNF: Currency ;
     m_Filter: TNotFis00Filter;
+    procedure setFilter(const aValue: TNotFis00Filter);
     procedure OnClear(Sender: TObject; const Item: TCNotFis00;
       Action: TCollectionNotification) ;
-
   public
     property Items: TList<TCNotFis00> read m_oItems ;
     property CodSeq: Int32 read m_CodSeq;
-    property vTotalNF: Currency read m_vTotalNF;
-    property Filter: TNotFis00Filter read m_Filter write m_Filter;
+    property vTotalNF: Currency read m_vTotalNF write m_vTotalNF;
+    property Filter: TNotFis00Filter read m_Filter write setFilter;
     constructor Create;
     destructor Destroy; override ;
     function AddNotFis00(const codseq: Int32): TCNotFis00;
@@ -637,7 +640,7 @@ implementation
 
 uses StrUtils, Variants, Math ,
   ACBrUtil,
-  uparam;
+  uparam, ucademp;
 
 function GTIN_DV(const aCodigo: String ): String ;
 var
@@ -902,6 +905,7 @@ begin
     Self.nserie :=0;
     Self.limlot :=0;
     Self.codlot :=0;
+    Self.save :=False ;
 end;
 
 { TCNotFis00 }
@@ -939,7 +943,9 @@ begin
     self.m_transp :=TTransp.Create;//(nil);
     self.m_cobr :=TCobr.Create;//(nil);
     self.m_pag  :=TpagCollection.Create;//(nil);
-
+    //
+    // tag ctrl
+    self.m_tag :=0;
 end;
 
 function TCNotFis00.CStatAutorizado: Boolean;
@@ -1233,21 +1239,23 @@ begin
     Self.m_chvref :=Trim(aDS.FieldByName('nf0_chvref').AsString);
 
     //emit
-    {Self.m_emit.CNPJCPF := aDS.FieldByName('nf0_emicnpj').AsString ;
-    Self.m_emit.xNome :=aDS.FieldByName('nf0_eminome').AsString ;
-    Self.m_emit.xFant :=aDS.FieldByName('nf0_emifant').AsString ;
-    Self.m_emit.EnderEmit.xLgr:=aDS.FieldByName('nf0_emilogr').AsString ;
-    Self.m_emit.EnderEmit.nro :=aDS.FieldByName('nf0_eminumero').AsString;
-    Self.m_emit.EnderEmit.xCpl :=aDS.FieldByName('nf0_emicomple').AsString ;
-    Self.m_emit.EnderEmit.xBairro :=aDS.FieldByName('nf0_emibairro').AsString ;
-    Self.m_emit.EnderEmit.cMun :=aDS.FieldByName('nf0_emicodmun').AsInteger ;
-    Self.m_emit.EnderEmit.xMun :=aDS.FieldByName('nf0_emimun').AsString ;
-    Self.m_emit.EnderEmit.UF :=aDS.FieldByName('nf0_emiufe').AsString ;
-    Self.m_emit.EnderEmit.CEP    :=aDS.FieldByName('nf0_emicep').AsInteger ;
-    Self.m_emit.EnderEmit.fone   :=aDS.FieldByName('nf0_emifone').AsString ;
-    Self.m_emit.IE   :=aDS.FieldByName('nf0_emiie').AsString ;
-    Self.m_emit.IEST :=aDS.FieldByName('nf0_emiiest').AsString;
-    Self.m_emit.CRT  :=TpcnCRT(aDS.FieldByName('nf0_emicrt').AsInteger) ;}
+    Self.m_emit.CNPJCPF :=CadEmp.CNPJ;
+    Self.m_emit.xNome   :=CadEmp.xNome;
+    Self.m_emit.xFant   :=CadEmp.xFant;
+    Self.m_emit.EnderEmit.xLgr    :=CadEmp.ender.xLogr;
+    Self.m_emit.EnderEmit.nro     :=CadEmp.ender.numero;
+    Self.m_emit.EnderEmit.xCpl    :=CadEmp.ender.xCompl;
+    Self.m_emit.EnderEmit.xBairro :=CadEmp.ender.xBairro;
+    Self.m_emit.EnderEmit.cMun    :=CadEmp.ender.cMun;
+    Self.m_emit.EnderEmit.xMun    :=CadEmp.ender.xMun;
+    Self.m_emit.EnderEmit.UF      :=CadEmp.ender.UF;
+    Self.m_emit.EnderEmit.CEP     :=CadEmp.ender.CEP;
+    Self.m_emit.EnderEmit.fone    :=CadEmp.fone;
+    Self.m_emit.EnderEmit.cPais   :=CadEmp.ender.cPais;
+    Self.m_emit.EnderEmit.xPais   :=CadEmp.ender.xPais;
+    Self.m_emit.IE   :=CadEmp.IE;
+    Self.m_emit.IEST :=CadEmp.IEST ;
+    Self.m_emit.CRT  :=TpcnCRT(Ord(CadEmp.CRT));
 
     //dest
     if aDS.FieldByName('nf0_dsttippes').IsNull then
@@ -1331,7 +1339,7 @@ begin
     m_icmstot.vST :=aDS.FieldByName('vST').AsCurrency ;
     m_icmstot.vFCPST :=aDS.FieldByName('vFCPST').AsCurrency ;
     m_icmstot.vProd :=aDS.FieldByName('vProd').AsCurrency ;
-    m_icmstot.vFrete :=aDS.FieldByName('vFrete').AsCurrency ;
+    m_icmstot.vFrete :=aDS.FieldByName('vFret').AsCurrency ;
     m_icmstot.vSeg :=aDS.FieldByName('vSeg').AsCurrency ;
     m_icmstot.vDesc :=aDS.FieldByName('vDesc').AsCurrency ;
     m_icmstot.vII :=aDS.FieldByName('vII').AsCurrency ;
@@ -1339,7 +1347,7 @@ begin
     m_icmstot.vIPIDevol :=aDS.FieldByName('vIPIDevol').AsCurrency ;
     m_icmstot.vPIS :=aDS.FieldByName('vPIS').AsCurrency ;
     m_icmstot.vCOFINS :=aDS.FieldByName('vCOFINS').AsCurrency ;
-    m_icmstot.vOutro :=aDS.FieldByName('vOutro').AsCurrency ;
+    m_icmstot.vOutro :=aDS.FieldByName('vOutr').AsCurrency ;
     m_icmstot.vTotTrib :=aDS.FieldByName('vTrib').AsCurrency ;
     m_icmstot.vNF :=aDS.FieldByName('vNF').AsCurrency ;
 
@@ -1392,10 +1400,9 @@ begin
         begin
             if cmplvl > 8 then
                 Self.FillDataSet(Q)
-            else begin
-                Self.LoadItems() ;
+            else
                 Self.LoadFromQ(Q);
-            end;
+            Self.LoadItems() ;
             Self.LoadFormaPgto();
         end;
     finally
@@ -2358,22 +2365,7 @@ begin
 
     Q :=TADOQuery.NewADOQuery() ;
     try
-        //
-        // compatibilidade
-//        Q.AddCmd('declare @versql sysname; set @versql =convert(sysname,serverproperty(%s));',[Q.FStr('ProductVersion')]);
-//        Q.AddCmd('declare @posdot smallint;set @posdot =charindex(%s,@versql);              ',[Q.FStr('.')]);
-//        Q.AddCmd('declare @cmplvl smallint;set @cmplvl =substring(@versql,1,@posdot-1);     ');
-        //
-        // ID
-//        Q.AddCmd('declare @codseq int; set @codseq =%d;     ',[Self.m_codseq]) ;
-        //
-        //
-//        Q.AddCmd('if(@cmplvl >= 9) --sql 2005                                               ');
-//        Q.AddCmd('  select                                                                  ');
-//        Q.AddCmd('    case when nf0_xml is null then nf0_xmltyp else nf0_xml end as nf0_xml ');
-//        Q.AddCmd('  from notfis00 where nf0_codseq =@codseq                                 ');
-//        Q.AddCmd('else                                                                      ');
-        Q.AddCmd('select nf0_xml from notfis00 where nf0_codseq =%d;     ',[Self.m_codseq]) ;
+        Q.AddCmd('select nf0_xml from notfis00 where nf0_codseq =%d;',[Self.m_codseq]) ;
         Q.Open ;
         fnf0_xml :=Q.Field('nf0_xml') ;
         if fnf0_xml.IsNull then
@@ -2461,11 +2453,11 @@ begin
         //
         // registra o CX
         if codmod = 55 then
-            TCGenSerial.SetVal(Format('nfe.%s.nserie.%.3d',[Empresa.CNPJ,nserie]),
+            TCGenSerial.SetVal(Format('[NFE]nfe.%s.nserie.%.3d',[Empresa.CNPJ,nserie]),
                                       'UUID para NFE por CNPJ/MOD/SERIE' ,
                                       1, 1, 1, 999999999 )
         else
-            TCGenSerial.SetVal(Format('nfce.%s.nserie.%.3d',[Empresa.CNPJ,nserie]),
+            TCGenSerial.SetVal(Format('[NFE]nfce.%s.nserie.%.3d',[Empresa.CNPJ,nserie]),
                                           'UUID para NFCE por CNPJ/MOD/SERIE' ,
                                           1, 1, 1, 999999999
                                           );
@@ -2805,6 +2797,7 @@ var
   C: TADOCommand ;
   P: TParameter ;
   S: TStringStream; // TStreamWriter;
+var
   cmplvl: SmallInt ;
 begin
     //
@@ -2816,6 +2809,12 @@ begin
         C.AddCmd('update notfis00 set   ');
         if Self.m_xml <> '' then
         begin
+            //
+            // remove tag´s XML
+            {xpos :=PosEx('?>',Self.m_xml) ;
+            if xpos > 0 then
+                Self.m_xml :=Copy(Self.m_xml,P+2,Length(Self.m_xml));}
+
             Self.m_motivo :=Copy(Self.m_motivo, 1, 250) ;
             C.AddCmd('  nf0_codstt  =%d,    ',[Self.m_codstt]);
             C.AddCmd('  nf0_motivo  =%s,    ',[C.FStr(Self.m_motivo)]);
@@ -2833,15 +2832,19 @@ begin
             S :=TStringStream.Create(Self.m_xml);
         end
         else begin
-            C.AddCmd('  nf0_codstt  =0,     ');
-            C.AddCmd('  nf0_motivo  =null,  ');
-            C.AddCmd('  nf0_chvnfe  =null,  ');
+            //
+            // se não fech CX
+            if Self.m_tag =0 then
+            begin
+                C.AddCmd('  nf0_codstt  =0,     ');
+                C.AddCmd('  nf0_motivo  =null,  ');
+                C.AddCmd('  nf0_chvnfe  =null,  ');
+            end;
             if cmplvl > 8 then
-            C.AddCmd('  nf0_xmltyp  =null   ')
+                C.AddCmd('  nf0_xmltyp  =null   ')
             else
-            C.AddCmd('  nf0_xml     =null   ');
+                C.AddCmd('  nf0_xml     =null   ');
         end;
-
         C.AddCmd('where nf0_codseq =%d  ',[Self.m_codseq]);
 
         if Assigned(S) then
@@ -3581,24 +3584,31 @@ begin
     end;
 
     //
-    // periodo somente para normal
-    dh_now :=Now;
-    if afilter.filTyp = ftNormal then
+    // inicializa param datetime null
+    Q.AddParamWithValue('@datini', ftDateTime, Null);
+    Q.AddParamWithValue('@datfin', ftDateTime, Null);
+
+    //
+    // valida periodo
+    if afilter.datini > 0 then
     begin
-        if(afilter.codini > 0)or(afilter.pedini > 0) then
-        begin
-        Q.AddParamDatetime('@datini', dh_now);
-        Q.AddParamDatetime('@datfin', dh_now);
-        end
-        else begin
-        Q.AddParamDatetime('@datini', afilter.datini);
-        Q.AddParamDatetime('@datfin', afilter.datfin, True);
-        end;
-    end
-    else begin
-        Q.AddParamDatetime('@datini', dh_now);
-        Q.AddParamDatetime('@datfin', dh_now);
+        Q.Param('@datini').Value :=afilter.datini ;
+        Q.Param('@datfin').Value :=afilter.datini ;
     end;
+    if afilter.datfin > 0 then
+    begin
+        Q.Param('@datfin').Value :=afilter.datfin ;
+        if Q.Param('@datini').Value = Null then
+        begin
+            Q.Param('@datini').Value :=afilter.datfin;
+        end;
+    end;
+//    Q.AddParamDatetime('@datini', afilter.datini);
+//    Q.AddParamDatetime('@datfin', afilter.datfin, True);
+//    else begin
+//        Q.AddParamDatetime('@datini', dh_now);
+//        Q.AddParamDatetime('@datfin', dh_now);
+//    end;
 
     if afilter.save then
     begin
@@ -3632,13 +3642,14 @@ begin
         F.datfin :=F.datini;
     end;
     //
+    //
     // set params
     sp :=TADOStoredProc.NewADOStoredProc('sp_notfis00_busca');
     sp.AddParamWithValue('@codseq', ftInteger, F.codini);
     sp.AddParamWithValue('@codped', ftInteger, F.pedini);
     sp.AddParamWithValue('@filtyp', ftSmallint, Ord(F.filTyp));
-    sp.AddParamDatetime('@datini', F.datini);
-    sp.AddParamDatetime('@datfin', F.datfin, True);
+    sp.AddParamWithValue('@datini', ftDateTime, Null);
+    sp.AddParamWithValue('@datfin', ftDateTime, Null);
     sp.AddParamWithValue('@status', ftSmallint, Ord(F.status));
     sp.AddParamWithValue('@codmod', ftSmallint, F.codmod);
     sp.AddParamWithValue('@numser', ftSmallint, F.nserie);
@@ -3647,6 +3658,23 @@ begin
     //sp.AddParamRet('@err_cod');
 
     try
+        //
+        // valida periodo
+        if afilter.datini > 0 then
+        begin
+            sp.Param('@datini').Value :=afilter.datini ;
+            sp.Param('@datfin').Value :=afilter.datini ;
+        end;
+        if afilter.datfin > 0 then
+        begin
+            sp.Param('@datfin').Value :=afilter.datfin ;
+            if sp.Param('@datini').Value = Null then
+            begin
+                sp.Param('@datini').Value :=afilter.datfin;
+            end;
+        end;
+        //
+        //
         sp.Open ;
         Result :=TDataSet (sp) ; //.Recordset) ;
     except
@@ -3743,16 +3771,16 @@ begin
         Result  :=not Q.IsEmpty ;
         while not Q.Eof do
         begin
+            //
+            // ler NF
             N :=Self.AddNotFis00(fcodseq.AsInteger) ;
+
             if cmplvl >8 then
                 N.FillDataSet(Q)
-            else begin
-                if afilter.filTyp = ftNormal then
-                begin
-                    N.LoadFromQ(Q);
-                    N.LoadItems;
-                end;
-            end;
+            else
+                N.LoadFromQ(Q);
+            N.LoadItems;
+
             //
             // totaliza NF
             m_vTotalNF :=m_vTotalNF +N.m_icmstot.vNF;
@@ -3842,5 +3870,12 @@ begin
     end;
 end;
 
+
+procedure TCNotFis00Lote.setFilter(const aValue: TNotFis00Filter);
+begin
+    m_Filter :=aValue ;
+    m_oItems.Clear ;
+
+end;
 
 end.

@@ -12,8 +12,6 @@ uses
 
 {$R *.RES}
 
-const
-  SERVICE_NAME = 'ATAC_SVC_XML';
 
 var
   U: SvcUtil ;

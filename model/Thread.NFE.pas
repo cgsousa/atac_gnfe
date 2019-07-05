@@ -120,7 +120,7 @@ implementation
 uses Windows, ActiveX, WinInet, DateUtils, DB,
   pcnConversao, pcnNFe, pcnRetConsReciDFe,
   ACBr_WinHttp, ACBrUtil, ACBrNFeNotasFiscais, ACBrNFeWebServices,
-  uadodb;
+  uadodb, ucademp;
 
 
 { TMySvcThread }
@@ -369,7 +369,12 @@ begin
               Empresa.DoLoad(1);
               CallOnStrProc('Emitente: %s-%s',[Empresa.CNPJ,Empresa.RzSoci]);
           end;
-      end ;
+          if CadEmp = nil then
+          begin
+              CadEmp :=TCCadEmp.New(1) ;
+              CallOnStrProc('Emitente: %s-%s',[CadEmp.CNPJ,CadEmp.xNome]);
+          end;
+      end;
 
       //
       // simula o singleton
@@ -398,7 +403,7 @@ begin
           // caso o certificado venceu, termina a thread
           if m_Rep.getDaysUseCertif <= 0 then
           begin
-              CallOnStrProc('Certificado vinculado ao CNPJ:%s já vencido.',[Empresa.CNPJ]);
+              CallOnStrProc('Certificado vinculado ao CNPJ:%s já vencido.',[CadEmp.CNPJ]);
               Self.Terminate ;
               Exit;
           end;
@@ -663,43 +668,7 @@ begin
               else begin
                   //
                   //
-                  if (NF.m_codstt =cs.ERR_REGRAS )or
-                    (NF.m_codstt =cs.ERR_GERAL )or
-                    (NF.m_codstt =cs.NFE_NAO_CONSTA_BD )or
-                    (NF.m_codstt =cs.NFCE_DH_EMIS_RETRO )then
-                  //if NF.CStatError then
-                  //if not (NF.m_codstt in[cs.CONTING_OFFLINE,cs.DUPL]) then
-                  begin
-                      CallOnStrProc(#9'Atualizando...');
-                      if not NF.UpdateNFe(now, Ord(m_Rep.param.xml_prodescri_rdz.Value), Ord(m_Rep.param.xml_procodigo_int.Value), S) then
-                      begin
-                          CallOnStrProc(S);
-                          Continue ;
-                      end ;
-
-                      //
-                      // gera NFE
-                      CallOnStrProc(#9'Gerando NFE ...') ;
-                      nfe :=m_Rep.AddNotaFiscal(NF, False) ;
-                      if nfe <> nil then
-                      begin
-                          //
-                          // registra status/xml/chave
-                          NF.setXML();
-                          CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
-                      end
-                      else begin
-                          //
-                          // reporta o erro
-                          CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
-                          //
-                          // força para a proxima nota
-                          Continue ;
-                      end;
-                  end;
-                  //
-                  //
-                  if NF.m_codstt =cs.CONTING_OFFLINE then
+                  if NF.m_codstt in[cs.DONE_SEND,cs.CONTING_OFFLINE] then
                   begin
                       //
                       // carrega XML
@@ -733,8 +702,49 @@ begin
                   end;
 
                   //
+                  //
+                  if(NF.m_codstt =cs.ERR_SCHEMA )or
+                    (NF.m_codstt =cs.ERR_REGRAS )or
+                    (NF.m_codstt =cs.ERR_GERAL )or
+                    (NF.m_codstt =cs.NFE_NAO_CONSTA_BD )or
+                    (NF.m_codstt =cs.NFCE_DH_EMIS_RETRO )then
+                  //if NF.CStatError then
+                  //if not (NF.m_codstt in[cs.CONTING_OFFLINE,cs.DUPL]) then
+                  begin
+                      CallOnStrProc(#9'Atualizando...');
+                      if NF.UpdateNFe(now, Ord(m_Rep.param.xml_prodescri_rdz.Value), Ord(m_Rep.param.xml_procodigo_int.Value), S) then
+                          NF.Load()
+                      else begin
+                          CallOnStrProc(S);
+                          Continue ;
+                      end ;
+
+                      //
+                      // gera NFE
+                      CallOnStrProc(#9'Gerando NFE ...') ;
+                      nfe :=m_Rep.AddNotaFiscal(NF, False) ;
+                      if nfe <> nil then
+                      begin
+                          //
+                          // registra status/xml/chave
+                          NF.setXML();
+                          CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+                          if NF.m_codstt =cs.ERR_SCHEMA then
+                              m_Rep.nfe.NotasFiscais.Delete(nfe.Index);
+                      end
+                      else begin
+                          //
+                          // reporta o erro
+                          CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                          //
+                          // força para a proxima nota
+                          Continue ;
+                      end;
+                  end;
+
+                  //
                   // inicializa lote para posterior envio
-                  if codLot = 0 then
+                  if(codLot = 0)and(m_Rep.nfe.NotasFiscais.Count >0) then
                   begin
                       codlot :=NF.m_codseq;
                   end ;

@@ -1,4 +1,4 @@
-use comercio
+use comercio1
 go
 
 if exists (select *from dbo.sysobjects where id = object_id(N'sp_notfis00_upd') and objectproperty(id, N'IsProcedure') = 1)
@@ -385,7 +385,8 @@ as
   update notfis00 set 
     nf0_dtemis  =case when nf0_codmod = 65 then @dtemis else nf0_dtemis end ,
     nf0_dhsaient=case when nf0_codmod = 65 then @dtemis else nf0_dhsaient end ,
-    nf0_dsttippes =@dst_tippes ,
+    nf0_emicrt =@emi_crt ,
+    nf0_dsttippes  =@dst_tippes ,
     nf0_dstcnpjcpf =case when nf0_codmod = 65 then
                               case when @cpf_cnpj is not null then @cpf_cnpj else @dst_cnpjcpf end
                     else @dst_cnpjcpf end,

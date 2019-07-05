@@ -1,4 +1,4 @@
-use comercio1
+use comercio
 go
 
 if exists (select *from dbo.sysobjects where id = object_id(N'sp_notfis00_busca') and objectproperty(id, N'IsProcedure') = 1)
@@ -182,7 +182,7 @@ as
   --//
   --// params sp_executesql 3072
   declare @exec_sql nvarchar(2560); set @exec_sql =N'select ';
-  declare @exec_prm nvarchar(512) ; set @exec_prm =N'';
+  declare @exec_prm nvarchar(512) ; --set @exec_prm =N'';
 
   --//
   --// inicializa EXEC
@@ -303,7 +303,7 @@ from notfis00 with(readpast) ';
         --// def condição/params 
         set @exec_sql =@exec_sql  +N'where nf0_dtemis between @datini and @datfin '
         set @exec_prm =N'@datini smalldatetime, @datfin smalldatetime'
-        
+
         --//
         --// chk status
         select @exec_sql =case 
@@ -313,8 +313,10 @@ from notfis00 with(readpast) ';
           when @status = 3 then @exec_sql +N'and nf0_codstt in(110,301,302,303) '
           when @status = 4 then @exec_sql +N'and nf0_codstt in(101,135,151,155,218) '
           when @status = 5 then @exec_sql +N'and nf0_codstt in(102,206,563) '
-          when @status = 9 then @exec_sql +N'and nf0_codstt not in(0,1,9,100,101,102,110,135,150,151,155,206,,301,302,303) '
+          when @status = 9 then @exec_sql +N'and nf0_codstt not in(0,1,9,100,101,102,110,135,150,151,155,206,301,302,303) '
+          else @exec_sql 
           end
+
         --//
         --// chk mod/ser 
         if @numser > 0 
@@ -399,27 +401,59 @@ order by nf0_codseq desc'
       else if @filtyp =2
       begin
         --//
-        --// chk modelo(condição)
-        if @codmod > 0 
-          set @exec_sql =@exec_sql  +N'where nf0_codmod =@codmod '
+        --// se informou periodo 
+        if(@datini is not null)and(@datfin is not null)
+        begin
+          --//
+          --// set periodo
+          set @exec_sql =@exec_sql  +N'where nf0_dtemis between @datini and @datfin '
+
+          --//
+          --// inclui NFs uso autorizado/canceladas
+          set @exec_sql =@exec_sql  +N'
+          --//notas autorizado uso/canceladas
+          and nf0_codstt in(100,150,101,151,135,155,218)
+          '
+        end
         else
-          set @exec_sql =@exec_sql  +N'where nf0_codmod in(55,65) '
-        set @exec_sql =@exec_sql  +N'and nf0_nserie =@numser '
+          --//
+          --// incl. status
+          set @exec_sql =@exec_sql  +N'
+          --//notas nao processadas 
+          where nf0_codstt not in(0,100,110,150,301,302,303)
+          --//notas nao canceladas
+          and nf0_codstt not in(101,151,135,155,218)
+          --//notas nao inutilizadas
+          and nf0_codstt not in(102,206,563) 
+          '
         --//
-        --// incl. status
-        set @exec_sql =@exec_sql  +N'
-        --//notas nao processadas 
-        and nf0_codstt not in(0,100,110,150,301,302,303)
-        --//notas nao canceladas
-        and nf0_codstt not in(101,151,135,155,218)
-        --//notas nao inutilizadas
-        and nf0_codstt not in(102,206,563)
+        --// inc. nserie
+        set @exec_sql =@exec_sql  +N'and nf0_nserie =@numser 
         order by nf0_codseq'
+        --//
+        --// exec 
+        if(@datini is null)and(@datfin is null)
+        begin        
+          set @exec_prm =N'@numser smallint'
+          insert into @tab_notfis
+          exec sp_executesql  @exec_sql, @exec_prm, 
+                              @numser =@numser
+        end
+        --//
+        --// exec com periodo
+        else begin
+          set @exec_prm =N'@datini smalldatetime, @datfin smalldatetime, @numser smallint'
+          insert into @tab_notfis
+          exec sp_executesql  @exec_sql, @exec_prm, 
+                              @datini =@datini ,
+                              @datfin =@datfin ,
+                              @numser =@numser
+        end
       end 
     end
     --//
     --// calc. totais
-    insert into @tab_total(codntf,
+    /*insert into @tab_total(codntf,
                           vBC ,    
                           vICMS ,
                           vFCP,
@@ -459,7 +493,7 @@ order by nf0_codseq desc'
               0.0
       from @tab_notfis 
       left join notfis01 on nf0_codseq =nf1_codntf 
-      group by nf0_codseq
+      group by nf0_codseq*/
     --//
     --// retorna lista
     select 
@@ -468,11 +502,36 @@ order by nf0_codseq desc'
       --// calc. total da NF
       ((tt.vProd -tt.vDesc)+
       tt.vST +tt.vFCPST +
-      tt.vFrete +tt.vSeg +tt.vOutro +
+      tt.vFret +tt.vSeg +tt.vOutr +
       tt.vII +tt.vIPI +tt.vIPIDevol +
       tt.vServ) as vNF
-    from @tab_notfis nf
-    join @tab_total tt on nf0_codseq =codntf
+    from @tab_notfis nf,
+    --join @tab_total tt on nf0_codseq =codntf
+    ( select  nf0_codseq as codseq,          
+              sum(isnull(nf1_vbc,0)) as vBC,
+              sum(isnull(nf1_vicms,0)) as vICMS,
+              sum(isnull(nf1_vfcp,0)) as vFCP,
+              sum(isnull(nf1_vbcst,0)) as vBCST,
+              sum(isnull(nf1_vicmsst,0)) as vST,
+              sum(isnull(nf1_vfcpst,0)) as vFCPST,
+              sum(isnull(nf1_vlrpro,0)) as vProd,
+              sum(isnull(nf1_vlrdesc,0)) as vDesc,
+              sum(isnull(nf1_vlrfret,0)) as vFret,
+              sum(isnull(nf1_vlrsegr,0)) as vSeg,
+              sum(isnull(nf1_vlroutr,0)) as vOutr,
+              sum(isnull(nf1_vipi,0)) as vIPI,
+              sum(isnull(nf1_vipidevol,0)) as vIPIDevol,
+              sum(isnull(nf1_vpis,0)) as vPIS,
+              sum(isnull(nf1_vcofins,0)) as vCOFINS
+              ,0.0 as vII
+              ,0.0 as vServ
+              ,0.0 as vTrib
+      from @tab_notfis 
+      inner join notfis01 on nf0_codseq =nf1_codntf 
+      group by nf0_codseq
+    )tt
+    where nf.nf0_codseq =tt.codseq
+
   end try
   begin catch
     set @ret_codigo =error_number()

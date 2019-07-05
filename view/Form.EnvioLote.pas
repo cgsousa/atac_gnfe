@@ -126,6 +126,30 @@ begin
     //
     // start a tarefa
     DoStart ;
+
+    ActiveControl :=txt_RichLOG;
+
+    {if m_Filter.codmod =0 then
+    begin
+        m_Filter.codmod :=55 ;
+    end;
+
+    repeat
+        if Assigned(m_Send) then
+        begin
+            DoStop;
+        end ;
+        //
+        // start a tarefa
+        DoStart ;
+
+        ActiveControl :=txt_RichLOG;
+
+        while Assigned(m_Send) do ;
+
+        m_Filter.codmod :=m_Filter.codmod +10 ;
+
+    until (m_Filter.codmod > 65) ;}
 end;
 
 procedure Tfrm_EnvLote.btn_StopClick(Sender: TObject);

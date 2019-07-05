@@ -211,6 +211,7 @@ begin
     F.filTyp :=ftService ;
     F.codmod :=00;
     F.nserie :=00;
+    F.save :=FindCmdLineSwitch('sql', ['-', '\', '/'], true) ;
 
     m_MySvc :=TMySvcThread.Create(F) ;
     m_MySvc.OnBeforeExecute :=OnINI;

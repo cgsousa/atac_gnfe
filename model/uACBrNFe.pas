@@ -97,17 +97,19 @@ type
     //
     // local dos arquivos gravados
     //numero_serie: TPair<string, string>;
-    arquivos_Salva: TPair<string, Boolean>;
-    arquivos_Salva_BD: TPair<string, Boolean>;
-    arquivos_SalvaEvento: TPair<string, Boolean>;
-    arquivos_SeparaPorMes: TPair<string, Boolean>;
-    arquivos_SeparaPorCNPJ: TPair<string, Boolean>;
-    arquivos_SeparaPorModelo: TPair<string, Boolean>;
-    arquivos_RootPath: TPair<string, string>;
-    arquivos_PathSchemas: TPair<string, string>;
-    arquivos_PathNFe: TPair<string, string>;
-    arquivos_PathInut: TPair<string, string>;
-    arquivos_PathEvento: TPair<string, string>;
+    arq_SaveXML: TPair<string, Boolean>;
+    arq_SaveXML_RootPath: TPair<string, string>;
+    arq_SaveEvento: TPair<string, Boolean>;
+    arq_SepCNPJ: TPair<string, Boolean>;
+    arq_SepAno: TPair<string, Boolean>;
+    arq_SepMes: TPair<string, Boolean>;
+    arq_SepModelo: TPair<string, Boolean>;
+    arq_PathSchemas: TPair<string, string>;
+    arq_PathNFe: TPair<string, string>;
+    arq_PathInut: TPair<string, string>;
+    arq_PathEvento: TPair<string, string>;
+    //arq_SaveNFEOnDB: TPair<string, Boolean>;
+    //arq_SaveNFEOnDBPath: TPair<string, string>;
 
     //
     // Info do resp tec
@@ -122,6 +124,8 @@ type
 
 type
   TRetornoChangedEvent = procedure of object;
+
+  TCBaseACBrNFE = class;
 
 
   IBaseACBrNFE = interface
@@ -169,6 +173,12 @@ type
     //
     function getDaysUseCertif: Smallint ;
 
+    //
+    //
+    function FormatPath(const aPath, aLiteral: String;
+      const aCNPJ: String = ''; const aData: TDateTime = 0;
+      const aModDescr: String = ''): string ;
+
   end;
 
   TCBaseACBrNFE = class(TInterfacedObject, IBaseACBrNFE)
@@ -179,6 +189,7 @@ type
     function getErrMsg: string ;
   private
     m_reg: TRegNFE ;
+    procedure LoadConfig() ;
   private
     m_DM: Tdm_nfe ;
     m_NFE: TACBrNFe;
@@ -195,7 +206,6 @@ type
     function getCodMod: Word ;
     function getNSerie: Word ;
     function getParam: TRegNFE ;
-    procedure LoadConfig() ;
     procedure OnTransmitError(const HttpError, InternalError: Integer;
       const URL, DadosEnviados, SoapAction: string; var Retentar,
       Tratado: Boolean);
@@ -220,6 +230,9 @@ type
     function AddNotaFiscal(aNF: TCNotFis00; const aClear: Boolean): NotaFiscal;
     function PrintDANFE(NF: TCNotFis00): Boolean ;
     function SendMail(NF: TCNotFis00; const dest_email: string =''): Boolean;
+    function FormatPath(const aPath, aLiteral: String;
+      const aCNPJ: String = ''; const aData: TDateTime = 0;
+      const aModDescr: String = ''): string ;
   public
     { somente chamadas dos serviços, sem checa status }
     function OnlyStatusSvc(): Boolean;
@@ -347,7 +360,7 @@ begin
     N.NFe.Ide.xJust   :=aNF.m_justif;
 
     //
-    {N.NFe.Emit.CRT               :=aNF.m_emit.CRT;
+    N.NFe.Emit.CRT               :=aNF.m_emit.CRT;
     N.NFe.Emit.CNPJCPF           :=aNF.m_emit.CNPJCPF;
     N.NFe.Emit.IE                :=aNF.m_emit.IE;
     N.NFe.Emit.xNome             :=aNF.m_emit.xNome;
@@ -367,24 +380,6 @@ begin
 //    N.NFe.Emit.IM                := '2648800'; // Preencher no caso de existir serviços na nota
 //    N.NFe.Emit.CNAE              := '6201500'; // Verifique na cidade do emissor da NFe se é permitido
                                                // a inclusão de serviços na aNF}
-
-    N.NFe.Emit.CRT               :=TpcnCRT(Ord(CadEmp.CRT));
-    N.NFe.Emit.CNPJCPF           :=CadEmp.CNPJ;
-    N.NFe.Emit.IE                :=CadEmp.IE;
-    N.NFe.Emit.xNome             :=CadEmp.xNome;
-    N.NFe.Emit.xFant             :=CadEmp.xFant;
-    N.NFe.Emit.EnderEmit.fone    :=CadEmp.fone;
-    N.NFe.Emit.EnderEmit.CEP     :=CadEmp.ender.CEP;
-    N.NFe.Emit.EnderEmit.xLgr    :=CadEmp.ender.xLogr;
-    N.NFe.Emit.EnderEmit.nro     :=CadEmp.ender.numero;
-    N.NFe.Emit.EnderEmit.xCpl    :=CadEmp.ender.xCompl;
-    N.NFe.Emit.EnderEmit.xBairro :=CadEmp.ender.xBairro;
-    N.NFe.Emit.EnderEmit.cMun    :=CadEmp.ender.cMun;
-    N.NFe.Emit.EnderEmit.xMun    :=CadEmp.ender.xMun;
-    N.NFe.Emit.EnderEmit.UF      :=CadEmp.ender.UF;
-    N.NFe.Emit.enderEmit.cPais   :=CadEmp.ender.cPais;
-    N.NFe.Emit.enderEmit.xPais   :=CadEmp.ender.xPais;
-    N.NFe.Emit.IEST              :=CadEmp.IEST ;
 
     N.NFe.Dest.CNPJCPF           :=aNF.m_dest.CNPJCPF;
     N.NFe.Dest.IE                :=aNF.m_dest.IE;
@@ -1102,6 +1097,18 @@ begin
     inherited;
 end;
 
+function TCBaseACBrNFE.FormatPath(const aPath, aLiteral, aCNPJ: String;
+  const aData: TDateTime; const aModDescr: String): string;
+begin
+    //
+    // chama a func interna GetPath do ACBr
+    Result :=m_NFE.Configuracoes.Arquivos.GetPath(aPath,
+                                                  aLiteral,
+                                                  aCNPJ,
+                                                  aData,
+                                                  aModDescr);
+end;
+
 function TCBaseACBrNFE.getCodMod: Word;
 begin
     Result :=m_CodMod ;
@@ -1200,14 +1207,13 @@ begin
     m_NFE.Configuracoes.Certificados.ArquivoPFX :=m_Ini.ReadString('Certificado','Caminho','') ;
     if FileExists(m_NFE.Configuracoes.Certificados.ArquivoPFX)then
     begin
-        m_NFE.Configuracoes.Certificados.Senha :=m_Ini.ReadString('Certificado','Senha','') ;
         m_NFE.Configuracoes.Certificados.NumeroSerie :='';
     end
     else begin
         m_NFE.Configuracoes.Certificados.NumeroSerie :=m_Ini.ReadString('Certificado','NumSerie','') ;
         m_NFE.Configuracoes.Certificados.ArquivoPFX :='';
-        m_NFE.Configuracoes.Certificados.Senha :='';
     end;
+    m_NFE.Configuracoes.Certificados.Senha :=m_Ini.ReadString('Certificado','Senha','') ;
     m_NFE.Configuracoes.Certificados.VerificarValidade :=False ;
 
     //config.geral
@@ -1337,15 +1343,34 @@ begin
     // ler parametros da NFE
     // *********************
     m_reg.Load(m_Ini.ReadInteger('Certificado', 'TipoEnvio', 0) =0, m_NSerie);
+    //
+    // ler ambiente
     if m_NFE.Configuracoes.WebServices.Ambiente =taProducao then
         m_reg.tipamb.Value :=0
     else
         m_reg.tipamb.Value :=1;
+    //
+    // chk valid cert
+    m_NFE.Configuracoes.Certificados.VerificarValidade :=m_reg.cert_chkvalid.Value ;
+
+    //
+    // arquivos XML
+    m_NFE.Configuracoes.Arquivos.Salvar           :=m_reg.arq_SaveXML.Value;
+    m_NFE.Configuracoes.Arquivos.SepararPorCNPJ   :=m_reg.arq_SepCNPJ.Value;
+    m_NFE.Configuracoes.Arquivos.SepararPorAno    :=m_reg.arq_SepAno.Value;
+    m_NFE.Configuracoes.Arquivos.SepararPorMes    :=m_reg.arq_SepMes.Value;
+    m_NFE.Configuracoes.Arquivos.SepararPorModelo :=m_reg.arq_SepModelo.Value;
+    m_NFE.Configuracoes.Arquivos.PathSalvar :=PathWithDelim(m_reg.arq_SaveXML_RootPath.Value) +'tmp';
+    //m_NFE.Configuracoes.Arquivos.AdicionarLiteral := m_Ini.ReadBool(   'Arquivos','AddLiteral' ,false);
+    //m_NFE.Configuracoes.Arquivos.EmissaoPathNFe   := m_Ini.ReadBool(   'Arquivos','EmissaoPathNFe',false);
+    //m_NFE.Configuracoes.Arquivos.SalvarEvento := m_Ini.ReadBool(   'Arquivos','SalvarEvento',false);
+//    m_NFE.Configuracoes.Arquivos.PathSchemas  := m_Ini.ReadString( 'Geral','PathSchemas'  , ApplicationPath +'Schemas\'+GetEnumName(TypeInfo(TpcnVersaoDF), integer(m_Ini.ReadInteger( 'Geral','VersaoDF',0)) )) ;
+//    m_NFE.Configuracoes.Arquivos.PathNFe  := m_Ini.ReadString( 'Arquivos','PathNFe'    ,'') ;
+//    m_NFE.Configuracoes.Arquivos.PathInu  := m_Ini.ReadString( 'Arquivos','PathInu'    ,'') ;
+//    m_NFE.Configuracoes.Arquivos.PathEvento := m_Ini.ReadString( 'Arquivos','PathEvento','') ;
 
     m_reg.xml_prodescri_rdz.Value :=m_Ini.ReadString('NFEProduto','Danfe Nome Reduzido','') = 'S';
     m_reg.xml_procodigo_int.Value :=m_Ini.ReadString('NFEProduto','Danfe Codigo Interno','') = 'S';
-
-    m_NFE.Configuracoes.Certificados.VerificarValidade :=m_reg.cert_chkvalid.Value ;
 
     finally
       m_Ini.Free ;
@@ -1374,7 +1399,7 @@ begin
         Exit(False);
     end;}
 
-    N :=AddNotaFiscal(NF, True) ;
+    //N :=AddNotaFiscal(NF, True) ;
 
     m_NFE.EventoNFe.Evento.Clear;
 
@@ -1730,7 +1755,10 @@ function TCBaseACBrNFE.PrintDANFE(NF: TCNotFis00): Boolean;
 var
   m_Ini: TMemIniFile ;
   N: NotaFiscal ;
+  local,f: string ;
 begin
+    //
+    //
     m_Ini :=TMemIniFile.Create(ApplicationPath +'Configuracoes.ini') ;
     try
     if NF.m_codmod <> 55 then
@@ -1786,37 +1814,68 @@ begin
         m_NFE.DANFE.vTribEst :=NF.vTribEst ;
         m_NFE.DANFE.vTribMun :=NF.vTribMun ;
 
+        N :=nil ;
+
         //
-        // load XML
+        // load padrão
         if NF.LoadXML then
         begin
             N :=AddNotaFiscal(nil, True) ;
-            if N.LerXML(NF.m_xml) then
+            N.LerXML(NF.m_xml) ;
+            //
+            // ler info protocolo
+            N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
+            N.NFe.procNFe.verAplic:=NF.m_verapp ;
+            N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
+            N.NFe.procNFe.dhRecbto:=NF.m_dhreceb;
+            N.NFe.procNFe.nProt   :=NF.m_numprot;
+            N.NFe.procNFe.digVal  :=NF.m_digval ;
+            N.NFe.procNFe.cStat   :=NF.m_codstt ;
+            N.NFe.procNFe.xMotivo :=NF.m_motivo ;
+            N.GerarXML ;
+        end
+        //
+        // load XML do local
+        else begin
+            //
+            // prepara local onde foi exportado!
+            local :=param.arq_SaveXML_RootPath.Value ;
+            if Pos('proc', local) = 0 then
             begin
-                N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
-                N.NFe.procNFe.verAplic:=NF.m_verapp ;
-                N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
-                N.NFe.procNFe.dhRecbto:=NF.m_dhreceb;
-                N.NFe.procNFe.nProt   :=NF.m_numprot;
-                N.NFe.procNFe.digVal  :=NF.m_digval ;
-                N.NFe.procNFe.cStat   :=NF.m_codstt ;
-                N.NFe.procNFe.xMotivo :=NF.m_motivo ;
-                N.Imprimir ;
+                local :=PathWithDelim(local) +'proc';
+            end;
+            local :=FormatPath(local,'',NF.m_emit.CNPJCPF,NF.m_dtemis);
+            //
+            // format filename
+            F :=Format('%s-procNFe.XML',[NF.m_chvnfe]);
+            F :=PathWithDelim(local) +F ;
 
-                if m_Ini.ReadString('Impressora Caixa', 'Guilhotina', '') = 'S' then
-                begin
-                    m_DEP.PosPrinter.CortarPapel();
-                end;
-                if m_Ini.ReadString('Impressora Caixa', 'Gaveta', '') = 'S' then
-                begin
-                    m_DEP.PosPrinter.AbrirGaveta;
-                end;
+            //
+            // chk exists
+            Result :=FileExists(F) ;
+            if Result then
+            begin
+                m_NFE.NotasFiscais.Clear ;
+                m_NFE.NotasFiscais.LoadFromFile(F, True);
+                N :=m_NFE.NotasFiscais.Items[0] ;
             end
             else
-                Result :=False;
-        end
-        else
-            Result :=False;
+                raise ENotFis00.CreateFmt('Arquivo "%s" não encontrado!',[F]);
+        end;
+
+        //
+        //
+        N.Imprimir ;
+
+        if m_Ini.ReadString('Impressora Caixa', 'Guilhotina', '') = 'S' then
+        begin
+            m_DEP.PosPrinter.CortarPapel();
+        end;
+        if m_Ini.ReadString('Impressora Caixa', 'Gaveta', '') = 'S' then
+        begin
+            m_DEP.PosPrinter.AbrirGaveta;
+        end;
+
     end;
     finally
     m_Ini.Free ;
@@ -2185,36 +2244,134 @@ begin
         end;
         xml_procodigo_int.Value :=p.ReadBoo() ;
 
-        //
-        // arquivos
-        //numero_serie: TPair<string, string>;
-{        numero_serie.Key :=Format('numero_serie.%.3d',[aNumSer]) ;
-        p :=params.IndexOf(numero_serie.Key) ;
-        if p = nil then
-        begin
-            p :=params.AddNew(numero_serie.Key) ;
-            p.ValTyp:=ftSmallint ;
-            P.xValor :=Format('%.3d',[aNumSer]) ;
-            P.Catego :=CST_CATEGO;
-            p.Descricao :='Número de serie (CAIXA)';
-            P.Save ;
-        end;
-        numero_serie.Value :=p.ReadInt() ; }
 
-        //
-        // salva xml no banco
-        {arquivos_Salva_BD.Key :='arquivos.Salva_BD';
-        p :=params.IndexOf(arquivos_Salva_BD.Key) ;
+        // ********
+        // arquivos
+        // ********
+
+        arq_SaveXML.Key :='arquivos.SaveXML';
+        p :=params.IndexOf(arq_SaveXML.Key) ;
         if p = nil then
         begin
-            p :=params.AddNew(arquivos_Salva_BD.Key) ;
+            p :=params.AddNew(arq_SaveXML.Key) ;
             p.ValTyp:=ftBoolean ;
             P.xValor :='1';
             P.Catego :=CST_CATEGO;
-            p.Descricao :='Indicador para salvar XML no BD';
+            p.Descricao :='Indicador SE salva arquivos XML';
             P.Save ;
         end;
-        arquivos_Salva_BD.Value :=p.ReadBoo();}
+        arq_SaveXML.Value :=p.ReadBoo();
+
+        // local
+        arq_SaveXML_RootPath.Key :='arquivos.SaveXML_RootPath';
+        p :=params.IndexOf(arq_SaveXML_RootPath.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SaveXML_RootPath.Key) ;
+            p.ValTyp:=ftString ;
+            P.xValor :='C:\SisGerCom\arquivos\NFe';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Local inicio do arquivos XML da NFE';
+            P.Save ;
+        end;
+        arq_SaveXML_RootPath.Value :=p.ReadStr();
+
+        arq_SepCNPJ.Key :='arquivos.SepCNPJ';
+        p :=params.IndexOf(arq_SepCNPJ.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SepCNPJ.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE separa os arquivos por CNPJ';
+            P.Save ;
+        end;
+        arq_SepCNPJ.Value :=p.ReadBoo();
+
+        arq_SepAno.Key :='arquivos.SepAno';
+        p :=params.IndexOf(arq_SepMes.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SepMes.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE separa os arquivos por ANO';
+            P.Save ;
+        end;
+        arq_SepAno.Value :=p.ReadBoo();
+
+        arq_SepMes.Key :='arquivos.SepMes';
+        p :=params.IndexOf(arq_SepMes.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SepMes.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE separa os arquivos por MES';
+            P.Save ;
+        end;
+        arq_SepMes.Value :=p.ReadBoo();
+
+        arq_SepModelo.Key :='arquivos.SepModelo';
+        p :=params.IndexOf(arq_SepModelo.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SepModelo.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE separa os arquivos por Modelo';
+            P.Save ;
+        end;
+        arq_SepModelo.Value :=p.ReadBoo();
+
+        {// salva xml no banco
+        arq_SaveNFEOnDB.Key :='arquivos.SaveNFE_DB';
+        p :=params.IndexOf(arq_SaveNFEOnDB.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SaveNFEOnDB.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE salva NFE no BD';
+            P.Save ;
+        end;
+        arq_SaveNFEOnDB.Value :=p.ReadBoo();
+
+        // local
+        arq_SaveNFEOnDBPath.Key :='arquivos.SaveNFE_DB_Path';
+        p :=params.IndexOf(arq_SaveNFEOnDBPath.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SaveNFEOnDBPath.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE salvar XML no BD';
+            P.Save ;
+        end;
+        arq_SaveXMLOnDB.Value :=p.ReadBoo();
+        }
+
+{
+        arq_SaveXML: TPair<string, Boolean>;
+        arq_SaveEvento: TPair<string, Boolean>;
+        arq_SepMes: TPair<string, Boolean>;
+        arq_SepCNPJ: TPair<string, Boolean>;
+        arq_SepModelo: TPair<string, Boolean>;
+        arq_RootPath: TPair<string, string>;
+        arq_PathSchemas: TPair<string, string>;
+        arq_PathNFe: TPair<string, string>;
+        arq_PathInut: TPair<string, string>;
+        arq_PathEvento: TPair<string, string>;
+        arq_SaveXMLOnDB: TPair<string, Boolean>;
+        arq_SaveXMLOnDBPath: TPair<string, string>;
+
+        }
 
         //
         // info resp tec

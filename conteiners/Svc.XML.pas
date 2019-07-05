@@ -24,6 +24,9 @@ type
     { Public declarations }
   end;
 
+const
+  SERVICE_NAME = 'ATAC_SVC_XML';
+
 var
   svc_XML: Tsvc_XML;
 
@@ -56,7 +59,7 @@ begin
     reg :=TRegistry.Create(KEY_READ or KEY_WRITE);
     try
         reg.RootKey :=HKEY_LOCAL_MACHINE;
-        if reg.OpenKey('\SYSTEM\CurrentControlSet\Services\' + Self.Name, False) then
+        if reg.OpenKey('\SYSTEM\CurrentControlSet\Services\' + SERVICE_NAME, False) then
         begin
             reg.WriteString('Description', 'Atac Sistemas Serviço exporta XML da NFe/NFCe');
             reg.CloseKey;
@@ -101,7 +104,6 @@ begin
     // Deallocate resources here
     if Assigned(m_MySvc) then
     begin
-        //m_MySvcThread.Log.AddSec('%s.ServiceStopShutdown',[Self.ClassName]);
         // The TService must WaitFor the thread to finish (and free it)
         // otherwise the thread is simply killed when the TService ends.
         m_MySvc.Terminate;

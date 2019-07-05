@@ -18,7 +18,8 @@ uses
   uACBrNFe in 'model\uACBrNFe.pas',
   Form.GenSerialNFE in 'view\Form.GenSerialNFE.pas' {frm_GenSerialNFE},
   Form.RelNFRL02 in 'view\Form.RelNFRL02.pas' {frm_RelNFRL02},
-  Thread.NFE in 'model\Thread.NFE.pas';
+  Thread.NFE in 'model\Thread.NFE.pas',
+  Form.ExportXML in 'view\Form.ExportXML.pas' {frm_ExportXML};
 
 {$R *.res}
 {$R ATAC_APP_NFE.UAC.res}

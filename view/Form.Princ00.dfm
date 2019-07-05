@@ -54,14 +54,13 @@ object frm_Princ00: Tfrm_Princ00
     TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnChange = vst_Grid1Change
-    OnChecked = vst_Grid1Checked
     OnHeaderClick = vst_Grid1HeaderClick
     Columns = <
       item
         Color = 15000804
         Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coFixed, coAllowFocus]
         Position = 0
-        Width = 315
+        Width = 320
         WideText = 'Chave'
       end
       item
@@ -551,7 +550,7 @@ object frm_Princ00: Tfrm_Princ00
       Items.Strings = (
         'Pronto para envio;'
         'Conting'#234'ncia;'
-        'Autorizado Uso;'
+        'Uso Autorizado;'
         'Uso Denegado;'
         'Cancelada;'
         'Inutilizada;'
@@ -857,7 +856,7 @@ object frm_Princ00: Tfrm_Princ00
         Progress.Indication = piPercentage
         Progress.Min = 0
         Progress.Max = 100
-        Progress.Position = 0
+        Progress.Position = 50
         Progress.Level0Color = clLime
         Progress.Level0ColorTo = 14811105
         Progress.Level1Color = clYellow
@@ -870,7 +869,7 @@ object frm_Princ00: Tfrm_Princ00
         Progress.Level2Perc = 90
         Progress.BorderColor = clBlack
         Progress.ShowBorder = False
-        Progress.Stacked = False
+        Progress.Stacked = True
         Style = psProgress
         TimeFormat = 'hh:mm:ss'
         Width = 250
