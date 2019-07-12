@@ -147,10 +147,15 @@ if not exists(select 1 from syscolumns where id = object_id('notfis00') and name
   alter table notfis00 add nf0_codped int 
 go  
 
-if not exists (select name from sysindexes
-            where name = 'idx_notfis00_dtemis_codstt_01')
-create nonclustered index idx_notfis00_dtemis_codstt_01
-    on notfis00 (nf0_dtemis, nf0_codstt)
+if exists (select name from sysindexes where name = 'idx_notfis00_dtemis_codstt_01')
+--//apaga para criar um novo!
+  --drop index idx_notfis00_dtemis_codstt_01 on notfis00
+  drop index notfis00.idx_notfis00_dtemis_codstt_01 
+go
+
+if not exists (select name from sysindexes where name = 'idx_notfis00_01')
+  create nonclustered index idx_notfis00_01
+    on notfis00 (nf0_codmod,nf0_dtemis)
 go
 
 if not exists (select name from sysindexes
@@ -159,16 +164,23 @@ create nonclustered index idx_notfis00_codstt_02
     on notfis00 (nf0_codstt)
 go
 
+if exists (select name from sysindexes where name = 'idx_notfis00_codmod_nserie_03')
+--//apaga para criar um novo! com a ordem invertida
+  --drop index idx_notfis00_codmod_nserie_03 on notfis00
+  drop index notfis00.idx_notfis00_codmod_nserie_03 
+go
+
+if not exists (select name from sysindexes
+            where name = 'idx_notfis00_03')
+create nonclustered index idx_notfis00_03
+    on notfis00 (nf0_codmod, nf0_nserie, nf0_dtemis)
+go
+
+
 if not exists (select name from sysindexes
             where name = 'idx_notfis00_codmod_nserie_codstt_04')
 create nonclustered index idx_notfis00_codmod_nserie_codstt_04
     on notfis00 (nf0_codmod, nf0_nserie, nf0_codstt)
-go
-
-if not exists (select name from sysindexes
-            where name = 'idx_notfis00_codmod_nserie_03')
-create nonclustered index idx_notfis00_codmod_nserie_03
-    on notfis00 (nf0_dtemis, nf0_codmod, nf0_nserie)
 go
 
 if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_consumo')
@@ -2353,9 +2365,9 @@ as
                  else 1 end
     --//
     --// emitente
-    ,@tipemi =case when emi_tipemi is null then 0 else emi_tipemi end 
+    --,@tipemi =case when emi_tipemi is null then 0 else emi_tipemi end 
   from loja e
-  left join emisnfe on emi_codemp =e.codloja
+  --left join emisnfe on emi_codemp =e.codloja
   where e.codloja =@codemp;
 
   if @emi_cnpj is null 

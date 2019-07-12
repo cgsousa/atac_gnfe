@@ -54,7 +54,7 @@ implementation
 {$R *.dfm}
 
 uses uTaskDlg, uadodb ,
-  Form.CCE, FDM.NFE, uACBrNFE,
+  Form.CCE, uACBrNFE,
   pcnConversao, pcnConversaoNFe, pcnEnvEventoNFe  ;
 
 
@@ -72,6 +72,7 @@ var
   C: TCEventoCCE;
   rep: IBaseACBrNFE; // Tdm_nfe;
   xCorrexao: string ;
+  seq: Integer ;
 begin
     if CMsgDlg.Confirm('Deseja criar uma nova Carta de Correção?') then
     begin
@@ -82,7 +83,10 @@ begin
             //
             // reg. novo
             C :=m_cceList.AddNew ;
-            if rep.OnlyCCE(m_nf, xCorrexao, C.getNextNumSeq) then
+            C.m_chvnfe :=m_nf.m_chvnfe;
+            seq :=C.getNextNumSeq;
+            //Seq :=Seq+1;
+            if rep.OnlyCCE(m_nf, xCorrexao, seq) then
             begin
                 if rep.retInfEvento.cStat in[135,136] then
                 begin
@@ -91,7 +95,6 @@ begin
                     C.m_tipamb :=rep.retInfEvento.tpAmb ;
                     C.m_cnpj  :=m_nf.m_emit.CNPJCPF ;
                     C.m_codorg:=m_nf.m_codufe ;
-                    C.m_chvnfe :=m_nf.m_chvnfe;
                     C.m_dhevento :=TADOQuery.getDateTime ;
                     C.m_xcorrecao :=xCorrexao ;
                     //
@@ -123,14 +126,14 @@ end;
 procedure Tfrm_CCEList.btn_PrintClick(Sender: TObject);
 var
   C: TCEventoCCE ;
-  rep: Tdm_nfe;
+  rep: IBaseACBrNFE; //
 //  E: TInfEventoCollectionItem;
 begin
     if CMsgDlg.Confirm('Deseja imprimir a Carta de Correção?') then
     begin
         C :=m_cceList.Items[vst_Grid1.IndexItem] ;
 
-        rep :=Tdm_nfe.getInstance ;
+        rep :=TCBaseACBrNFE.New() ;
         if not rep.PrintCCE(m_nf, C) then
         begin
             CMsgDlg.Warning(rep.ErrMsg)
@@ -191,7 +194,7 @@ end;
 procedure Tfrm_CCEList.LoadGrid;
 begin
     vst_Grid1.Clear ;
-    m_cceList.Load ;
+    m_cceList.Load(m_nf.m_chvnfe) ;
     if m_cceList.Count > 0 then
     begin
         vst_Grid1.RootNodeCount :=m_cceList.Count ;

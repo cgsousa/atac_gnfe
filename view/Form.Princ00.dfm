@@ -354,13 +354,13 @@ object frm_Princ00: Tfrm_Princ00
       Top = 5
       Width = 80
       Height = 30
-      Hint = 'Envio de Lote com varias NFE'#180's de mesmo modelo'
+      Hint = 'Envio de lote /Desvincula NFE do lote'
       Anchors = [akLeft, akBottom]
       Caption = 'Lote'
+      DropDownMenu = pm_Lote
       ParentShowHint = False
       ShowHint = True
       TabOrder = 9
-      OnClick = btn_SendAsyncClick
       Alignment = taLeftJustify
       HintColor = clInfoBk
       ButtonIndex = 6
@@ -1019,6 +1019,18 @@ object frm_Princ00: Tfrm_Princ00
       Hint = 'Exporta XML da NFe/NFCe'
       OnExecute = act_ExportExecute
     end
+    object act_SendLot: TAction
+      Category = 'LOTE'
+      Caption = 'Enviar'
+      Hint = 'Envio de lote'
+      OnExecute = act_SendLotExecute
+    end
+    object act_Desvincula: TAction
+      Category = 'LOTE'
+      Caption = 'Desvincular NFE'
+      Hint = 'Desvincula NFE do lote'
+      OnExecute = act_DesvinculaExecute
+    end
   end
   object pm_Evento: TAdvPopupMenu
     MenuStyler = AdvMenuStyler1
@@ -1165,5 +1177,17 @@ object frm_Princ00: Tfrm_Princ00
     PanelAppearanceDark.TextStyle = []
     Left = 832
     Top = 376
+  end
+  object pm_Lote: TAdvPopupMenu
+    MenuStyler = AdvMenuStyler1
+    Version = '2.5.4.3'
+    Left = 488
+    Top = 472
+    object Enviar1: TMenuItem
+      Action = act_SendLot
+    end
+    object Desvincular1: TMenuItem
+      Action = act_Desvincula
+    end
   end
 end

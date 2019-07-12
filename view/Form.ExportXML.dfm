@@ -106,7 +106,6 @@ object frm_ExportXML: Tfrm_ExportXML
     ShowSplitter = True
     SimplePanel = False
     Version = '1.5.2.2'
-    ExplicitTop = 195
   end
   object pnl_Footer: TJvFooter
     Left = 0
@@ -121,7 +120,6 @@ object frm_ExportXML: Tfrm_ExportXML
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitTop = 264
     DesignSize = (
       628
       40)
@@ -190,7 +188,6 @@ object frm_ExportXML: Tfrm_ExportXML
     Font.Style = []
     ParentFont = False
     TabOrder = 2
-    ExplicitTop = 14
     object edt_Numero: TAdvEdit
       Left = 136
       Top = 30
@@ -335,8 +332,8 @@ object frm_ExportXML: Tfrm_ExportXML
       00000BBBBBBB0B0F00000BBB00000B0F0000F000BBBBBB0F0000FF0BBBBBBB0F
       0000FF0BBB00000F0000FFF000FFFFFF0000}
     BrowseDialogText = 'Select Directory'
-    ExplicitLeft = 194
-    ExplicitWidth = 434
+    ExplicitLeft = 164
+    ExplicitWidth = 465
   end
   object pnl_ResultProcess: TAdvPanel
     Left = 0
@@ -391,7 +388,6 @@ object frm_ExportXML: Tfrm_ExportXML
     Text = 
       '<p>Total: <font color="#004080"><b>35</b></font></p>  <p>Total c' +
       'om erros:<font color="#ff0000"><b>0</b></font></p>'
-    ExplicitTop = 83
     FullHeight = 200
   end
 end

@@ -56,6 +56,23 @@ type
     hashCSRT: string;
   end;
 
+  ObjParam = Object
+  private
+  public
+    //
+    // ide
+    natope: TPair<string, string>;
+    codfop: TPair<string, Int16>;
+    codmod: TPair<string, Int16>;
+    tipdoc: TPair<string, Int16>;
+    tipimp: TPair<string, Int16>;
+    tpemis: TPair<string, Int16>;
+    tipamb: TPair<string, Int16>;
+  public
+    procedure Load(); overload ;
+    procedure Load<T>(); overload ;
+  end;
+
   //
   // params da nfe
   TRegNFE = record
@@ -74,6 +91,7 @@ type
     // servidor smtp
 
     conting_offline: TPair<string, Boolean>;
+    send_conting: TPair<string, Boolean>;
     //send_sincrono: TPair<string, Boolean>;
 //    send_sync: TPair<string, Boolean>;
 //    send_maxnfelot: TPair<string, Int16>;
@@ -83,6 +101,7 @@ type
 
     //
     // nos termos
+    // msg_
     devol_me_epp_acontribuinte_nao_sn: TPair<string, string>;
 
     //
@@ -116,9 +135,11 @@ type
     //
     indRespTec: TPair<string, Boolean>;
 
-    procedure Load(const aSendSync: Boolean; const aNumSer: SmallInt) ;
+    procedure Load(const aSendSync: Boolean; const aNumSer: SmallInt); overload ;
     procedure setContingOffLine(const aFlag: Boolean);
-    //procedure setParam(const ) ;
+    procedure loadContingOffLine;
+    procedure setSendConting(const aFlag: Boolean);
+    procedure loadSendConting;
   end;
 
 
@@ -164,6 +185,7 @@ type
       const ano, codmod, nserie, numini, numfin: Integer): Boolean;
     //
     function PrintDANFE(NF: TCNotFis00): Boolean ;
+    function PrintCCE(NF: TCNotFis00; CC: TCEventoCCE): Boolean ;
     //
     function getRetInfEvento: TRetInfEvento ;
     property retInfEvento: TRetInfEvento read getRetInfEvento;
@@ -178,6 +200,8 @@ type
     function FormatPath(const aPath, aLiteral: String;
       const aCNPJ: String = ''; const aData: TDateTime = 0;
       const aModDescr: String = ''): string ;
+
+    procedure saveToFile(NF: TCNotFis00) ;
 
   end;
 
@@ -229,10 +253,12 @@ type
     destructor Destroy; override ;
     function AddNotaFiscal(aNF: TCNotFis00; const aClear: Boolean): NotaFiscal;
     function PrintDANFE(NF: TCNotFis00): Boolean ;
+    function PrintCCE(NF: TCNotFis00; CC: TCEventoCCE): Boolean ;
     function SendMail(NF: TCNotFis00; const dest_email: string =''): Boolean;
     function FormatPath(const aPath, aLiteral: String;
       const aCNPJ: String = ''; const aData: TDateTime = 0;
       const aModDescr: String = ''): string ;
+    procedure saveToFile(NF: TCNotFis00) ;
   public
     { somente chamadas dos serviços, sem checa status }
     function OnlyStatusSvc(): Boolean;
@@ -265,7 +291,8 @@ uses Windows, SysUtils, StrUtils, DateUtils, IniFiles, TypInfo, DB, WinInet,
   uadodb, uparam, ucademp,
   ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp,
   pcnConversao, pcnConversaoNFe, pcnNFe,
-  blcksock;
+  blcksock,
+  RLPrinters;
 
 
 { TCBaseACBrNFE }
@@ -1450,7 +1477,7 @@ begin
         Exit(False);
     end;}
 
-    N :=AddNotaFiscal(NF, True) ;
+    //N :=AddNotaFiscal(NF, True) ;
 
     m_NFE.EventoNFe.Evento.Clear;
     E :=m_NFE.EventoNFe.Evento.Add ;
@@ -1679,20 +1706,25 @@ function TCBaseACBrNFE.OnlyStatusSvc(): Boolean;
 var
   ws: TNFeStatusServico ;
 begin
+    //
+    //
     ws :=m_NFE.WebServices.StatusServico ;
     Result :=ws.Executar;
-    m_ErrCod :=ws.cStat ;
-    m_ErrMsg :=Format('%d|%s'#13#10,[ws.cStat,ws.xMotivo]);
-    m_ErrMsg :=m_ErrMsg +Format('Versão: %s'#13#10,[ws.versao]);
-    if ws.tpAmb =taProducao then
-        m_ErrMsg :=m_ErrMsg +'Ambiente: Produção'#13#10
-    else
-        m_ErrMsg :=m_ErrMsg +'Ambiente: Homologação'#13#10;
-    m_ErrMsg :=m_ErrMsg +Format('UF: %d'#13#10,[ws.cUF]);
-    m_ErrMsg :=m_ErrMsg +Format('Tempo Med: %d',[ws.TMed]);
-    if ws.xObs <> '' then
+    if Result then
     begin
-        m_ErrMsg :=m_ErrMsg +Format(#13#10'Obs: %s',[ws.xObs]);
+        m_ErrCod :=ws.cStat ;
+        m_ErrMsg :=Format('%d|%s'#13#10,[ws.cStat,ws.xMotivo]);
+        m_ErrMsg :=m_ErrMsg +Format('Versão: %s'#13#10,[ws.versao]);
+        if ws.tpAmb =taProducao then
+            m_ErrMsg :=m_ErrMsg +'Ambiente: Produção'#13#10
+        else
+            m_ErrMsg :=m_ErrMsg +'Ambiente: Homologação'#13#10;
+        m_ErrMsg :=m_ErrMsg +Format('UF: %d'#13#10,[ws.cUF]);
+        m_ErrMsg :=m_ErrMsg +Format('Tempo Med: %d',[ws.TMed]);
+        if ws.xObs <> '' then
+        begin
+            m_ErrMsg :=m_ErrMsg +Format(#13#10'Obs: %s',[ws.xObs]);
+        end;
     end;
 end;
 
@@ -1748,6 +1780,114 @@ begin
           ERROR_SERVICE_DOES_NOT_EXIST:
             m_ErrMsg := 'O serviço especificado não existe como um serviço instalado';
         end;
+    end;
+end;
+
+function TCBaseACBrNFE.PrintCCE(NF: TCNotFis00; CC: TCEventoCCE): Boolean;
+var
+  m_Ini: TMemIniFile ;
+  ptr: TRLPrinterWrapper;
+  E: TInfEventoCollectionItem;
+begin
+
+    if(not Assigned(NF))or(not Assigned(CC))then
+    begin
+        Exit(False);
+    end;
+
+    m_Ini :=TMemIniFile.Create(ApplicationPath +'Configuracoes.ini') ;
+    try
+    if NF.m_codmod <> 55 then
+    begin
+        if TpcnTipoImpressao(NF.m_tipimp) = tiMsgEletronica then
+        begin
+            ptr :=RLPrinter ;
+
+            m_df.Sistema :='.';
+            m_df.MostraPreview :=m_Ini.ReadBool('DANFE','Exibir NFCE Tela', False);
+            m_df.MostraStatus  :=True ;
+            m_DF.Impressora :=m_Ini.ReadString('DANFE', 'Impressora Padrao NFCE', '');
+            m_DF.LarguraBobina :=Trunc((m_Ini.ReadFloat('DANFE', 'Largura Bobina NFCE', 302)*100)/2.54);
+            m_DF.ImprimeEmUmaLinha :=m_Ini.ReadBool('CONFIG', 'ImprimirItem1Linha', False);
+            m_DF.ImprimeDescAcrescItem :=m_Ini.ReadBool('CONFIG', 'ImprimirDescAcresItem', True);
+            //m_DF.Impressora :=ptr.PrinterName;
+
+            m_NFE.DANFE :=m_DF;
+        end
+        else begin
+            m_NFE.DANFE :=m_DEP;
+            m_DEP.Sistema :='.';
+            m_DEP.ImprimeEmUmaLinha     :=m_Ini.ReadBool('CONFIG', 'ImprimirItem1Linha', False);
+            m_DEP.ImprimeDescAcrescItem :=m_Ini.ReadBool('CONFIG', 'ImprimirDescAcresItem', True);
+
+            m_PP.Modelo           :=TACBrPosPrinterModelo(m_Ini.ReadInteger('CONFIG', 'Modelo', 0));
+            m_PP.Device.Porta     :=m_Ini.ReadString('CONFIG', 'Porta', 'COM1');
+            m_PP.Device.Baud      :=StrToInt(m_Ini.ReadString('CONFIG', 'Baud', '9600'));
+            m_PP.IgnorarTags      :=m_Ini.ReadBool('CONFIG', 'IgnorarTagsFormatacao', False);
+            m_PP.LinhasEntreCupons:=m_Ini.ReadInteger('CONFIG', 'Linhas', 5);
+        end;
+
+        //m_NFE.DANFE.vTroco :=NF.Troco ;
+        //
+//        m_NFE.DANFE.ViaConsumidor :=True;
+//        m_NFE.DANFE.ImprimirItens :=True;
+    end
+    else begin
+        m_DRL.Sistema :='.';
+        m_NFE.DANFE :=m_DRL;
+    end;
+
+    m_NFE.DANFE.TipoDANFE :=TpcnTipoImpressao(NF.m_tipimp);
+
+    Result :=m_NFE.DANFE <> nil ;
+    if Result then
+    begin
+        try
+          //AddNotaFiscal(NF, True) ;
+
+          m_NFE.EventoNFe.Evento.Clear;
+          m_NFE.EventoNFe.Versao :='1.00';
+
+          E :=m_NFE.EventoNFe.Evento.Add ;
+          E.infEvento.cOrgao    :=CC.m_codorg;
+          E.infEvento.tpAmb     :=m_NFE.Configuracoes.WebServices.Ambiente;
+          E.infEvento.CNPJ      :=CC.m_cnpj;
+          E.infEvento.chNFe     :=CC.m_chvnfe;
+          E.infEvento.dhEvento  :=CC.m_dhevento;
+          E.infEvento.tpEvento  :=teCCe;
+          E.infEvento.nSeqEvento:=CC.m_numseq;
+          E.infEvento.versaoEvento :='1.00';
+          E.infEvento.detEvento.xCorrecao :=CC.m_xcorrecao;
+          E.infEvento.detEvento.xCondUso :='';
+
+          E.RetInfEvento.cStat  :=CC.m_codstt ;
+          E.RetInfEvento.xMotivo:=CC.m_motivo ;
+          E.RetInfEvento.dhRegEvento :=CC.m_dhreceb ;
+          E.RetInfEvento.nProt :=CC.m_numprot ;
+
+          if m_NFE.EventoNFe.GerarXML then
+          begin
+              m_NFE.ImprimirEvento
+          end
+          else begin
+              m_ErrMsg :=m_NFE.EventoNFe.Gerador.ListaDeAlertas.CommaText
+          end;
+
+          if m_Ini.ReadString('Impressora Caixa', 'Guilhotina', '') = 'S' then
+          begin
+              m_DEP.PosPrinter.CortarPapel();
+          end;
+          if m_Ini.ReadString('Impressora Caixa', 'Gaveta', '') = 'S' then
+          begin
+              m_DEP.PosPrinter.AbrirGaveta;
+          end;
+
+        except
+        end;
+
+    end;
+    finally
+      m_Ini.Free;
     end;
 end;
 
@@ -1837,14 +1977,16 @@ begin
         //
         // load XML do local
         else begin
+
             //
-            // prepara local onde foi exportado!
+            // set root
             local :=param.arq_SaveXML_RootPath.Value ;
             if Pos('proc', local) = 0 then
             begin
                 local :=PathWithDelim(local) +'proc';
             end;
             local :=FormatPath(local,'',NF.m_emit.CNPJCPF,NF.m_dtemis);
+
             //
             // format filename
             F :=Format('%s-procNFe.XML',[NF.m_chvnfe]);
@@ -1880,6 +2022,56 @@ begin
     finally
     m_Ini.Free ;
     end;
+end;
+
+procedure TCBaseACBrNFE.saveToFile(NF: TCNotFis00) ;
+var
+  N: NotaFiscal ;
+  F: string ;
+begin
+    //
+    // cria uma nfe vazia no rep
+    N :=Self.AddNotaFiscal(nil, True) ;
+    //
+    // valid xml
+    if not N.LerXML(NF.m_xml) then
+    begin
+        Self.m_NFE.NotasFiscais.Clear ;
+        raise ENotFis00.CreateFmt('XML inválido NF[%d]!',[NF.m_codseq]);
+    end;
+    //
+    // chk NF processada e/ou cancelada
+    if NF.CStatProcess or NF.CStatCancel then
+    begin
+        //
+        // carrega info do protocolo
+        N.NFe.procNFe.tpAmb   :=NF.m_tipamb ;
+        N.NFe.procNFe.verAplic:=NF.m_verapp ;
+        N.NFe.procNFe.chNFe   :=NF.m_chvnfe ;
+        N.NFe.procNFe.dhRecbto:=NF.m_dhreceb;
+        N.NFe.procNFe.nProt   :=NF.m_numprot;
+        N.NFe.procNFe.digVal  :=NF.m_digval ;
+        N.NFe.procNFe.cStat   :=NF.m_codstt ;
+        N.NFe.procNFe.xMotivo :=NF.m_motivo ;
+        //
+        // format filename com base no protocolo
+        F :=Format('%s-procNFe.XML',[NF.m_chvnfe]);
+    end
+    else
+        F :=Format('%s-NFe.XML',[NF.m_chvnfe]);
+    //
+    //
+    N.GerarXML ;
+
+    //
+    // format local
+    F :=PathWithDelim(ApplicationPath) +F;
+
+    //
+    // salva
+    if not N.GravarXML(F) then
+        raise ENotFis00.Create('Erro ao tentar salvar XML!');
+
 end;
 
 function TCBaseACBrNFE.SendMail(NF: TCNotFis00;
@@ -1991,7 +2183,7 @@ begin
     params :=TCParametroList.Create(True) ;
     try
         //
-        // carrega todos do nfe
+        // carrega todos da nfe
         params.Load('', CST_CATEGO) ;
 
         {*
@@ -2148,6 +2340,21 @@ begin
         end;
         conting_offline.Value :=p.ReadBoo() ;
 
+        //
+        // envio de NFE em contigencia
+        //
+        send_conting.Key :='send_conting';
+        p :=params.IndexOf(send_conting.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(send_conting.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador para envio de NFE em contingência';
+            P.Save ;
+        end;
+        send_conting.Value :=p.ReadBoo() ;
 
         //
         // send sincrono
@@ -2395,6 +2602,39 @@ begin
     end;
 end;
 
+procedure TRegNFE.loadContingOffLine;
+var
+  p: TCParametro ;
+begin
+    p :=TCParametro.NewParametro(conting_offline.Key, ftUnknown) ;
+    try
+        if p.Load() then
+        begin
+            if p.ReadBoo then
+                conting_offline.Value :=True
+            else
+                conting_offline.Value :=False;
+        end;
+    finally
+        p.Free ;
+    end;
+end;
+
+procedure TRegNFE.loadSendConting;
+var
+  p: TCParametro ;
+begin
+    p :=TCParametro.NewParametro(send_conting.Key, ftUnknown) ;
+    try
+        if p.Load() then
+        begin
+            send_conting.Value :=p.ReadBoo;
+        end;
+    finally
+        p.Free ;
+    end;
+end;
+
 procedure TRegNFE.setContingOffLine(const aFlag: Boolean);
 var
   p: TCParametro ;
@@ -2405,6 +2645,31 @@ begin
         p.xValor :=IntToStr(Ord(aFlag)) ;
         p.Save ;
     end;
+    p.Free;
+end;
+
+procedure TRegNFE.setSendConting(const aFlag: Boolean);
+var
+  p: TCParametro ;
+begin
+    p :=TCParametro.NewParametro(send_conting.Key, ftUnknown) ;
+    if p.Load() then
+    begin
+        p.xValor :=IntToStr(Ord(aFlag)) ;
+        p.Save ;
+    end;
+end;
+
+{ ObjParam }
+
+procedure ObjParam.Load;
+begin
+
+end;
+
+procedure ObjParam.Load<T>;
+begin
+
 end;
 
 end.

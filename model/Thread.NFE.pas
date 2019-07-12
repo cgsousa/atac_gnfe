@@ -18,6 +18,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+08.07.2019
+[*] Inclui NF em contingencia para ser processada no serviço
+
 05.06.2019
 [*] Tratamento do campo <nf0_xmltyp> para gravar o xml em formato apropriado
 [*] Vincula NFe ao lote <nf0_codlot> para não ser processada como serviço
@@ -81,6 +84,7 @@ type
     m_Filter: TNotFis00Filter ;
     m_Lote: TCNotFis00Lote;
     m_CodMod: Word;
+    m_reg: TRegNFE ;
 
     function TrataRetAssync(): Integer ;
 
@@ -120,7 +124,7 @@ implementation
 uses Windows, ActiveX, WinInet, DateUtils, DB,
   pcnConversao, pcnNFe, pcnRetConsReciDFe,
   ACBr_WinHttp, ACBrUtil, ACBrNFeNotasFiscais, ACBrNFeWebServices,
-  uadodb, ucademp;
+  uadodb, ucademp, uparam;
 
 
 { TMySvcThread }
@@ -316,7 +320,7 @@ begin
     // format alert conting
     S :=Format(#9'Gerando NF:%d [Mod:%d Ser:%.3d], Status: %d em contingência',
               [N.m_numdoc,N.m_codmod,N.m_nserie,N.m_codstt]);
-    if m_Rep.param.conting_offline.Value then
+    if m_reg.conting_offline.Value then
     begin
         S :=S +' offline!';
     end;
@@ -360,6 +364,7 @@ begin
     // m_Log.AddSec('%s.RunProc',[Self.ClassName]);
     //
     try
+      try
       if not ConnectionADO.Connected then
       begin
           ConnectionADO.Connected :=True;
@@ -383,6 +388,7 @@ begin
           // (aStatusChange =false) desabilita status de processamento
           m_Rep :=TCBaseACBrNFE.New(False) ;
       end;
+      m_reg :=m_Rep.param ;
 
       //
       // check validade do certificado
@@ -418,7 +424,8 @@ begin
               //m_Filter.save :=True;
               //
               // atualiza a view
-              CallOnContingOffLine(m_Rep.param.conting_offline.Value);
+              m_reg.loadContingOffLine ;
+              CallOnContingOffLine(m_reg.conting_offline.Value);
               //
               //CallOnStrProc('Carregando Notas Fiscais (Ser:%d)',[m_Filter.nserie]);
           end;
@@ -444,7 +451,7 @@ begin
       //
       // carrega conforme filtro
       if m_Lote.Load(m_Filter) then
-      try
+      begin
           //
           // X notas encontradas
           {if m_Lote.Items.Count > 1 then
@@ -509,12 +516,15 @@ begin
                   if(NF.m_codstt =TCNotFis00.CSTT_EMIS_CONTINGE)and
                     (NF.m_dhcont > 0)and(NF.m_chvnfe <>'') then
                   begin
-                      Continue ;
+                      // se NÃO process NF em contingencia
+                      m_reg.loadSendConting ;
+                      if not m_reg.send_conting.Value then
+                          Continue ;
                   end;
 
                   //
                   // se flag Contingencia OffLine esta ativa
-                  if m_Rep.param.conting_offline.Value then
+                  if m_reg.conting_offline.Value then
                   begin
                       //
                       // libera o CX para NF não processada
@@ -575,11 +585,14 @@ begin
                               // força para a proxima nota
                               Continue ;
                           end;
-                      end;
+                      end
+                      else
+                          nfe :=nil;
 
                       //
-                      // pronto p/ envio (nf0_codss=1)
-                      if NF.m_codstt in[cs.DONE_SEND]then
+                      // pronto p/ envio (nf0_codstt=1)
+                      // contingencia off (nf0_codstt=9)
+                      if NF.m_codstt in[cs.DONE_SEND,cs.CONTING_OFFLINE]then
                       begin
                           //
                           // chk nfe no repositorio
@@ -615,6 +628,7 @@ begin
                                   end;
                               end;
                           end;
+
 
                           //
                           // envio sincrono
@@ -809,12 +823,8 @@ begin
                   TrataRetFair(nil);
               end;
           end;
-
-      finally
-          m_Lote.Items.Clear ;
-          if m_Filter.filTyp =ftService then
-              ConnectionADO.Close ;
       end
+
       //
       // mostra msg conforme filtro
       else begin
@@ -832,6 +842,12 @@ begin
               end ;
           end ;
       end;
+
+      finally
+          m_Lote.Items.Clear ;
+          if m_Filter.filTyp =ftService then
+              ConnectionADO.Close ;
+      end ;
 
     //
     //
@@ -979,13 +995,17 @@ begin
         // Pendente de retorno
         408,HTTP_STATUS_SERVICE_UNAVAIL,10060,10091,ERROR_WINHTTP_TIMEOUT:
         begin
-            msg :=Format('[%d]Pendente de retorno!',[m_Rep.ErrCod]);
+            {msg :=Format('[%d]Pendente de retorno!',[m_Rep.ErrCod]);
             if NF <> nil then
             begin
               NF.m_codstt :=cs.RET_PENDENTE;
               NF.m_motivo :=msg;
               NF.setStatus ;
-            end;
+            end;}
+            //
+            // set contig-off
+            m_reg.setContingOffLine(True);
+            if NF <> nil then ProcContingOff(NF) ;
         end;
 
         //
@@ -1000,16 +1020,13 @@ begin
         ERROR_WINHTTP_CONNECTION_ERROR,
         ERROR_INTERNET_CONNECTION_RESET,
         ERROR_SERVICE_DOES_NOT_EXIST:
-        if NF <> nil then // somente uma uma NF
         begin
             //
-            // process contingencia
-            ProcContingOff(NF) ;
-        end
-        //
-        // alert
-        else begin
-            msg :=m_Rep.ErrMsg ;
+            // set contig-off
+            m_reg.setContingOffLine(True);
+            if NF <> nil then ProcContingOff(NF)
+            else
+                msg :=m_Rep.ErrMsg ;
         end;
 
         //
@@ -1036,7 +1053,7 @@ begin
     else
         //
         // se ocorrer, implementação futura !!!
-        if NF <> nil then // somente uma uma NF
+        if NF <> nil then // somente uma NF
         begin
             NF.m_codstt :=m_Rep.ErrCod ;
             NF.m_motivo :=Format('Erro interno[%d|%s]',[m_Rep.ErrCod,m_Rep.ErrMsg]) ;

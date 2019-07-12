@@ -75,9 +75,8 @@ type
   public
     { Public declarations }
     procedure DoResetForm; override ;
-    //class function fn_Show(aLote: TCNotFis00Lote): Boolean ;
-    //class function fn_Show(const aFilter: TNotFis00Filter): Boolean ;
-    class function fn_Show(): Boolean ;
+    class function fn_Show(): Boolean;
+    //class procedure
   end;
 
 
@@ -248,16 +247,6 @@ end;
 
 procedure Tfrm_EnvLote.FormShow(Sender: TObject);
 begin
-    {m_LoadGrid() ;
-    ActiveControl :=vst_Grid1;
-    HTMLabel1.HTMLText.Clear ;
-    HTMLabel1.HTMLText.Add(
-      Format('<P><b>ATENÇÃO!</b> Verifique na listagem abaixo, as <b>%d</b> NFE´s que serão enviadas de uma so vez</P>',[vst_Grid1.RootNodeCount])
-    );
-    //
-    //
-    m_UpdateStatus('Aguardando confirmação!');
-    }
     //
     // start a thread
     btn_Start.Click ;

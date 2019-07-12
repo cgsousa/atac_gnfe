@@ -233,6 +233,7 @@ type
     save: Boolean;
     codlot: Int32;
     constructor Create(const codseq, codped: Integer);
+    //procedure setDatetime(const aValue: );
   end;
 
   TCNotFis00Lote = class;
@@ -589,6 +590,7 @@ type
     function IndexOf(const chvnfe: string): TCNotFis00; overload;
     function Load(const afilter: TNotFis00Filter): Boolean ;
     function LoadCX(const codcxa: smallint; out lstcod: string): Boolean;
+    procedure Desvincula(const aNumSer: SmallInt) ;
   public
     class function CLoad(const afilter: TNotFis00Filter): TDataSet ; //TADOQuery ;
     class function CLoadXML(const afilter: TNotFis00Filter): TADOQuery ;
@@ -2299,7 +2301,7 @@ begin
         Q.Free ;
     end;
 
-    if Self.m_codmod = 65 then
+    {if Self.m_codmod = 65 then
     begin
         //pag :=Self.m_pag.Items[0] ;
         //pag.tPag =fpDinheiro
@@ -2311,7 +2313,7 @@ begin
             I.m_vlrdesc :=I.m_vlrdesc +dif;
             m_icmstot.vDesc  :=m_icmstot.vDesc +I.m_vlrdesc;
         end;
-    end ;
+    end ;}
 
     //
     // item / Combustível
@@ -2362,7 +2364,8 @@ var
   // compatibilidade
   cmplvl: SmallInt;
 begin
-
+    //
+    //
     Q :=TADOQuery.NewADOQuery() ;
     try
         Q.AddCmd('select nf0_xml from notfis00 where nf0_codseq =%d;',[Self.m_codseq]) ;
@@ -2376,10 +2379,14 @@ begin
                 Q.AddCmd('select nf0_xmltyp as nf0_xml from notfis00 where nf0_codseq =%d;',[Self.m_codseq]);
                 Q.Open ;
                 fnf0_xml :=Q.Field('nf0_xml') ;
-            end;
+            end
         end;
 
-        Self.m_xml :=fnf0_xml.AsString ;
+        if not fnf0_xml.IsNull then
+        begin
+            Self.m_xml :=fnf0_xml.AsString ;
+        end;
+
         Result :=Trim(Self.m_xml) <> '';
 
     finally
@@ -2840,8 +2847,13 @@ begin
                 C.AddCmd('  nf0_motivo  =null,  ');
                 C.AddCmd('  nf0_chvnfe  =null,  ');
             end;
+            //
+            // chk cmp
             if cmplvl > 8 then
-                C.AddCmd('  nf0_xmltyp  =null   ')
+            begin
+                C.AddCmd('  nf0_xml     =null,  ');
+                C.AddCmd('  nf0_xmltyp  =null   ');
+            end
             else
                 C.AddCmd('  nf0_xml     =null   ');
         end;
@@ -3487,15 +3499,39 @@ begin
     // busca por
     // periodo / situacao
     else begin
+
+        //
+        // prepara para o idx(1,3)
+        //
+
+        //
+        // nf0_codmod
+        if aFilter.codmod > 0 then
+        begin
+            Q.AddCmd('where nf0_codmod =@codmod                          ');
+        end
+        else begin
+            Q.AddCmd('where ((nf0_codmod =55)or(nf0_codmod =65))         ');
+        end;
+
+        //
+        // nf0_nserie
+        if aFilter.nserie > 0 then
+        begin
+            Q.AddCmd('and nf0_nserie =@numser                            ');
+        end;
+
         //
         // filtro normal
         if afilter.filTyp = ftNormal then
         begin
+
             //
             // nf0_dtemis
-            Q.AddCmd('where nf0_dtemis between @datini and @datfin              ');
+            Q.AddCmd('and nf0_dtemis between @datini and @datfin             ');
+
             //
-            // situação
+            // nf0_codstt
             case aFilter.status of
                 sttDoneSend:Q.AddCmd('and nf0_codstt in(0,1)                    ');
                 sttConting: Q.AddCmd('and nf0_codstt =9                         ');
@@ -3505,37 +3541,24 @@ begin
                 sttInut:    Q.AddCmd('and nf0_codstt in(102,206,563)            ');
                 sttError:   Q.AddCmd('and nf0_codstt not in(0,1,9,100,101,102,110,135,150,151,155,301,302,303)');
             end;
+
             //
-            // nf0_codmod, nf0_nserie
-            if aFilter.nserie > 0 then
-            begin
-                Q.AddCmd('and nf0_codmod =@codmod                            ');
-                Q.AddCmd('and nf0_nserie =@numser                            ');
-            end;
-            //
-            // ordem desc. ID
-            Q.AddCmd('order by nf0_codseq desc                            ');
+            // ult. NF entrar, primeira a sai
+            Q.AddCmd('order by nf0_codseq desc                               ');
         end
+
         //
         // filtro service
         else if afilter.filTyp = ftService then
         begin
-            //notas pendentes de envio
-            {Q.AddCmd('--//notas nao processadas                           ');
-            Q.AddCmd('where nf0_codstt not in(100, 110, 150, 301, 302, 303)');
-            Q.AddCmd('--//notas nao canceladas                            ');
-            Q.AddCmd('and nf0_codstt not in(101, 151, 135, 155, 218)      ');
-            Q.AddCmd('--//notas nao inutilizadas                          ');
-            Q.AddCmd('and nf0_codstt not in(102, 563)                     ');
-            }
-            if afilter.codmod > 0 then
-            Q.AddCmd('where nf0_codmod =@codmod                        ')
-            else
-            Q.AddCmd('where nf0_codmod in(55,65)                       ');
+//            if afilter.codmod > 0 then
+//                Q.AddCmd('where nf0_codmod =@codmod                        ')
+//            else
+//                Q.AddCmd('where nf0_codmod in(55,65)                       ');
             Q.AddCmd('and   nf0_nserie =@numser                        ');
             Q.AddCmd('and ( (nf0_codstt =0)   --//status inicial       ');
             Q.AddCmd('or    (nf0_codstt =1)   --//pronto para envio    ');
-            if sttConting in afilter.sttSet then
+            //if sttConting in afilter.sttSet then
             Q.AddCmd('or    (nf0_codstt =9)   --//contingencia         ');
             Q.AddCmd('or    (nf0_codstt =44)  --//pendente de retorno  ');
             Q.AddCmd('or    (nf0_codstt =77)  --//erro de schema       ');
@@ -3553,27 +3576,34 @@ begin
             Q.AddCmd('or    (nf0_codstt =999))  --//erro geral sefaz   ');
 
             //
-            // garante NF´s não alocadas pelo fech do CX
+            // NF´s não vinculadas ao lote
             Q.AddCmd('and   nf0_codlot is null                         ');
 
             //
-            // coloca as notas q foram geradas na frente
-            Q.AddCmd('order by nf0_codstt desc                         ');
+            // prioriza novas emissões
+            Q.AddCmd('order by nf0_codstt                              ');
         end
         //
         // filtro fech CX
         else begin
-            if afilter.codmod > 0 then
-            Q.AddCmd('where nf0_codmod =@codmod                         ')
-            else
-            Q.AddCmd('where nf0_codmod in(55,65)                        ');
-            Q.AddCmd('and   nf0_nserie =@numser                         ');
-            Q.AddCmd('--//notas nao processadas                         ');
-            Q.AddCmd('and nf0_codstt not in(0,100,110,150,301,302,303)  ');
-            Q.AddCmd('--//notas nao canceladas                          ');
-            Q.AddCmd('and nf0_codstt not in(101,151,135,155,218)        ');
-            Q.AddCmd('--//notas nao inutilizadas                        ');
-            Q.AddCmd('and nf0_codstt not in(102,206,563)                ');
+            //
+            // nf0_dtemis
+            if(afilter.datini >0)and(afilter.datfin >0) then
+            begin
+                Q.AddCmd('and nf0_dtemis between @datini and @datfin        ');
+                Q.AddCmd('--//notas uso autorizado/canceladas               ');
+                Q.AddCmd('and nf0_codstt in(100,150,101,151,135,155,218)    ');
+            end
+            else begin
+                //
+                // nf0_codstt
+                Q.AddCmd('--//notas nao processadas                         ');
+                Q.AddCmd('and nf0_codstt not in(0,100,110,150,301,302,303)  ');
+                Q.AddCmd('--//notas nao canceladas                          ');
+                Q.AddCmd('and nf0_codstt not in(101,151,135,155,218)        ');
+                Q.AddCmd('--//notas nao inutilizadas                        ');
+                Q.AddCmd('and nf0_codstt not in(102,206,563)                ');
+            end;
             Q.AddCmd('order by nf0_codseq                               ');
         end;
     end;
@@ -3603,12 +3633,6 @@ begin
             Q.Param('@datini').Value :=afilter.datfin;
         end;
     end;
-//    Q.AddParamDatetime('@datini', afilter.datini);
-//    Q.AddParamDatetime('@datfin', afilter.datfin, True);
-//    else begin
-//        Q.AddParamDatetime('@datini', dh_now);
-//        Q.AddParamDatetime('@datfin', dh_now);
-//    end;
 
     if afilter.save then
     begin
@@ -3617,7 +3641,7 @@ begin
             ftService: Q.SaveToFile(Format('Svc-%s.Load.SQL',[Self.ClassName]));
             ftFech: Q.SaveToFile(Format('Fcx-%s.Load.SQL',[Self.ClassName]));
         end;
-        //Q.SaveToFile(Format('%s.Load.sql.txt',[Self.ClassName]));
+
     end;
     Q.Open ;
     //
@@ -3704,6 +3728,30 @@ destructor TCNotFis00Lote.Destroy;
 begin
     m_oItems.Destroy ;
     inherited;
+end;
+
+procedure TCNotFis00Lote.Desvincula(const aNumSer: SmallInt);
+var
+  C: TADOQuery ;
+begin
+    C :=TADOQuery.NewADOQuery() ;
+    try
+        C.AddCmd('declare @nserie smallint;set @nserie =%d;     ',[aNumSer]) ;
+        C.AddCmd('update notfis00 set nf0_codlot =null          ');
+        C.AddCmd('where ((nf0_codmod=55)or(nf0_codmod=55))      ');
+        C.AddCmd('and nf0_nserie =@nserie                       ');
+        C.AddCmd('--//notas nao processadas                     ');
+        C.AddCmd('and nf0_codstt not in(100,110,150,301,302,303)');
+        C.AddCmd('--//notas nao canceladas                      ');
+        C.AddCmd('and nf0_codstt not in(101,151,135,155,218)    ');
+        C.AddCmd('--//notas nao inutilizadas                    ');
+        C.AddCmd('and nf0_codstt not in(102,563)                ');
+        C.AddCmd('--//notas vinculadas                          ');
+        C.AddCmd('and nf0_codlot is not null                    ');
+        C.ExecSQL ;
+    finally
+        C.Free ;
+    end;
 end;
 
 function TCNotFis00Lote.IndexOf(const chvnfe: string): TCNotFis00;

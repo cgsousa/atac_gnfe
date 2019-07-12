@@ -47,7 +47,7 @@ type
   private
   public
     function AddNew(): TCEventoCCE ;
-    procedure Load() ;
+    procedure Load(const chvnfe: string) ;
   end;
 
 
@@ -71,14 +71,20 @@ begin
     Add(Result) ;
 end;
 
-procedure TCEventoCCEList.Load;
+procedure TCEventoCCEList.Load(const chvnfe: string) ;
 var
   Q: TADOQuery ;
   C: TCEventoCCE ;
 begin
+    //
+    //
+    Self.Clear ;
+    //
     Q :=TADOQuery.NewADOQuery();
     try
-      Q.AddCmd('select *from eventocce order by cce_codseq desc') ;
+      Q.AddCmd('declare @chvnfe char(44); set @chvnfe =%s ;     ',[Q.FStr(chvnfe)]);
+      Q.AddCmd('select *from eventocce where cce_chvnfe =@chvnfe');
+      Q.AddCmd('order by cce_codseq desc') ;
       Q.Open ;
       while not Q.Eof do
       begin
@@ -186,7 +192,7 @@ begin
         C.AddParamWithValue('@cce_dhreceb', ftDateTime, m_dhreceb) ;
 
         try
-            C.SaveToFile();
+//            C.SaveToFile();
             C.Execute ;
             Result :=True ;
         except
@@ -204,12 +210,17 @@ var
 begin
     Q :=TADOQuery.NewADOQuery() ;
     try
-        Q.AddCmd('select max(cce_numseq) as cce_nextseq from eventocce')  ;
+        Q.AddCmd('declare @chvnfe char(44); set @chvnfe =%s ;         ',[Q.FStr(self.m_chvnfe)]);
+        Q.AddCmd('select                                              ');
+        Q.AddCmd('  cce_chvnfe,cce_tpevento,max(cce_numseq) as num_seq');
+        Q.AddCmd('from eventocce                                      ');
+        Q.AddCmd('where cce_chvnfe =@chvnfe                           ');
+        Q.AddCmd('group by cce_chvnfe,cce_tpevento                    ');
         Q.Open ;
         if Q.IsEmpty then
             Result :=1
         else
-            Result :=Q.Field('cce_nextseq').AsInteger +1;
+            Result :=Q.Field('num_seq').AsInteger +1;
     finally
         Q.Free ;
     end;

@@ -1,3 +1,26 @@
+{***
+* View/Thread para exportar XML da NFe/NFCe
+*
+* Chamada:
+* var
+*   I: Ifrm_ExportXML ;
+* begin
+*   ...
+*   I :=Tfrm_ExportXML.New ;
+*   I.Execute(  num_ser, // numero do caixa
+*               dat_ini, // data de abertura
+*               dat_fin, // data de fechamento (0=data/hora do dia)
+*               Clear,   // flag que indica se remove o XML da base de dados!
+*             ) ;
+*   ...
+* end;
+*
+*
+* Atac Sistemas
+* Todos os direitos reservados
+* Autor: Carlos Gonzaga
+* Data: 03.07.2019
+*}
 unit Form.ExportXML;
 
 interface
@@ -30,9 +53,14 @@ type
   end;
 
 
-
 type
-  Tfrm_ExportXML = class(TBaseForm)
+  Ifrm_ExportXML = Interface(IInterface)
+    function Execute(const aNumSer: Word;
+      const aDHAber, aDHFech: TDateTime;
+      const aClear: Boolean =False): Boolean;
+  end;
+
+  Tfrm_ExportXML = class(TBaseForm, Ifrm_ExportXML)
     AdvOfficeStatusBar1: TAdvOfficeStatusBar;
     pnl_Footer: TJvFooter;
     btn_Close: TJvFooterBtn;
@@ -74,9 +102,12 @@ type
     procedure setStatusBar(const aPos: Int64 =0) ;
   public
     { Public declarations }
-    class function Execute(const aNumSer: Word;
-      const aDHAber: TDateTime;
-      const aClear: Boolean =False): Boolean ;
+    class function New(): Ifrm_ExportXML;
+    //
+    // instance
+    function Execute(const aNumSer: Word;
+      const aDHAber, aDHFech: TDateTime;
+      const aClear: Boolean =False): Boolean;
   end;
 
 
@@ -84,8 +115,8 @@ implementation
 
 {$R *.dfm}
 
-uses DB,
-  uTaskDlg, uadodb,
+uses DB, DateUtils ,
+  uadodb, uTaskDlg,
   ACBrUtil, ACBrNFeNotasFiscais;
 
 
@@ -107,7 +138,7 @@ var
   N: NotaFiscal ;
 var
   P: Integer;
-  F: string ;
+  root,F: string ;
 begin
     //
     // inicio
@@ -120,11 +151,11 @@ begin
     m_totError :=0;
 
     //
-    // set local ;
+    // set root
     if Pos('proc', m_Local) = 0 then
-    begin
-        m_Local :=PathWithDelim(m_Local) +'proc';
-    end;
+        root :=PathWithDelim(m_Local) +'proc'
+    else
+        root :=m_Local;
 
     for NF in m_Lote.Items do
     begin
@@ -162,7 +193,7 @@ begin
                         // format local com dados do emit
                         if Pos(NF.m_emit.CNPJCPF, m_Local) =0 then
                         begin
-                            m_Local :=m_Rep.FormatPath( m_Local,'',
+                            m_Local :=m_Rep.FormatPath( root,'',
                                                         NF.m_emit.CNPJCPF,
                                                         NF.m_dtemis);
                         end;
@@ -197,7 +228,7 @@ begin
             end;
         end;
         //
-        // chk se abort
+        // chk se abortou pelo usuário
         if Self.Terminated then Break ;
     end;
     //
@@ -233,30 +264,21 @@ begin
     //
     // inicializa filtro
     F.Create(0, 0);
-    F.filTyp :=ftFech ;
+    F.filTyp :=ftFech;
     F.datini :=m_DHAber;
     F.datfin :=m_DHFech;
     F.status :=sttNone ;
     F.codmod :=00;
     F.nserie :=m_NumSer;
+    F.save :=FindCmdLineSwitch('sql', ['-', '\', '/'], true) ;
 
     //
-    // load notas
+    // load notas fiscais
     if m_Lote.Load(F) then
     begin
         //
-        // stop tarefa caso ativada!
-        if Assigned(m_Run) then
-        begin
-            DoStop;
-        end ;
-        //
-        // start tarefa
-        m_Run :=TCRunProc.Create(m_Lote, m_Rep, edt_Local.Text, m_ClearXML);
-        m_Run.OnBeforeExecute :=OnINI;
-        m_Run.OnIntProc :=setStatusBar;
-        m_Run.OnTerminate :=OnFIN;
-        m_Run.Start  ;
+        // inicia tarefa
+        DoStart ;
     end
     else begin
         CMsgDlg.Warning(Format('Nenhuma NF encontrada para este CX[%.2d]',[m_NumSer])) ;
@@ -265,7 +287,21 @@ end;
 
 procedure Tfrm_ExportXML.DoStart;
 begin
-
+    //
+    // stop tarefa caso ativada!
+    if Assigned(m_Run) then
+    begin
+        DoStop;
+    end ;
+    //
+    // cria uma nova tarefa
+    m_Run :=TCRunProc.Create(m_Lote, m_Rep, edt_Local.Text, m_ClearXML);
+    m_Run.OnBeforeExecute :=OnINI;
+    m_Run.OnTerminate :=OnFIN;
+    m_Run.OnIntProc :=setStatusBar;
+    //
+    // começa a tarefa
+    m_Run.Start  ;
 end;
 
 procedure Tfrm_ExportXML.DoStop;
@@ -275,22 +311,20 @@ begin
     FreeAndNil(m_Run);
 end;
 
-class function Tfrm_ExportXML.Execute(const aNumSer: Word;
-  const aDHAber: TDateTime;
-  const aClear: Boolean): Boolean;
-var
-  F: Tfrm_ExportXML;
+function Tfrm_ExportXML.Execute(const aNumSer: Word; const aDHAber,
+  aDHFech: TDateTime; const aClear: Boolean): Boolean;
 begin
-    F :=Tfrm_ExportXML.Create(Application) ;
-    try
-        F.m_NumSer :=aNumSer ;
-        F.m_DHAber :=aDHAber ;
-        F.m_DHFech :=TADOQuery.getDateTime ;
-        F.m_ClearXML :=aClear ;
-        Result :=F.ShowModal =mrOk ;
-    finally
-        FreeAndNil(F);
-    end;
+    m_NumSer :=aNumSer ;
+    m_DHAber :=aDHAber ;
+    if YearOf(aDHFech) < 2006 then
+        m_DHFech :=TADOQuery.getDateTime
+    else
+        m_DHFech :=aDHFech;
+    m_ClearXML :=aClear ;
+    if aClear then
+        btn_Start.Click
+    else
+        Result :=ShowModal =mrOk ;
 end;
 
 procedure Tfrm_ExportXML.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -311,27 +345,27 @@ begin
     m_Lote :=TCNotFis00Lote.Create;
     m_Rep :=TCBaseACBrNFE.New(False);
     //
+    //
+    edt_Local.Text :=PathWithDelim(m_Rep.param.arq_SaveXML_RootPath.Value) +'proc';
+
+    //
     // status bar
     m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
     m_panelNF:=m_StatusBar.AddPanel(psHTML, '', 80, taCenter) ;
     m_panelVTotal:=m_StatusBar.AddPanel(psHTML, '', 140, taRightJustify) ;
     m_panelProgress:=m_StatusBar.AddPanel(psProgress, '', 250) ;
+
 end;
 
 procedure Tfrm_ExportXML.FormDestroy(Sender: TObject);
 begin
     m_Lote.Free ;
-    m_StatusBar.Free ;
+    m_StatusBar.Free;
 
 end;
 
 procedure Tfrm_ExportXML.FormShow(Sender: TObject);
 begin
-    //
-    //
-    edt_Local.Text :=PathWithDelim(m_Rep.param.arq_SaveXML_RootPath.Value) +'proc';
-    //edt_Local.Text :=m_Rep.FormatPath(edt_Local.Text,'');
-
     //
     // trava o edt local
     if m_ClearXML then
@@ -344,6 +378,12 @@ begin
     edt_DtaFin.Text :=FormatDateTime('DD/MM/YYYY hh:nn', Self.m_DHFech) ;
     pnl_ResultProcess.Text :='';
     setStatusBar();
+end;
+
+class function Tfrm_ExportXML.New(): Ifrm_ExportXML;
+begin
+    Result :=Tfrm_ExportXML.Create(Application) ;
+
 end;
 
 procedure Tfrm_ExportXML.OnFIN(Sender: TObject);
@@ -364,7 +404,8 @@ begin
 
     pnl_ResultProcess.StatusBar.Text :=Format('Destino: <b>%s</b>',[run.m_Local]);
 
-    CMsgDlg.Info('Tarefa terminada');
+    if not m_ClearXML then
+        CMsgDlg.Info('Tarefa terminada');
 end;
 
 procedure Tfrm_ExportXML.OnINI(Sender: TObject);

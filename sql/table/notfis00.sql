@@ -162,10 +162,14 @@ if not exists(select 1 from syscolumns where id = object_id('notfis00') and name
   alter table notfis00 add nf0_codped int 
 go  
 
-if not exists (select name from sysindexes
-            where name = 'idx_notfis00_dtemis_codstt_01')
-create nonclustered index idx_notfis00_dtemis_codstt_01
-    on notfis00 (nf0_dtemis, nf0_codstt)
+if exists (select name from sysindexes where name = 'idx_notfis00_dtemis_codstt_01')
+--//apaga para criar um novo!
+  drop index idx_notfis00_dtemis_codstt_01 on notfis00
+go
+
+if not exists (select name from sysindexes where name = 'idx_notfis00_01')
+  create nonclustered index idx_notfis00_01
+    on notfis00 (nf0_codmod,nf0_dtemis)
 go
 
 if not exists (select name from sysindexes
@@ -174,16 +178,22 @@ create nonclustered index idx_notfis00_codstt_02
     on notfis00 (nf0_codstt)
 go
 
+if exists (select name from sysindexes where name = 'idx_notfis00_codmod_nserie_03')
+--//apaga para criar um novo! com a ordem invertida
+  drop index idx_notfis00_codmod_nserie_03 on notfis00
+go
+
+if not exists (select name from sysindexes
+            where name = 'idx_notfis00_03')
+create nonclustered index idx_notfis00_03
+    on notfis00 (nf0_codmod, nf0_nserie, nf0_dtemis)
+go
+
+
 if not exists (select name from sysindexes
             where name = 'idx_notfis00_codmod_nserie_codstt_04')
 create nonclustered index idx_notfis00_codmod_nserie_codstt_04
     on notfis00 (nf0_codmod, nf0_nserie, nf0_codstt)
-go
-
-if not exists (select name from sysindexes
-            where name = 'idx_notfis00_codmod_nserie_03')
-create nonclustered index idx_notfis00_codmod_nserie_03
-    on notfis00 (nf0_dtemis, nf0_codmod, nf0_nserie)
 go
 
 if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_consumo')
