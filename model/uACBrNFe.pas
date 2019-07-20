@@ -18,6 +18,9 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+10.07.2019, CGonzaga
+[-] Correção do AV qdo não encontra pagamentos
+
 14.05.2019
 [-] Correção do totalizador <tot_vCredICMSSN> qdo CSOSN=101,
     q somava somente um item
@@ -40,7 +43,7 @@ uses Classes, Generics.Collections ,
   ACBrValidador,
   pcnEventoNFe, pcnEnvEventoNFe,
   FDM.NFE,
-  unotfis00, ucce;
+  unotfis00, ucce, uparam;
 
 
 type
@@ -56,22 +59,6 @@ type
     hashCSRT: string;
   end;
 
-  ObjParam = Object
-  private
-  public
-    //
-    // ide
-    natope: TPair<string, string>;
-    codfop: TPair<string, Int16>;
-    codmod: TPair<string, Int16>;
-    tipdoc: TPair<string, Int16>;
-    tipimp: TPair<string, Int16>;
-    tpemis: TPair<string, Int16>;
-    tipamb: TPair<string, Int16>;
-  public
-    procedure Load(); overload ;
-    procedure Load<T>(); overload ;
-  end;
 
   //
   // params da nfe
@@ -142,6 +129,50 @@ type
     procedure loadSendConting;
   end;
 
+  //
+  // obj params da NFE
+  TOParamsNFe = object
+  private
+    //m_Dic: TDictionary<string, IParametro> ;
+  public
+    //
+    // ide
+    ind_AmbPro: TPair<string, Boolean>;
+
+    ind_ContingOffline: TPair<string, Boolean>;
+    ind_SendContingOffline: TPair<string, Boolean>;
+    ind_SendLotSync: TPair<string, Boolean>;
+    qtd_SendLotAssync: TPair<string, Int16>;
+
+    //
+    // certif
+    ind_CertifValid: TPair<string, Boolean>;
+
+    //
+    // arquivos
+    arq_SaveXML: TPair<string, Boolean>;
+    arq_SaveXMLRootPath: TPair<string, string>;
+    arq_SaveEvento: TPair<string, Boolean>;
+    arq_SepCNPJ: TPair<string, Boolean>;
+    arq_SepAno: TPair<string, Boolean>;
+    arq_SepMes: TPair<string, Boolean>;
+    arq_SepModelo: TPair<string, Boolean>;
+    arq_PathSchemas: TPair<string, string>;
+    arq_PathNFe: TPair<string, string>;
+    arq_PathInut: TPair<string, string>;
+    arq_PathEvento: TPair<string, string>;
+
+    //
+    // Info do resp tec
+    //
+    ind_RespTec: TPair<string, Boolean>;
+  public
+    procedure Load; overload ;
+    procedure Load(const aID: string); overload;
+  end;
+
+
+
 
 type
   TRetornoChangedEvent = procedure of object;
@@ -173,14 +204,18 @@ type
     function SendMail(NF: TCNotFis00; const dest_email: string =''): Boolean;
     //
     function OnlyStatusSvc(): Boolean;
+
     function OnlySend(NF: TCNotFis00): Boolean; overload ;
     function OnlySend(const aNumLot: Integer): Boolean; overload ;
     function OnlySendSync(NF: TCNotFis00): Boolean;
     function OnlySendAssync(const aNumLote: Integer): Boolean;
+
     function OnlyCons(NF: TCNotFis00): Boolean;
     function OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
+
     function OnlyCCE(NF: TCNotFis00; const aCorrecao: String;
       const aNumSeq: SmallInt): Boolean;
+
     function OnlyInutiliza(const cnpj, just: String;
       const ano, codmod, nserie, numini, numfin: Integer): Boolean;
     //
@@ -266,6 +301,7 @@ type
     function OnlySend(const aNumLot: Integer): Boolean; overload ;
     function OnlySendSync(NF: TCNotFis00): Boolean;
     function OnlySendAssync(const aNumLote: Integer): Boolean;
+
     function OnlyCons(NF: TCNotFis00): Boolean;
     function OnlyCanc(NF: TCNotFis00; const Just: String): Boolean;
     function OnlyCCE(NF: TCNotFis00; const aCorrecao: String;
@@ -288,11 +324,300 @@ type
 implementation
 
 uses Windows, SysUtils, StrUtils, DateUtils, IniFiles, TypInfo, DB, WinInet,
-  uadodb, uparam, ucademp,
+  uadodb, ucademp,
   ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp,
   pcnConversao, pcnConversaoNFe, pcnNFe,
   blcksock,
   RLPrinters;
+
+
+{ TOParamsNFe }
+
+procedure TOParamsNFe.Load;
+const
+  CST_CATEGO = 'NFE' ;
+var
+  params: TCParametroList ;
+  p: TCParametro ;
+//var
+//  acbr_tipdoc: TpcnTipoNFe ;
+//  acbr_tipimp: TpcnTipoImpressao;
+//  acbr_tpemis: TpcnTipoEmissao;
+//  acbr_tipamb: TpcnTipoAmbiente;
+//  S: TStrings ;
+begin
+    {
+//    S :=TStringList.Create ;
+    params :=TCParametroList.Create(True) ;
+    try
+        //
+        // carrega todos da nfe
+        params.Load('', CST_CATEGO) ;
+
+
+        ind_AmbPro.Key :=Format('amb.producao.%s',[CadEmp.CNPJ]) ;
+        p :=params.IndexOf(ind_AmbPro.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(ind_AmbPro.Key) ;
+            p.ValTyp:=ftArray ;
+            //
+            // obtem os tipos enumerados (tipo ambiente do ACBr)
+            for acbr_tipamb :=Low(TpcnTipoAmbiente) to High(TpcnTipoAmbiente) do
+                S.Add(
+                      GetEnumName(TypeInfo(TpcnTipoAmbiente), Integer(acbr_tipamb) )
+                      ) ;
+            //
+            // inicializa param
+            P.xValor :='1';
+            P.Comple :=S.CommaText ;
+            P.Catego :=CST_CATEGO;
+            P.Descricao :='Indicador do ambiente de Produção' ;
+            P.Save ;
+        end;
+        tipamb.Value :=p.ReadInt() ;
+
+
+        //
+        // contigencia off-line
+        //
+        conting_offline.Key :=Format('conting_offline.%s',[Empresa.CNPJ]);
+        p :=params.IndexOf(conting_offline.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(conting_offline.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador para ativar/dasativar a contingência off-line';
+            P.Save ;
+        end;
+        conting_offline.Value :=p.ReadBoo() ;
+
+        //
+        // envio de NFE em contigencia
+        //
+        send_conting.Key :='send_conting';
+        p :=params.IndexOf(send_conting.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(send_conting.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador para envio de NFE em contingência';
+            P.Save ;
+        end;
+        send_conting.Value :=p.ReadBoo() ;
+
+        //
+        // send sincrono
+        //
+        send_lotsync.Key :='send_sincrono';
+        p :=params.IndexOf(send_lotsync.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(send_lotsync.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :=IntToStr(Ord(aSendSync));
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador para envio sincrono de lote ';
+            P.Save ;
+        end;
+        send_lotsync.Value :=p.ReadBoo() ;
+
+
+        //
+        // mox nfe lote
+        //
+        send_lotqtdnfe.Key :='send_maxnfelot';
+        p :=params.IndexOf(send_lotqtdnfe.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(send_lotqtdnfe.Key) ;
+            p.ValTyp:=ftSmallint ;
+            P.xValor :='25';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Total maximo de NFE no lote';
+            P.Save ;
+        end;
+        send_lotqtdnfe.Value :=p.ReadInt() ;
+
+
+        //
+        //
+        devol_me_epp_acontribuinte_nao_sn.Key :='msg.devol_me_epp_acontribuinte_nao_sn' ;
+        p :=params.IndexOf(devol_me_epp_acontribuinte_nao_sn.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(devol_me_epp_acontribuinte_nao_sn.Key) ;
+            p.ValTyp:=ftString ;
+            P.xValor :='nos termos (RCGSN 140/18, art.59, par. 7º e 9º)';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Devolução, ME/EPP a contribuinte não optante pelo SN';
+            P.Save ;
+        end;
+        devol_me_epp_acontribuinte_nao_sn.Value :=p.ReadStr() ;
+
+        //
+        // verifica validade do cert
+        //
+        cert_chkvalid.Key :=Format('cert.chk_validade.%s',[Empresa.CNPJ]);
+        p :=params.IndexOf(cert_chkvalid.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(cert_chkvalid.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Verifica data de validade do certificado';
+            P.Save ;
+        end;
+        cert_chkvalid.Value :=p.ReadBoo() ;
+
+        //
+        // usa produto descri reduzida
+        xml_prodescri_rdz.Key :='xml.pro_descri_reduzida';
+        p :=params.IndexOf(xml_prodescri_rdz.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(xml_prodescri_rdz.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Usa descrição reduzida do produto';
+            P.Save ;
+        end;
+        xml_prodescri_rdz.Value :=p.ReadBoo() ;
+
+        //
+        // usa produto cod interno
+        xml_procodigo_int.Key :='xml.pro_codigo_interno';
+        p :=params.IndexOf(xml_procodigo_int.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(xml_procodigo_int.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Usa codigo interno do produto';
+            P.Save ;
+        end;
+        xml_procodigo_int.Value :=p.ReadBoo() ;
+
+
+        // ********
+        // arquivos
+        // ********
+
+        arq_SaveXML.Key :='arquivos.SaveXML';
+        p :=params.IndexOf(arq_SaveXML.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SaveXML.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE salva arquivos XML';
+            P.Save ;
+        end;
+        arq_SaveXML.Value :=p.ReadBoo();
+
+        // local
+        arq_SaveXML_RootPath.Key :='arquivos.SaveXML_RootPath';
+        p :=params.IndexOf(arq_SaveXML_RootPath.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SaveXML_RootPath.Key) ;
+            p.ValTyp:=ftString ;
+            P.xValor :='C:\SisGerCom\arquivos\NFe';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Local inicio do arquivos XML da NFE';
+            P.Save ;
+        end;
+        arq_SaveXML_RootPath.Value :=p.ReadStr();
+
+        arq_SepCNPJ.Key :='arquivos.SepCNPJ';
+        p :=params.IndexOf(arq_SepCNPJ.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SepCNPJ.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE separa os arquivos por CNPJ';
+            P.Save ;
+        end;
+        arq_SepCNPJ.Value :=p.ReadBoo();
+
+        arq_SepAno.Key :='arquivos.SepAno';
+        p :=params.IndexOf(arq_SepMes.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SepMes.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE separa os arquivos por ANO';
+            P.Save ;
+        end;
+        arq_SepAno.Value :=p.ReadBoo();
+
+        arq_SepMes.Key :='arquivos.SepMes';
+        p :=params.IndexOf(arq_SepMes.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SepMes.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE separa os arquivos por MES';
+            P.Save ;
+        end;
+        arq_SepMes.Value :=p.ReadBoo();
+
+        arq_SepModelo.Key :='arquivos.SepModelo';
+        p :=params.IndexOf(arq_SepModelo.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(arq_SepModelo.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador SE separa os arquivos por Modelo';
+            P.Save ;
+        end;
+        arq_SepModelo.Value :=p.ReadBoo();
+
+
+        //
+        // info resp tec
+        //
+        indRespTec.Key :='ind.resp_tecnico';
+        p :=params.IndexOf(indRespTec.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(indRespTec.Key) ;
+            p.ValTyp:=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :=CST_CATEGO;
+            p.Descricao :='Indicador do resp.tecnico';
+            P.Save ;
+        end;
+        indRespTec.Value :=p.ReadBoo();
+
+    finally
+        params.Free ;
+        S.Free ;
+    end;
+    }
+end;
+
+procedure TOParamsNFe.Load(const aID: string);
+begin
+
+end;
+
 
 
 { TCBaseACBrNFE }
@@ -952,10 +1277,10 @@ begin
         //
         // pagamentos tbm para NFE
 
-        //N.NFe.pag.Assign(aNF.m_pag);
-        //if N.NFe.pag.Count =0 then pag :=N.NFe.pag.Add
-        //else                       pag :=N.NFe.pag.Items[0] ;
         N.NFe.pag.vTroco :=aNF.m_pag.vTroco ;
+        //
+        //10.07.2019, CGonzaga
+        //[-] Correção do AV qdo não encontra pagamentos
         for I :=0 to aNF.m_pag.Count -1 do
         begin
             p0 :=aNF.m_pag.Items[I] ;
@@ -968,29 +1293,26 @@ begin
             p1.CNPJ :=p0.CNPJ ;
             p1.tBand :=p0.tBand ;
             p1.cAut :=p0.cAut ;
-        end;
 
-        //
-        // Para as notas com finalidade de Ajuste ou Devolução
-        // o campo Forma de Pagamento deve ser preenchido com 90=Sem Pagamento.
-        if aNF.m_finnfe in[fnComplementar,fnAjuste,fnDevolucao] then
-        begin
-            p1.tPag :=fpSemPagamento;
-            p1.vPag :=0;
-        end ;
+            //
+            // Para as notas com finalidade de Ajuste ou Devolução
+            // o campo Forma de Pagamento deve ser preenchido com 90=Sem Pagamento.
+            if aNF.m_finnfe in[fnComplementar,fnAjuste,fnDevolucao] then
+            begin
+                p1.tPag :=fpSemPagamento;
+                p1.vPag :=0;
+            end ;
 
-        //
-        // adiciona valor recebido, se, e somente, se
-        // a primeira forma de pagto for igual a dinheiro
-        if(m_NFE.Configuracoes.Geral.VersaoDF =ve400)and
-          (p1.tPag =fpDinheiro) then
-        begin
             //
-            // valor recebido
-            p1.vPag :=p1.vPag +N.NFe.pag.vTroco; //+aNF.vTroco ;
-            //
-            // valor do troco
-            //N.NFe.pag.vTroco :=N.NFe.pag.vTroco; //+aNF.vTroco ;
+            // adiciona valor recebido, se, e somente, se
+            // a forma de pagto for igual a dinheiro
+            if(m_NFE.Configuracoes.Geral.VersaoDF =ve400)and
+              (p1.tPag =fpDinheiro) then
+            begin
+                //
+                // valor recebido
+                p1.vPag :=p1.vPag +N.NFe.pag.vTroco;
+            end;
         end;
     end;
 
@@ -1019,32 +1341,7 @@ begin
     end;
 
     //
-    // autorizada para DANFE/Distribuicao/Cancelamento
-    {if aNF.m_codstt =TCNotFis00.CSTT_AUTORIZADO_USO then
-    begin
-        if InfProt then
-        begin
-            N.NFe.procNFe.tpAmb   :=aNF.m_tipamb ;
-            N.NFe.procNFe.verAplic:=aNF.m_verapp ;
-            N.NFe.procNFe.chNFe   :=aNF.m_chvnfe ;
-            N.NFe.procNFe.dhRecbto:=aNF.m_dhreceb;
-            N.NFe.procNFe.nProt   :=aNF.m_numprot;
-            N.NFe.procNFe.cStat   :=aNF.m_codstt ;
-            N.NFe.procNFe.xMotivo :=aNF.m_motivo ;
-        end;
-        N.GerarXML ;
-        Exit(N);
-    end;}
-
-    //
-    //se ja foi emitido em contingencia!
-    //
-    {if aNF.m_codstt =TCNotFis00.CSTT_EMIS_CONTINGE then
-    begin
-        N.GerarXML ;
-        Exit(N);
-    end;}
-
+    // chk assina
     try
         N.Assinar ;
     except
@@ -1507,20 +1804,6 @@ end;
 
 function TCBaseACBrNFE.OnlyCons(NF: TCNotFis00): Boolean;
 begin
-//    //
-//    // se NF ja existe com dif. de chave
-//    // reset. contingencia
-//    if(NF.m_codstt =TCNotFis00.CSTT_CHV_DIF_BD)and
-//      ((NF.m_tipemi =teContingencia)or(NF.m_tipemi =teOffLine))then
-//    begin
-//        //setStatus('Resetando contingência...');
-//        NF.setContinge('', True);
-//        if AddNotaFiscal(NF, True) <> nil then
-//        begin
-//            NF.setXML() ;
-//        end ;
-//    end;
-//
     m_NFE.NotasFiscais.Clear;
     m_ErrCod :=0;
     m_ErrMsg :='';
@@ -2660,16 +2943,6 @@ begin
     end;
 end;
 
-{ ObjParam }
 
-procedure ObjParam.Load;
-begin
-
-end;
-
-procedure ObjParam.Load<T>;
-begin
-
-end;
 
 end.

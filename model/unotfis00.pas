@@ -170,8 +170,8 @@ type
 
     //
     // envio/retorno lote
-    const EM_PROCESS = 103;
-    const PROCESS = 104;
+    const LOT_EM_PROCESS = 103;
+    const LOT_PROCESS = 104;
 
     //
     // NFe/NFCe
@@ -233,7 +233,7 @@ type
     save: Boolean;
     codlot: Int32;
     constructor Create(const codseq, codped: Integer);
-    //procedure setDatetime(const aValue: );
+    //procedure setDatIni(const aValue: TDateTime);
   end;
 
   TCNotFis00Lote = class;
@@ -350,6 +350,10 @@ type
 
     // consumo indevido
     m_consumo: Int16 ;
+
+    //
+    // lote
+    m_codlot: Int32 ;
 
     //
     // flag
@@ -635,16 +639,16 @@ type
   end;
 
 
-function GTIN_DV(const aCodigo : String ): String ;
-function GTIN_Valida(const aCodigo : String ): Boolean ;
+//function GTIN_DV(const aCodigo : String ): String ;
+//function GTIN_Valida(const aCodigo : String ): Boolean ;
 
 implementation
 
-uses StrUtils, Variants, Math ,
-  ACBrUtil,
+uses StrUtils, Variants, Math,
+//  ACBrUtil,
   uparam, ucademp;
 
-function GTIN_DV(const aCodigo: String ): String ;
+{function GTIN_DV(const aCodigo: String ): String ;
 var
   comp, DV, C: Integer ;
 begin
@@ -690,7 +694,8 @@ begin
         13: Result :=aCodigo[13] =GTIN_DV(aCodigo) ;
         14: Result :=aCodigo[14] =GTIN_DV(aCodigo) ;
     end;
-end;
+end;}
+
 
 { TCGenSerial }
 
@@ -991,7 +996,7 @@ begin
              (not(Self.m_codstt =cs.ERR_CHECK_ASSINA))and
              (not(Self.m_codstt =cs.ERR_SCHEMA))and
              (not(Self.m_codstt =cs.ERR_REGRAS))and
-             (not(Self.m_codstt =cs.EM_PROCESS))and
+             (not(Self.m_codstt =cs.LOT_EM_PROCESS))and
              (not(Self.m_codstt =cs.NFE_NAO_CONSTA_BD))and
              (not(Self.m_codstt =cs.NFE_JA_CANCEL))and
              (not(Self.m_codstt =cs.DUPL))and
@@ -1327,6 +1332,9 @@ begin
     // info cmple
     Self.m_infCpl:=aDS.FieldByName('nf0_infcpl').AsString ;
 
+    // NF vinculada
+    Self.m_codlot :=aDS.FieldByName('nf0_codlot').AsInteger;
+
     Self.m_oriindpag :=Self.m_indpag;
     Self.m_oritipemi :=Self.m_tipemi;
     Self.m_oricodstt :=Self.m_codstt;
@@ -1380,6 +1388,7 @@ var
   Q: TDataSet ;// TADOQuery ;
   cmplvl: Integer;
 begin
+//
     //
     Result :=False ;
     //
@@ -1822,6 +1831,8 @@ begin
 
     // info cmple
     Self.m_infCpl:=Q.FieldByName('nf0_infcpl').AsString ;
+
+    Self.m_codlot :=Q.FieldByName('nf0_codlot').AsInteger;
 
     Self.m_oriindpag :=Self.m_indpag;
     Self.m_oritipemi :=Self.m_tipemi;
@@ -2578,11 +2589,11 @@ begin
     Self.m_codstt :=cs.ERR_REGRAS ;
     Self.m_consumo:=1;
 
-    C :=TADOCommand.NewADOCommand() ;
+    C :=TADOCommand.NewADOCommand();
     try
       C.AddCmd('update notfis00 set   ');
       C.AddCmd('  nf0_codstt  =%d ,   ',[Self.m_codstt]);
-      C.AddCmd('  nf0_consumo =%d    ',[Self.m_consumo]);
+      C.AddCmd('  nf0_consumo =%d     ',[Self.m_consumo]);
       C.AddCmd('where nf0_codseq =%d  ',[Self.m_codseq]);
       C.Execute ;
     finally
@@ -3472,10 +3483,12 @@ begin
     //
     // consumo indevido
     Q.AddCmd('  ,nf0_consumo                               ');
-
     //
     //
     Q.AddCmd('  ,nf0_infcpl                                ');
+    //
+    //
+    Q.AddCmd('  ,nf0_codlot                                ');
 
     Q.AddCmd('from notfis00 with(readpast)                 ');
 
@@ -3551,18 +3564,16 @@ begin
         // filtro service
         else if afilter.filTyp = ftService then
         begin
-//            if afilter.codmod > 0 then
-//                Q.AddCmd('where nf0_codmod =@codmod                        ')
-//            else
-//                Q.AddCmd('where nf0_codmod in(55,65)                       ');
+            //
+            // prepare serie/status
             Q.AddCmd('and   nf0_nserie =@numser                        ');
             Q.AddCmd('and ( (nf0_codstt =0)   --//status inicial       ');
             Q.AddCmd('or    (nf0_codstt =1)   --//pronto para envio    ');
-            //if sttConting in afilter.sttSet then
             Q.AddCmd('or    (nf0_codstt =9)   --//contingencia         ');
             Q.AddCmd('or    (nf0_codstt =44)  --//pendente de retorno  ');
             Q.AddCmd('or    (nf0_codstt =77)  --//erro de schema       ');
             Q.AddCmd('or    (nf0_codstt =88)  --//erro nas regras de negocio');
+            Q.AddCmd('or    (nf0_codstt =103) --//lote em processamento');
             Q.AddCmd('--//Rejeição 204: Duplicidade de NF-e            ');
             Q.AddCmd('or    (nf0_codstt =204)                          ');
             Q.AddCmd('--//Rejeição 217: NFe não consta na base de dados');
@@ -3580,7 +3591,7 @@ begin
             Q.AddCmd('and   nf0_codlot is null                         ');
 
             //
-            // prioriza novas emissões
+            // prioriza novas emissões (nf0_codstt=0)
             Q.AddCmd('order by nf0_codstt                              ');
         end
         //
@@ -3598,7 +3609,7 @@ begin
                 //
                 // nf0_codstt
                 Q.AddCmd('--//notas nao processadas                         ');
-                Q.AddCmd('and nf0_codstt not in(0,100,110,150,301,302,303)  ');
+                Q.AddCmd('and nf0_codstt not in(0,100,103,110,150,301,302,303)');
                 Q.AddCmd('--//notas nao canceladas                          ');
                 Q.AddCmd('and nf0_codstt not in(101,151,135,155,218)        ');
                 Q.AddCmd('--//notas nao inutilizadas                        ');
@@ -3614,7 +3625,7 @@ begin
     end;
 
     //
-    // inicializa param datetime null
+    // inicializa param datetime
     Q.AddParamWithValue('@datini', ftDateTime, Null);
     Q.AddParamWithValue('@datfin', ftDateTime, Null);
 
@@ -3645,6 +3656,7 @@ begin
     end;
     Q.Open ;
     //
+    // cast
     Result :=TDataSet(Q);
 
 end;
@@ -3738,7 +3750,7 @@ begin
     try
         C.AddCmd('declare @nserie smallint;set @nserie =%d;     ',[aNumSer]) ;
         C.AddCmd('update notfis00 set nf0_codlot =null          ');
-        C.AddCmd('where ((nf0_codmod=55)or(nf0_codmod=55))      ');
+        C.AddCmd('where ((nf0_codmod=55)or(nf0_codmod=65))      ');
         C.AddCmd('and nf0_nserie =@nserie                       ');
         C.AddCmd('--//notas nao processadas                     ');
         C.AddCmd('and nf0_codstt not in(100,110,150,301,302,303)');
@@ -3925,5 +3937,6 @@ begin
     m_oItems.Clear ;
 
 end;
+
 
 end.

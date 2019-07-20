@@ -1180,7 +1180,7 @@ begin
 
 
         btn_Cons.Enabled :=(N.m_codstt in[cs.RET_PENDENTE,
-                                          cs.EM_PROCESS,
+                                          cs.LOT_EM_PROCESS,
                                           cs.DUPL,
                                           cs.NFE_JA_INUT,
                                           cs.NFE_JA_CANCEL])or

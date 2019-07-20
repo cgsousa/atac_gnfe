@@ -47,6 +47,7 @@ uses
   ulog, Thread.NFE ;
 
 type
+  //Tfrm_ViewSvc
   Tfrm_ViewSvc = class(TBaseForm)
     btn_Start: TAdvGlowButton;
     btn_Stop: TAdvGlowButton;

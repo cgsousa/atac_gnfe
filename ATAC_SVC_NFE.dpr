@@ -20,7 +20,7 @@ uses
 {$R ATAC_SVC_NFE.UAC.RES}
 
 const
-  SERVICE_NAME = 'Svc_NFE';
+  SERVICE_NAME = 'ATAC_SVC_NFE';
 
 
 function IsServiceInstalled(const srv_name: string): Boolean;

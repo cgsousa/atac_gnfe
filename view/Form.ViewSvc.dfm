@@ -1506,7 +1506,6 @@ object frm_ViewSvc: Tfrm_ViewSvc
     Caption = 'Conting'#234'ncia Offline desativada!'
     ReturnIsTab = False
     Version = '1.3.7.0'
-    ExplicitTop = 141
   end
   object TrayIcon1: TJvTrayIcon
     IconIndex = 0

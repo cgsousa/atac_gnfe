@@ -1,6 +1,10 @@
 use comercio1
 go
 
+if not exists(select 1from syscolumns where id = object_id('notfis00') and name = 'nf0_xmltyp')
+  alter table notfis00 add nf0_xmltyp xml null
+go
+
 if exists (select *from dbo.sysobjects where id = object_id(N'sp_notfis00_busca') and objectproperty(id, N'IsProcedure') = 1)
   drop procedure sp_notfis00_busca
 go
@@ -16,6 +20,10 @@ Símbolo : Significado
 [+]     : Novo recurso
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
+
+19.07.2019
+[*] Add cod.103 (Lote em processamento) no fintro do App/Svc, para o mesmo
+    consulta o resultado do processamento para as NF preza na SEFAZ.
 
 24.06.2019
 [+] data inicial
@@ -155,7 +163,11 @@ as
     --//
     nf0_infcpl varchar (2048) ,
     nf0_codped int ,
-    nf0_consumo	smallint);
+    nf0_consumo	smallint
+    --//
+    --// NF vinculada ao lote
+    ,nf0_codlot int
+    );
 
   --//
   --// params sp_executesql 3072
@@ -247,7 +259,9 @@ as
   nf0_infcpl  ,
   nf0_codped  ,
   nf0_consumo 
-from notfis00 with(readpast) ';  
+  ,nf0_codlot
+from notfis00 with(readpast) 
+';  
   --//
   --// trata exception
   begin try
@@ -397,6 +411,7 @@ or    (nf0_codstt =9)   --//contingencia
 or    (nf0_codstt =44)  --//pendente de retorno  
 or    (nf0_codstt =77)  --//erro de schema       
 or    (nf0_codstt =88)  --//erro nas regras de negocio
+or    (nf0_codstt =103) --//lote em processamento
 --//Rejeição 204: Duplicidade de NF-e            
 or    (nf0_codstt =204)                          
 --//Rejeição 217: NFe não consta na base de dados
@@ -494,10 +509,27 @@ order by nf0_codstt '
     end
 
     --//
-    --// retorna result set
+    --// result set
     select 
-      nf.*, 
-      tt.*,
+      nf.*,       
+      tt.vBC,
+      tt.vICMS,
+      tt.vFCP,
+      tt.vBCST,
+      tt.vST,
+      tt.vFCPST,
+      tt.vProd,
+      tt.vDesc,
+      tt.vFret,
+      tt.vSeg,
+      tt.vOutr,
+      tt.vIPI,
+      tt.vIPIDevol,
+      tt.vPIS,
+      tt.vCOFINS,
+      tt.vII,
+      tt.vServ,
+      tt.vTrib,
       --// calc. total da NF
       ((tt.vProd -tt.vDesc)+
       tt.vST +tt.vFCPST +
@@ -529,7 +561,8 @@ order by nf0_codstt '
       group by nf0_codseq
     )tt
     where nf.nf0_codseq =tt.codseq
-
+    --//
+    --//print @exec_sql
   end try
   begin catch
     set @ret_codigo =error_number()

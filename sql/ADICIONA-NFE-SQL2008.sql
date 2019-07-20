@@ -1,4 +1,8 @@
-use comercio
+use comercio1
+go
+
+if not exists(select 1from syscolumns where id = object_id('notfis00') and name = 'nf0_xmltyp')
+  alter table notfis00 add nf0_xmltyp xml null
 go
 
 if exists (select *from dbo.sysobjects where id = object_id(N'sp_notfis00_busca') and objectproperty(id, N'IsProcedure') = 1)
@@ -16,6 +20,10 @@ Símbolo : Significado
 [+]     : Novo recurso
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
+
+19.07.2019
+[*] Add cod.103 (Lote em processamento) no fintro do App/Svc, para o mesmo
+    consulta o resultado do processamento para as NF preza na SEFAZ.
 
 24.06.2019
 [+] data inicial
@@ -155,29 +163,11 @@ as
     --//
     nf0_infcpl varchar (2048) ,
     nf0_codped int ,
-    nf0_consumo	smallint);
-  --//
-  --// tabela totais da NF
-  declare @tab_total table (codntf int not null 
-    ,vBC numeric(12,2)  
-    ,vICMS numeric(12,2)
-    ,vFCP numeric(12,2)  
-    ,vBCST numeric(12,2)    
-    ,vST numeric(12,2)  --//(Somatório do valor do ICMS com Substituição Tributária de todos os produtos);
-    ,vFCPST numeric(12,2)     
-    ,vProd numeric(12,2)  --//(Somatório do valor de todos os produtos);
-    ,vDesc numeric(12,2) --//(Somatório do desconto de todos os produtos);
-    ,vFrete numeric(12,2)  --//(Somatório do valor do Frete de todos os produtos);
-    ,vSeg numeric(12,2)  --//(Somatório do valor do seguro de todos os produtos);
-    ,vOutro numeric(12,2)  --//(Somatório do valor de outras despesas de todos os produtos);
-    ,vII numeric(12,2)  --//(Somatório do valor do Imposto de Importação de todos os produtos);
-    ,vIPI numeric(12,2)  --//(Somatório do valor do IPI de todos os produtos);
-    ,vIPIDevol numeric(12,2)    
-    ,vPIS numeric(12,2)  
-    ,vCOFINS numeric(12,2)      
-    ,vServ numeric(12,2)  --//(Somatório do valor do serviço de todos os itens da NF-e);  
-    ,vTrib numeric(12,2)    
-    );  
+    nf0_consumo	smallint
+    --//
+    --// NF vinculada ao lote
+    ,nf0_codlot int
+    );
 
   --//
   --// params sp_executesql 3072
@@ -269,7 +259,9 @@ as
   nf0_infcpl  ,
   nf0_codped  ,
   nf0_consumo 
-from notfis00 with(readpast) ';  
+  ,nf0_codlot
+from notfis00 with(readpast) 
+';  
   --//
   --// trata exception
   begin try
@@ -300,9 +292,33 @@ from notfis00 with(readpast) ';
       if @filtyp =0 
       begin
         --//
-        --// def condição/params 
-        set @exec_sql =@exec_sql  +N'where nf0_dtemis between @datini and @datfin '
-        set @exec_prm =N'@datini smalldatetime, @datfin smalldatetime'
+        --// set modelo e data para o indice(1)
+        if @codmod > 0 
+        begin          
+          set @exec_sql =@exec_sql  +N'where nf0_codmod =@codmod 
+          '          
+          set @exec_prm =N'@codmod smallint, @datini smalldatetime, @datfin smalldatetime'
+        end
+        else begin
+          set @exec_sql =@exec_sql  +N'where ((nf0_codmod =55)or(nf0_codmod =65))
+          '
+          set @exec_prm =N'@datini smalldatetime, @datfin smalldatetime'
+        end
+
+        --//
+        --// set num.ser
+        if @numser > 0
+        begin
+          set @exec_sql =@exec_sql  +N'and nf0_nserie =@numser 
+          and nf0_dtemis between @datini and @datfin
+          '          
+          set @exec_prm =@exec_prm  +N', @numser smallint'
+        end
+        else           
+          --//
+          --// set data
+          set @exec_sql =@exec_sql  +N'and nf0_dtemis between @datini and @datfin
+          '        
 
         --//
         --// chk status
@@ -318,43 +334,75 @@ from notfis00 with(readpast) ';
           end
 
         --//
-        --// chk mod/ser 
-        if @numser > 0 
+        --// set ordem
+        set @exec_sql =@exec_sql  +N'
+        order by nf0_codseq desc'        
+
+        --//
+        --// 
+        if @codmod > 0 
         begin
           --//
-          --// def condição, params e ordem desc
-          set @exec_sql =@exec_sql  +N'and nf0_codmod =@codmod and nf0_nserie =@numser '          
-          set @exec_prm =@exec_prm  +N', @codmod smallint, @numser smallint'
-          set @exec_sql =@exec_sql  +N'order by nf0_codseq desc'        
+          --// exec filtro: nf0_codmod/nf0_nserie/nf0_dtemis/[nf0_codstt]
+          if @numser > 0 
+          begin          
+            insert into @tab_notfis
+            exec sp_executesql  @exec_sql, @exec_prm, 
+                                @codmod =@codmod ,
+                                @numser =@numser ,
+                                @datini =@datini ,
+                                @datfin =@datfin                               
+                                
+          end
           --//
-          --// exec filtro: nf0_dtemis/[nf0_codstt]/nf0_codmod/nf0_nserie
-          insert into @tab_notfis
-          exec sp_executesql  @exec_sql, @exec_prm, 
-                              @datini =@datini ,
-                              @datfin =@datfin ,
-                              @codmod =@codmod ,
-                              @numser =@numser
+          --// exec filtro: nf0_codmod/nf0_dtemis/[nf0_codstt]
+          else begin
+            insert into @tab_notfis
+            exec sp_executesql  @exec_sql, @exec_prm, 
+                                @codmod =@codmod ,
+                                @datini =@datini ,
+                                @datfin =@datfin 
+          end
         end
         --//
-        --// exec filtro: nf0_dtemis/[nf0_codstt]
-        else begin          
-          set @exec_sql =@exec_sql  +N'order by nf0_codseq desc'
-          insert into @tab_notfis
-          exec sp_executesql  @exec_sql, @exec_prm, 
-                              @datini =@datini ,
-                              @datfin =@datfin 
+        --//
+        else begin
+          --//
+          --// exec filtro: nf0_nserie/nf0_dtemis/[nf0_codstt]
+          if @numser > 0 
+          begin          
+            insert into @tab_notfis
+            exec sp_executesql  @exec_sql, @exec_prm, 
+                                @numser =@numser ,
+                                @datini =@datini ,
+                                @datfin =@datfin                               
+                                
+          end
+          --//
+          --// exec filtro: nf0_dtemis/[nf0_codstt]
+          else begin
+            insert into @tab_notfis
+            exec sp_executesql  @exec_sql, @exec_prm, 
+                                @datini =@datini ,
+                                @datfin =@datfin 
+          end
         end
       end
+
+      --//
       --// load serviço
       else if @filtyp =1
       begin
         --//
         --// chk modelo(condição)
         if @codmod > 0 
-          set @exec_sql =@exec_sql  +N'where nf0_codmod =@codmod '
+          set @exec_sql =@exec_sql  +N'where nf0_codmod =@codmod
+          '
         else
-          set @exec_sql =@exec_sql  +N'where nf0_codmod in(55,65) '
-        set @exec_sql =@exec_sql  +N'and nf0_nserie =@numser '
+          set @exec_sql =@exec_sql  +N'where nf0_codmod in(55,65)
+          '
+        set @exec_sql =@exec_sql  +N'and nf0_nserie =@numser
+        '
         --//
         --//
         set @exec_sql =@exec_sql  +N'and ( (nf0_codstt =0)   --//status inicial       
@@ -363,6 +411,7 @@ or    (nf0_codstt =9)   --//contingencia
 or    (nf0_codstt =44)  --//pendente de retorno  
 or    (nf0_codstt =77)  --//erro de schema       
 or    (nf0_codstt =88)  --//erro nas regras de negocio
+or    (nf0_codstt =103) --//lote em processamento
 --//Rejeição 204: Duplicidade de NF-e            
 or    (nf0_codstt =204)                          
 --//Rejeição 217: NFe não consta na base de dados
@@ -377,7 +426,9 @@ or    (nf0_codstt =999))  --//erro geral sefaz
 --//
 --// garante NF´s não alocadas pelo fech do CX
 and   nf0_codlot is null
-order by nf0_codseq desc'
+--//
+--// coloca as notas com situação(0) na frente
+order by nf0_codstt '
         --//
         --// exec filtro: mod/ser
         if @codmod > 0 
@@ -389,7 +440,7 @@ order by nf0_codseq desc'
                               @numser =@numser
         end
         --//
-        --// exec filtro: mods/ser
+        --// exec filtro: ser
         else begin
           set @exec_prm =N'@numser smallint'
           insert into @tab_notfis
@@ -397,108 +448,88 @@ order by nf0_codseq desc'
                               @numser =@numser
         end
       end 
+
+      --//
       --// load fecha cx
       else if @filtyp =2
       begin
+        --//
+        --// set modelo para o indice(03)
+          set @exec_sql =@exec_sql  +N'where ((nf0_codmod =55)or(nf0_codmod =65))
+          '
+
         --//
         --// se informou periodo 
         if(@datini is not null)and(@datfin is not null)
         begin
           --//
-          --// set periodo
-          set @exec_sql =@exec_sql  +N'where nf0_dtemis between @datini and @datfin '
+          --// set serie e periodo
+          set @exec_sql =@exec_sql  +N'and nf0_nserie =@numser 
+          and nf0_dtemis between @datini and @datfin
+          '
 
           --//
           --// inclui NFs uso autorizado/canceladas
           set @exec_sql =@exec_sql  +N'
           --//notas autorizado uso/canceladas
           and nf0_codstt in(100,150,101,151,135,155,218)
-          '
-        end
-        else
+          order by nf0_codseq'
+          
           --//
-          --// incl. status
-          set @exec_sql =@exec_sql  +N'
+          --// exec filtro:
+          set @exec_prm =N'@numser smallint, @datini smalldatetime, @datfin smalldatetime'
+          insert into @tab_notfis
+          exec sp_executesql  @exec_sql, @exec_prm, 
+                              @numser =@numser ,
+                              @datini =@datini ,
+                              @datfin =@datfin                                 
+          
+
+        end
+        else begin
+          --//
+          --// inc. serie & status
+          set @exec_sql =@exec_sql  +N'and nf0_nserie =@numser 
           --//notas nao processadas 
-          where nf0_codstt not in(0,100,110,150,301,302,303)
+          and nf0_codstt not in(0,100,110,150,301,302,303)
           --//notas nao canceladas
           and nf0_codstt not in(101,151,135,155,218)
           --//notas nao inutilizadas
           and nf0_codstt not in(102,206,563) 
-          '
-        --//
-        --// inc. nserie
-        set @exec_sql =@exec_sql  +N'and nf0_nserie =@numser 
-        order by nf0_codseq'
-        --//
-        --// exec 
-        if(@datini is null)and(@datfin is null)
-        begin        
+          order by nf0_codseq'
+
+          --//
+          --// exec filtro:
           set @exec_prm =N'@numser smallint'
           insert into @tab_notfis
           exec sp_executesql  @exec_sql, @exec_prm, 
                               @numser =@numser
         end
-        --//
-        --// exec com periodo
-        else begin
-          set @exec_prm =N'@datini smalldatetime, @datfin smalldatetime, @numser smallint'
-          insert into @tab_notfis
-          exec sp_executesql  @exec_sql, @exec_prm, 
-                              @datini =@datini ,
-                              @datfin =@datfin ,
-                              @numser =@numser
-        end
       end 
     end
+
     --//
-    --// calc. totais
-    /*insert into @tab_total(codntf,
-                          vBC ,    
-                          vICMS ,
-                          vFCP,
-                          vBCST ,    
-                          vST ,
-                          vFCPST,
-                          vProd,
-                          vDesc,
-                          vFrete,
-                          vSeg,
-                          vOutro, 
-                          vII ,
-                          vIPI,
-                          vIPIDevol,
-                          vPIS ,
-                          vCOFINS ,
-                          vServ,
-                          vTrib)
-      select  nf0_codseq,          
-              sum(isnull(nf1_vbc,0)),
-              sum(isnull(nf1_vicms,0)),
-              sum(isnull(nf1_vfcp,0)),
-              sum(isnull(nf1_vbcst,0)),
-              sum(isnull(nf1_vicmsst,0)),
-              sum(isnull(nf1_vfcpst,0)),
-              sum(isnull(nf1_vlrpro,0)),
-              sum(isnull(nf1_vlrdesc,0)),
-              sum(isnull(nf1_vlrfret,0)),
-              sum(isnull(nf1_vlrsegr,0)),
-              sum(isnull(nf1_vlroutr,0)),
-              0.0 ,
-              sum(isnull(nf1_vipi,0)),
-              sum(isnull(nf1_vipidevol,0)),
-              sum(isnull(nf1_vpis,0)),
-              sum(isnull(nf1_vcofins,0)),
-              0.0,
-              0.0
-      from @tab_notfis 
-      left join notfis01 on nf0_codseq =nf1_codntf 
-      group by nf0_codseq*/
-    --//
-    --// retorna lista
+    --// result set
     select 
-      nf.*, 
-      tt.*,
+      nf.*,       
+      tt.vBC,
+      tt.vICMS,
+      tt.vFCP,
+      tt.vBCST,
+      tt.vST,
+      tt.vFCPST,
+      tt.vProd,
+      tt.vDesc,
+      tt.vFret,
+      tt.vSeg,
+      tt.vOutr,
+      tt.vIPI,
+      tt.vIPIDevol,
+      tt.vPIS,
+      tt.vCOFINS,
+      tt.vII,
+      tt.vServ,
+      tt.vTrib,
       --// calc. total da NF
       ((tt.vProd -tt.vDesc)+
       tt.vST +tt.vFCPST +
@@ -506,7 +537,6 @@ order by nf0_codseq desc'
       tt.vII +tt.vIPI +tt.vIPIDevol +
       tt.vServ) as vNF
     from @tab_notfis nf,
-    --join @tab_total tt on nf0_codseq =codntf
     ( select  nf0_codseq as codseq,          
               sum(isnull(nf1_vbc,0)) as vBC,
               sum(isnull(nf1_vicms,0)) as vICMS,
@@ -531,7 +561,8 @@ order by nf0_codseq desc'
       group by nf0_codseq
     )tt
     where nf.nf0_codseq =tt.codseq
-
+    --//
+    --//print @exec_sql
   end try
   begin catch
     set @ret_codigo =error_number()
@@ -539,6 +570,5 @@ order by nf0_codseq desc'
   end catch
   --//
   --// retorno
-  --// print @exec_sql
   return @ret_codigo ;
 go

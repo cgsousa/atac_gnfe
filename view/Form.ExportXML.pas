@@ -116,7 +116,7 @@ implementation
 {$R *.dfm}
 
 uses DB, DateUtils ,
-  uadodb, uTaskDlg,
+  uadodb, uTaskDlg, ustr ,
   ACBrUtil, ACBrNFeNotasFiscais;
 
 
@@ -247,6 +247,8 @@ end;
 procedure Tfrm_ExportXML.btn_StartClick(Sender: TObject);
 var
   F: TNotFis00Filter ;
+  U: UtilStr ;
+  Y,M,D,H,N,S,MS: Word ;
 begin
     //
     //
@@ -265,8 +267,18 @@ begin
     // inicializa filtro
     F.Create(0, 0);
     F.filTyp :=ftFech;
-    F.datini :=m_DHAber;
-    F.datfin :=m_DHFech;
+
+    //
+    // truc dat.ini até o min.
+    DecodeDateTime(m_DHAber, Y, M, D, H, N, S, MS);
+    F.datini :=EncodeDateTime(Y, M, D, H, N, 0, 0);
+
+    //
+    // truc dat.fin até o min.
+    //DecodeDateTime(m_DHFech, Y, M, D, H, N, S, MS);
+    //F.datfin :=EncodeDateTime(Y, M, D, H, N, 0, 0);
+    F.datfin :=m_DHFech ;
+
     F.status :=sttNone ;
     F.codmod :=00;
     F.nserie :=m_NumSer;
@@ -281,7 +293,11 @@ begin
         DoStart ;
     end
     else begin
-        CMsgDlg.Warning(Format('Nenhuma NF encontrada para este CX[%.2d]',[m_NumSer])) ;
+        if not m_ClearXML then
+            CMsgDlg.Warning(
+            Format(
+            'Nenhuma NF encontrada para o CX[No:%.2d, DH.Aber:%s DH.Fech:%s]',
+            [m_NumSer,U.fDtTm(m_DHAber),U.fDtTm(m_DHFech)])) ;
     end;
 end;
 
@@ -321,7 +337,7 @@ begin
     else
         m_DHFech :=aDHFech;
     m_ClearXML :=aClear ;
-    if aClear then
+    if m_ClearXML then
         btn_Start.Click
     else
         Result :=ShowModal =mrOk ;
@@ -342,7 +358,7 @@ end;
 
 procedure Tfrm_ExportXML.FormCreate(Sender: TObject);
 begin
-    m_Lote :=TCNotFis00Lote.Create;
+    m_Lote:=TCNotFis00Lote.Create;
     m_Rep :=TCBaseACBrNFE.New(False);
     //
     //

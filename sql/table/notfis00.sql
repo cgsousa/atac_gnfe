@@ -212,6 +212,7 @@ go
 
 --//
 --// chk compatibilidade
+/*
 declare @versql sysname; set @versql =convert(sysname, serverproperty('ProductVersion'));
 declare @posdot smallint; set @posdot =charindex('.',@versql);
 declare @cmplvl smallint; set @cmplvl =substring(@versql,1,@posdot-1);
@@ -220,8 +221,7 @@ if(@cmplvl >= 9)and --sql 2005
 begin
     exec ('alter table notfis00 add nf0_xmltyp xml null')
 end
-
-
+*/
 
 if not exists (select *from dbo.sysobjects where id = object_id(N'notfis01') and objectproperty(id, N'IsTable') = 1)
   create table notfis01(nf1_codseq int not null identity(1,1),

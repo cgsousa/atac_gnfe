@@ -18,12 +18,18 @@ Símbolo : Significado
 [*]     : Recurso modificado/melhorado
 [-]     : Correção de Bug (assim esperamos)
 
+19.07.2019
+[*] O metodo TMySvcThread.RunProc chama 2(dois):
+      TMySvcThread.doRunService => serviço
+      TMySvcThread.doRunFech    => fechamento do caixa
+    Para melhor peformance/manutenção
+
 08.07.2019
 [*] Inclui NF em contingencia para ser processada no serviço
 
 05.06.2019
 [*] Tratamento do campo <nf0_xmltyp> para gravar o xml em formato apropriado
-[*] Vincula NFe ao lote <nf0_codlot> para não ser processada como serviço
+[*] Vincula NFe ao lote <nf0_codlot> para não ser processada no serviço
 
 23.05.2019
 [*] Removido controle de LOG, chama externa de CallOnStrProc(...)
@@ -73,7 +79,8 @@ Símbolo : Significado
 interface
 
 uses SysUtils ,
-  uclass, uACBrNFE, unotfis00;
+  uclass, uACBrNFE, unotfis00,
+  ACBrNFeNotasFiscais;
 
 type
   TGetCertifProc = procedure(const aCNPJ: String; const aDays: Word) of object;
@@ -94,6 +101,9 @@ type
     procedure ProcContingOff(N: TCNotFis00) ;
     procedure ProcAsync(const aCodLot: Integer) ;
 
+    procedure doRunService ;
+    procedure doRunFech ;
+
   private
     m_OnCertif: TGetCertifProc;
     m_OnBooProc: TGetBooProc;
@@ -103,6 +113,7 @@ type
   protected
     procedure Execute; override;
     procedure RunProc; override;
+    procedure RunProc00;
   public
     //property Log: TCLog read m_Log;
 
@@ -123,7 +134,7 @@ implementation
 
 uses Windows, ActiveX, WinInet, DateUtils, DB,
   pcnConversao, pcnNFe, pcnRetConsReciDFe,
-  ACBr_WinHttp, ACBrUtil, ACBrNFeNotasFiscais, ACBrNFeWebServices,
+  ACBr_WinHttp, ACBrUtil, ACBrNFeWebServices,
   uadodb, ucademp, uparam;
 
 
@@ -179,6 +190,478 @@ begin
     inherited;
 end;
 
+procedure TMySvcThread.doRunFech;
+var
+  NF: TCNotFis00;
+  nfe: NotaFiscal;
+var
+  S: string;
+  codlot,retAssyncDuplCount: Integer;
+  send: Boolean;
+var
+  cs: NotFis00CodStatus;
+begin
+
+    //
+    // chk filtro
+    if m_Filter.codmod < 55 then
+    begin
+        m_Filter.codmod :=55 ;
+        m_CodMod :=m_Filter.codmod ;
+    end
+    //
+    //
+    else begin
+        if m_CodMod > 0 then
+            m_Filter.codmod :=65 ;
+    end;
+    //CallOnStrProc('Carregando Notas Fiscais (Mod:%d, Ser:%d)',[m_Filter.codmod,m_Filter.nserie]);
+
+    //
+    // carrega conforme filtro
+    if m_Lote.Load(m_Filter) then
+    begin
+
+        //
+        // inicializa lote
+        codLot :=0;
+        retAssyncDuplCount :=0;
+        m_Rep.nfe.NotasFiscais.Clear ;
+
+        //
+        // loop para processamento
+        for NF in m_Lote.Items do
+        begin
+            if Self.Terminated then Break ;
+
+            //
+            // força proxima NF
+            //
+            nfe :=nil ;
+
+            //
+            // NF processada
+            if NF.CStatProcess then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], já processada',
+                              [NF.m_numdoc,NF.m_codmod,NF.m_nserie]);
+                // proxima NF
+                Continue ;
+            end;
+
+            //
+            // NF cancelada
+            if NF.CstatCancel then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], cancelada!',
+                              [NF.m_numdoc,NF.m_codmod,NF.m_nserie]);
+                // proxima NF
+                Continue ;
+            end;
+
+            //
+            //
+            if NF.m_codstt =cs.CONTING_OFFLINE then
+            begin
+                //
+                // carrega XML
+                if NF.LoadXML then
+                begin
+                    //
+                    // add nfe com base no XML
+                    nfe :=m_Rep.AddNotaFiscal(nil, False) ;
+                    nfe.LerXML(NF.m_xml) ;
+                end
+                else begin
+                    //
+                    // força XML
+                    nfe :=m_Rep.AddNotaFiscal(NF, False) ;
+                    if nfe <> nil then
+                    begin
+                        //
+                        // registra status/xml/chave
+                        NF.setXML();
+                        CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+                    end
+                    else begin
+                        //
+                        // reporta o erro
+                        CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                        //
+                        // força para a proxima nota
+                        Continue ;
+                    end;
+                end;
+            end;
+
+            //
+            //
+            if(NF.m_codstt =cs.ERR_SCHEMA)or
+              (NF.m_codstt =cs.ERR_REGRAS)or
+              (NF.m_codstt =cs.ERR_GERAL )or
+              (NF.m_codstt =cs.NFE_NAO_CONSTA_BD )or
+              (NF.m_codstt =cs.NFCE_DH_EMIS_RETRO)then
+            begin
+                CallOnStrProc(#9'Atualizando...');
+                if NF.UpdateNFe(now, Ord(m_Rep.param.xml_prodescri_rdz.Value), Ord(m_Rep.param.xml_procodigo_int.Value), S) then
+                    NF.Load()
+                else begin
+                    CallOnStrProc(S);
+                    Continue ;
+                end ;
+
+                //
+                // gera NFE
+                CallOnStrProc(#9'Gerando NFE ...') ;
+                nfe :=m_Rep.AddNotaFiscal(NF, False) ;
+                if nfe <> nil then
+                begin
+                    //
+                    // registra status/xml/chave
+                    NF.setXML();
+                    CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+                end
+                else begin
+                    //
+                    // reporta o erro
+                    CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                    //
+                    // força para a proxima nota
+                    Continue ;
+                end;
+            end;
+
+            //
+            // valida repositorio
+            if NF.m_codstt =cs.ERR_SCHEMA then
+            begin
+                m_Rep.nfe.NotasFiscais.Delete(nfe.Index);
+            end;
+
+            //
+            // inicializa lote para posterior envio
+            if(codLot = 0)and(m_Rep.nfe.NotasFiscais.Count >0) then
+            begin
+                codlot :=NF.m_codseq;
+            end ;
+
+            //
+            // consulta protocolo
+            //
+            if(retAssyncDuplCount > 0)or
+              (NF.m_codstt =cs.RET_PENDENTE)or
+              (NF.m_codstt =cs.DUPL)or
+              (NF.m_codstt =cs.LOT_EM_PROCESS)then
+            begin
+                //
+                //
+                TrataRetComDupl(NF);
+            end;
+
+        end; // fim do for
+
+        //
+        // existe lote pra envio
+        if(codlot > 0)then
+        begin
+            //
+            // envio lote
+            CallOnStrProc(#9'Enviando lote[%d] Assync',[codlot]);
+            send :=m_Rep.OnlySendAssync(codlot);
+            if send then
+            begin
+                retAssyncDuplCount :=TrataRetAssync ;
+            end
+            //
+            // trata retorno com erros
+            else begin
+                //
+                // alert falha
+                CallOnStrProc(#9'Envio falhou: %d-%s',[m_Rep.ErrCod,m_Rep.ErrMsg]);
+                TrataRetFair(nil);
+            end;
+        end;
+    end
+
+    //
+    // mostra msg conforme filtro
+    else begin
+        //
+        // alert
+        CallOnStrProc('Nenhuma NF encontrada!');
+        //
+        // se ja processou todos os modelos do CX
+        if((m_CodMod > 0)and(m_Filter.codmod =65))or
+          ( m_CodMod =00)then
+        begin
+            //
+            // termina tarefa
+            Self.Terminate ;
+        end ;
+    end;
+end;
+
+procedure TMySvcThread.doRunService;
+var
+  NF: TCNotFis00;
+  nfe: NotaFiscal;
+var
+  S: string;
+  retAssyncDuplCount: Integer;
+  send: Boolean;
+var
+  cs: NotFis00CodStatus ;
+begin
+
+    //
+    // chk filtro
+    m_Filter.nserie :=m_Rep.nSerie;
+    //m_Filter.save :=True;
+
+    //
+    // atualiza a view
+    m_reg.loadContingOffLine ;
+    CallOnContingOffLine(m_reg.conting_offline.Value);
+    //
+    //CallOnStrProc('Carregando Notas Fiscais (Ser:%d)',[m_Filter.nserie]);
+
+    //
+    // carrega conforme filtro
+    if m_Lote.Load(m_Filter) then
+    begin
+        //
+        // loop para processamento
+        for NF in m_Lote.Items do
+        begin
+            if Self.Terminated then Break ;
+
+            //
+            // força proxima NF
+            //
+
+            //
+            // NF processada
+            if NF.CStatProcess then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], já processada',
+                              [NF.m_numdoc,NF.m_codmod,NF.m_nserie]);
+                // proxima NF
+                Continue ;
+            end;
+
+            //
+            // NF cancelada
+            if NF.CstatCancel then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], cancelada!',
+                              [NF.m_numdoc,NF.m_codmod,NF.m_nserie]);
+                // proxima NF
+                Continue ;
+            end;
+
+            //
+            // alert para consumo indevido
+            if NF.m_codstt =cs.ERR_CONSUMO_INDEVIDO then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d]| %d:%s',[
+                  NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt,NF.m_motivo]);
+                // proxima NF
+                Continue ;
+            end;
+
+            //
+            // chk se ja foi gerada em Contingencia/Off
+            if(NF.m_codstt =TCNotFis00.CSTT_EMIS_CONTINGE)and
+              (NF.m_dhcont > 0)and(NF.m_chvnfe <>'') then
+            begin
+                // se NÃO process NF em contingencia
+                m_reg.loadSendConting ;
+                if not m_reg.send_conting.Value then
+                    Continue ;
+            end;
+
+            //
+            // NF vinculada ao lote
+            if(NF.m_codlot > 0)then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], Vinculada ao lote[%d]',[
+                  NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt,NF.m_codlot]);
+                Continue ;
+            end;
+
+            //
+            // emissão em contingencia Off
+            if m_reg.conting_offline.Value then
+            begin
+                //
+                // libera o CX para NF não processada
+                if NF.m_codstt = 0 then
+                begin
+                    //
+                    // emissão em contingência offline
+                    ProcContingOff(NF);
+                end;
+            end
+
+            //
+            // emissão (normal, svan, svrs)
+            else begin
+                //
+                // NF não processada;
+                // NF com erro de schema;
+                // NF com erro nas regras de validação;
+                // Rejeição 217: NFe não consta na base de dados;
+                // Rejeição 704: NFC-E com data-hora de emissão atrasada;
+                // Rejeição 999:  erro geral sefaz
+                if(NF.m_codstt in[0,cs.ERR_SCHEMA,cs.ERR_REGRAS,cs.NFE_NAO_CONSTA_BD])or
+                  (NF.m_codstt =cs.NFCE_DH_EMIS_RETRO)or
+                  (NF.m_codstt =cs.ERR_GERAL)then
+                begin
+                    //
+                    //
+                    CallOnStrProc('Atualizando NF: %d [Mod:%d Ser:%.3d], Status: %d',[
+                    NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt]);
+
+                    //
+                    // caso não consiga atualiza a NF
+                    // reporta o erro e vai para a proxima NF
+                    if not NF.UpdateNFe(now, Ord(m_Rep.param.xml_prodescri_rdz.Value), Ord(m_Rep.param.xml_procodigo_int.Value), S) then
+                    begin
+                        CallOnStrProc(#9'Erro: '+S);
+                        Continue ;
+                    end;
+
+                    //
+                    // gera NFE
+                    CallOnStrProc(#9'Gerando NFE ...') ;
+                    nfe :=m_Rep.AddNotaFiscal(NF, True) ;
+                    if nfe <> nil then
+                    begin
+                        //
+                        // registra status/xml/chave
+                        NF.setXML();
+                        //
+                        // reporta upd
+                        CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+
+                    end
+                    else begin
+                        //
+                        // reporta o erro
+                        CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                        //
+                        // força para a proxima nota
+                        Continue ;
+                    end;
+                end
+                else
+                    nfe :=nil;
+
+                //
+                // pronto p/ envio (nf0_codstt=1)
+                // contingencia off (nf0_codstt=9)
+                if NF.m_codstt in[cs.DONE_SEND,cs.CONTING_OFFLINE]then
+                begin
+                    //
+                    // chk nfe no repositorio
+                    if nfe = nil then
+                    begin
+                        //
+                        // carrega XML
+                        if NF.LoadXML then
+                        begin
+                            //
+                            // add nfe com base no XML
+                            nfe :=m_Rep.AddNotaFiscal(nil, True) ;
+                            nfe.LerXML(NF.m_xml) ;
+                        end
+                        else begin
+                            //
+                            // força XML
+                            nfe :=m_Rep.AddNotaFiscal(NF, True) ;
+                            if nfe <> nil then
+                            begin
+                                //
+                                // registra status/xml/chave
+                                NF.setXML();
+                                CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+                            end
+                            else begin
+                                //
+                                // reporta o erro
+                                CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                                //
+                                // força para a proxima nota
+                                Continue ;
+                            end;
+                        end;
+                    end;
+
+                    //
+                    // envio sincrono
+                    if m_Rep.param.send_lotsync.Value then
+                    begin
+                        CallOnStrProc('Enviando lote[%d] Sync',[NF.m_codseq]);
+                        send :=m_Rep.OnlySendSync(NF) ;
+                    end
+                    //
+                    // envio assincrono
+                    else begin
+                        CallOnStrProc('Enviando lote[%d] Assync',[NF.m_codseq]);
+                        send :=m_Rep.OnlySendAssync(NF.m_codseq);
+                    end;
+
+                    //
+                    // trata retorno com sucesso
+                    if send then
+                    begin
+                        //
+                        // retorno sync
+                        if m_Rep.param.send_lotsync.Value then
+                        begin
+                            // registra retorno
+                            NF.setStatus();
+                            // reporta motivo
+                            CallOnStrProc(#9+NF.m_motivo);
+                        end
+                        //
+                        // retorno assync
+                        else begin
+                            retAssyncDuplCount :=TrataRetAssync ;
+                            if retAssyncDuplCount > 0 then
+                              TrataRetComDupl(NF);
+                        end;
+                    end
+                    //
+                    // trata retorno sem sucesso
+                    else begin
+                        //
+                        // alert falha
+                        CallOnStrProc(#9'Envio falhou: %d-%s',[m_Rep.ErrCod,m_Rep.ErrMsg]);
+                        TrataRetFair(NF);
+                    end;
+                end;
+
+                //
+                // consulta protocolo
+                //
+                if(retAssyncDuplCount > 0)or
+                  (NF.m_codstt =cs.RET_PENDENTE)or
+                  (NF.m_codstt =cs.DUPL)or
+                  (NF.m_codstt =cs.LOT_EM_PROCESS)then
+                begin
+                    //
+                    //
+                    TrataRetComDupl(NF);
+                end;
+            end;
+
+        end;
+        //
+        //
+    end;
+end;
+
 procedure TMySvcThread.Execute;
 begin
     CallOnStrProc('%s.Execute',[Self.ClassName]);
@@ -199,6 +682,7 @@ begin
         inherited Execute;
     m_AlertCount :=0;
 end;
+
 
 procedure TMySvcThread.ProcAsync(const aCodLot: Integer) ;
 var
@@ -350,6 +834,77 @@ begin
 end;
 
 procedure TMySvcThread.RunProc;
+begin
+    //
+    // chk conn
+    //
+    if not ConnectionADO.Connected then
+    begin
+        ConnectionADO.Connected :=True;
+        if Empresa = nil then
+        begin
+            Empresa :=TCEmpresa.Instance;
+            Empresa.DoLoad(1);
+            //CallOnStrProc('Emitente: %s-%s',[Empresa.CNPJ,Empresa.RzSoci]);
+        end;
+        if CadEmp = nil then
+        begin
+            CadEmp :=TCCadEmp.New(1) ;
+            CallOnStrProc('Emitente: %s-%s',[CadEmp.CNPJ,CadEmp.xNome]);
+        end;
+    end;
+
+    try
+      //
+      // simula o singleton
+      if m_Rep =nil then
+      begin
+          // (aStatusChange =false) desabilita status de processamento
+          m_Rep :=TCBaseACBrNFE.New(False) ;
+
+          //
+          // check validade do certificado
+          if m_Rep.getDaysUseCertif <= 7 then
+          begin
+              if(m_AlertCount =0)or(m_Interval >= MSecsPerDay div HoursPerDay) then
+              begin
+                  //
+                  // sincroniza o alert aqui
+                  CallOnCertif(m_Rep.nfe.SSL.CertCNPJ, m_Rep.getDaysUseCertif);
+                  //
+                  // reset o intervalo
+                  m_Interval :=0 ;
+                  Inc(m_AlertCount);
+              end;
+
+              //
+              // caso o certificado venceu, termina a thread
+              if m_Rep.getDaysUseCertif <= 0 then
+              begin
+                  CallOnStrProc('Certificado vinculado ao CNPJ:%s já venceu!',[CadEmp.CNPJ]);
+                  Self.Terminate ;
+                  Exit;
+              end;
+          end;
+      end;
+      m_reg :=m_Rep.param ;
+
+      //
+      // prepare
+      case m_Filter.filTyp of
+          ftService: doRunService ;
+          ftFech: doRunFech ;
+      end;
+
+    finally
+      m_Lote.Items.Clear ;
+      if m_Filter.filTyp =ftService then
+          ConnectionADO.Close ;
+    end ;
+end;
+
+
+procedure TMySvcThread.RunProc00;
 var
   NF: TCNotFis00;
   nfe: NotaFiscal;
@@ -363,506 +918,467 @@ begin
     //
     // m_Log.AddSec('%s.RunProc',[Self.ClassName]);
     //
-    try
-      try
-      if not ConnectionADO.Connected then
-      begin
-          ConnectionADO.Connected :=True;
-          if Empresa = nil then
-          begin
-              Empresa :=TCEmpresa.Instance ;
-              Empresa.DoLoad(1);
-              CallOnStrProc('Emitente: %s-%s',[Empresa.CNPJ,Empresa.RzSoci]);
-          end;
-          if CadEmp = nil then
-          begin
-              CadEmp :=TCCadEmp.New(1) ;
-              CallOnStrProc('Emitente: %s-%s',[CadEmp.CNPJ,CadEmp.xNome]);
-          end;
-      end;
-
-      //
-      // simula o singleton
-      if m_Rep =nil then
-      begin
-          // (aStatusChange =false) desabilita status de processamento
-          m_Rep :=TCBaseACBrNFE.New(False) ;
-      end;
-      m_reg :=m_Rep.param ;
-
-      //
-      // check validade do certificado
-      if m_Rep.getDaysUseCertif <= 7 then
-      begin
-          if(m_AlertCount =0)or(m_Interval >= MSecsPerDay div HoursPerDay) then
-          begin
-              //
-              // sincroniza o alert aqui
-              CallOnCertif(m_Rep.nfe.SSL.CertCNPJ, m_Rep.getDaysUseCertif);
-              //
-              // reset o intervalo
-              m_Interval :=0 ;
-              Inc(m_AlertCount);
-          end;
-
-          //
-          // caso o certificado venceu, termina a thread
-          if m_Rep.getDaysUseCertif <= 0 then
-          begin
-              CallOnStrProc('Certificado vinculado ao CNPJ:%s já vencido.',[CadEmp.CNPJ]);
-              Self.Terminate ;
-              Exit;
-          end;
-      end;
-
-      //
-      // chk filtro
-      case m_Filter.filTyp of
-          ftService:
-          begin
-              m_Filter.nserie :=m_Rep.nSerie;
-              //m_Filter.save :=True;
-              //
-              // atualiza a view
-              m_reg.loadContingOffLine ;
-              CallOnContingOffLine(m_reg.conting_offline.Value);
-              //
-              //CallOnStrProc('Carregando Notas Fiscais (Ser:%d)',[m_Filter.nserie]);
-          end;
-          //
-          //
-          ftFech:
-          begin
-              if m_Filter.codmod < 55 then
-              begin
-                  m_Filter.codmod :=55 ;
-                  m_CodMod :=m_Filter.codmod ;
-              end
-              //
-              //
-              else begin
-                  if m_CodMod > 0 then
-                      m_Filter.codmod :=65 ;
-              end;
-              CallOnStrProc('Carregando Notas Fiscais (Mod:%d, Ser:%d)',[m_Filter.codmod,m_Filter.nserie]);
-          end;
-      end;
-
-      //
-      // carrega conforme filtro
-      if m_Lote.Load(m_Filter) then
-      begin
-          //
-          // X notas encontradas
-          {if m_Lote.Items.Count > 1 then
-          begin
-              CallOnStrProc('%d nota(s) fiscai(s) encontrada(s)!',[m_Lote.Items.Count]);
-          end;}
-
-          //
-          // inicializa lote
-          codLot :=0;
-          retAssyncDuplCount :=0;
-          m_Rep.nfe.NotasFiscais.Clear ;
-
-          //
-          // loop para processamento
-          for NF in m_Lote.Items do
-          begin
-              if Self.Terminated then Break ;
-
-              //
-              // força proxima NF
-              //
-              nfe :=nil ;
-
-              //
-              // NF processada
-              if NF.CStatProcess then
-              begin
-                  CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], já processada',
-                                [NF.m_numdoc,NF.m_codmod,NF.m_nserie]);
-                  // proxima NF
-                  Continue ;
-              end;
-
-              //
-              // NF cancelada
-              if NF.CstatCancel then
-              begin
-                  CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], cancelada!',
-                                [NF.m_numdoc,NF.m_codmod,NF.m_nserie]);
-                  // proxima NF
-                  Continue ;
-              end;
-
-              //
-              // alert para consumo indevido
-              if NF.m_codstt =cs.ERR_CONSUMO_INDEVIDO then
-              begin
-                  CallOnStrProc('NF:%d [Mod:%d Ser:%.3d]| %d:%s',[
-                    NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt,NF.m_motivo]);
-                  // proxima NF
-                  Continue ;
-              end;
-
-              //
-              // somente para serviço
-              // autorizador de NFE do CX
-              if m_Filter.filTyp =ftService then
-              begin
-                  //
-                  // chk se ja foi gerada em Contingencia/Off
-                  if(NF.m_codstt =TCNotFis00.CSTT_EMIS_CONTINGE)and
-                    (NF.m_dhcont > 0)and(NF.m_chvnfe <>'') then
-                  begin
-                      // se NÃO process NF em contingencia
-                      m_reg.loadSendConting ;
-                      if not m_reg.send_conting.Value then
-                          Continue ;
-                  end;
-
-                  //
-                  // se flag Contingencia OffLine esta ativa
-                  if m_reg.conting_offline.Value then
-                  begin
-                      //
-                      // libera o CX para NF não processada
-                      if NF.m_codstt = 0 then
-                      begin
-                          //
-                          // emissão em contingência offline
-                          ProcContingOff(NF);
-                      end;
-                  end
-                  //
-                  // emissão on-line (normal, svan, etc)
-                  else begin
-                      //
-                      // NF não processada;
-                      // NF com erro de schema;
-                      // NF com erro nas regras de validação;
-                      // Rejeição 217: NFe não consta na base de dados;
-                      // Rejeição 704: NFC-E com data-hora de emissão atrasada;
-                      // Rejeição 999:  erro geral sefaz
-                      if(NF.m_codstt in[0,cs.ERR_SCHEMA,cs.ERR_REGRAS,cs.NFE_NAO_CONSTA_BD])or
-                        (NF.m_codstt =cs.NFCE_DH_EMIS_RETRO)or
-                        (NF.m_codstt =cs.ERR_GERAL)then
-                      begin
-                          //
-                          //
-                          CallOnStrProc('Atualizando NF: %d [Mod:%d Ser:%.3d], Status: %d',[
-                          NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt]);
-
-                          //
-                          // caso não consiga atualiza a NF
-                          // reporta o erro e vai para a proxima NF
-                          if not NF.UpdateNFe(now, Ord(m_Rep.param.xml_prodescri_rdz.Value), Ord(m_Rep.param.xml_procodigo_int.Value), S) then
-                          begin
-                              CallOnStrProc(#9'Erro: '+S);
-                              Continue ;
-                          end;
-
-                          //
-                          // gera NFE
-                          CallOnStrProc(#9'Gerando NFE ...') ;
-                          nfe :=m_Rep.AddNotaFiscal(NF, True) ;
-                          if nfe <> nil then
-                          begin
-                              //
-                              // registra status/xml/chave
-                              NF.setXML();
-                              //
-                              // reporta upd
-                              CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
-
-                          end
-                          else begin
-                              //
-                              // reporta o erro
-                              CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
-                              //
-                              // força para a proxima nota
-                              Continue ;
-                          end;
-                      end
-                      else
-                          nfe :=nil;
-
-                      //
-                      // pronto p/ envio (nf0_codstt=1)
-                      // contingencia off (nf0_codstt=9)
-                      if NF.m_codstt in[cs.DONE_SEND,cs.CONTING_OFFLINE]then
-                      begin
-                          //
-                          // chk nfe no repositorio
-                          if nfe = nil then
-                          begin
-                              //
-                              // carrega XML
-                              if NF.LoadXML then
-                              begin
-                                  //
-                                  // add nfe com base no XML
-                                  nfe :=m_Rep.AddNotaFiscal(nil, True) ;
-                                  nfe.LerXML(NF.m_xml) ;
-                              end
-                              else begin
-                                  //
-                                  // força XML
-                                  nfe :=m_Rep.AddNotaFiscal(NF, True) ;
-                                  if nfe <> nil then
-                                  begin
-                                      //
-                                      // registra status/xml/chave
-                                      NF.setXML();
-                                      CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
-                                  end
-                                  else begin
-                                      //
-                                      // reporta o erro
-                                      CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
-                                      //
-                                      // força para a proxima nota
-                                      Continue ;
-                                  end;
-                              end;
-                          end;
-
-
-                          //
-                          // envio sincrono
-                          if m_Rep.param.send_lotsync.Value then
-                          begin
-                              CallOnStrProc('Enviando lote[%d] Sync',[NF.m_codseq]);
-                              send :=m_Rep.OnlySendSync(NF) ;
-                          end
-                          //
-                          // envio assincrono
-                          else begin
-                              CallOnStrProc('Enviando lote[%d] Assync',[NF.m_codseq]);
-                              send :=m_Rep.OnlySendAssync(NF.m_codseq);
-                          end;
-
-                          //
-                          // trata retorno com sucesso
-                          if send then
-                          begin
-                              //
-                              // retorno sync
-                              if m_Rep.param.send_lotsync.Value then
-                              begin
-                                  // registra retorno
-                                  NF.setStatus();
-                                  // reporta motivo
-                                  CallOnStrProc(#9+NF.m_motivo);
-                              end
-                              //
-                              // retorno assync
-                              else begin
-                                  retAssyncDuplCount :=TrataRetAssync ;
-                                  if retAssyncDuplCount > 0 then
-                                    TrataRetComDupl(NF);
-                              end;
-                          end
-                          //
-                          // trata retorno sem sucesso
-                          else begin
-                              //
-                              // alert falha
-                              CallOnStrProc(#9'Envio falhou: %d-%s',[m_Rep.ErrCod,m_Rep.ErrMsg]);
-                              TrataRetFair(NF);
-                          end;
-                      end;
-                  end;
-              end
-
-              //
-              // fechamento do CX
-              else begin
-                  //
-                  //
-                  if NF.m_codstt in[cs.DONE_SEND,cs.CONTING_OFFLINE] then
-                  begin
-                      //
-                      // carrega XML
-                      if NF.LoadXML then
-                      begin
-                          //
-                          // add nfe com base no XML
-                          nfe :=m_Rep.AddNotaFiscal(nil, False) ;
-                          nfe.LerXML(NF.m_xml) ;
-                      end
-                      else begin
-                          //
-                          // força XML
-                          nfe :=m_Rep.AddNotaFiscal(NF, False) ;
-                          if nfe <> nil then
-                          begin
-                              //
-                              // registra status/xml/chave
-                              NF.setXML();
-                              CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
-                          end
-                          else begin
-                              //
-                              // reporta o erro
-                              CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
-                              //
-                              // força para a proxima nota
-                              Continue ;
-                          end;
-                      end;
-                  end;
-
-                  //
-                  //
-                  if(NF.m_codstt =cs.ERR_SCHEMA )or
-                    (NF.m_codstt =cs.ERR_REGRAS )or
-                    (NF.m_codstt =cs.ERR_GERAL )or
-                    (NF.m_codstt =cs.NFE_NAO_CONSTA_BD )or
-                    (NF.m_codstt =cs.NFCE_DH_EMIS_RETRO )then
-                  //if NF.CStatError then
-                  //if not (NF.m_codstt in[cs.CONTING_OFFLINE,cs.DUPL]) then
-                  begin
-                      CallOnStrProc(#9'Atualizando...');
-                      if NF.UpdateNFe(now, Ord(m_Rep.param.xml_prodescri_rdz.Value), Ord(m_Rep.param.xml_procodigo_int.Value), S) then
-                          NF.Load()
-                      else begin
-                          CallOnStrProc(S);
-                          Continue ;
-                      end ;
-
-                      //
-                      // gera NFE
-                      CallOnStrProc(#9'Gerando NFE ...') ;
-                      nfe :=m_Rep.AddNotaFiscal(NF, False) ;
-                      if nfe <> nil then
-                      begin
-                          //
-                          // registra status/xml/chave
-                          NF.setXML();
-                          CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
-                          if NF.m_codstt =cs.ERR_SCHEMA then
-                              m_Rep.nfe.NotasFiscais.Delete(nfe.Index);
-                      end
-                      else begin
-                          //
-                          // reporta o erro
-                          CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
-                          //
-                          // força para a proxima nota
-                          Continue ;
-                      end;
-                  end;
-
-                  //
-                  // inicializa lote para posterior envio
-                  if(codLot = 0)and(m_Rep.nfe.NotasFiscais.Count >0) then
-                  begin
-                      codlot :=NF.m_codseq;
-                  end ;
-              end;
-
-              //
-              // consulta protocolo
-              //
-              if(retAssyncDuplCount > 0)or
-                (NF.m_codstt =cs.RET_PENDENTE)or
-                (NF.m_codstt =cs.DUPL)then
-              begin
-                  //
-                  //
-                  TrataRetComDupl(NF);
-
-                  {CallOnStrProc(#9'Consulta protocolo ...');
-                  if m_Rep.OnlyCons(NF) then
-                  begin
-                      //
-                      // Caso a NF não constar na base [217],
-                      // sera processada no proximo lote !
-                      NF.setStatus();
-                      CallOnStrProc(#9+NF.m_motivo);
-
-                      //
-                      // se NF ja existe com dif. de chave
-                      // reset. contingencia
-                      if(NF.m_codstt =cs.CHV_DIF_BD)and
-                      ((NF.m_tipemi =teContingencia)or(NF.m_tipemi =teOffLine))then
-                      begin
-                          CallOnStrProc(#9'Desfaz contingência...');
-                          NF.setContinge('', True);
-                          if m_Rep.AddNotaFiscal(NF, True) <> nil then
-                          begin
-                              NF.setXML() ;
-                          end ;
-                      end;
-                  end
-                  else begin
-                      CallOnStrProc(#9'Erro ao consultar protocolo!');
-                  end;}
-              end;
-          end;
-          //
-          //
-          if(m_Filter.filTyp =ftFech)and(codlot > 0) then
-          begin
-              // ProcAsync(codlot) ;
-              CallOnStrProc(#9'Enviando lote[%d] Assync',[codlot]);
-              send :=m_Rep.OnlySendAssync(codlot);
-              if send then
-              begin
-                  retAssyncDuplCount :=TrataRetAssync ;
-              end
-              //
-              // trata retorno com erros
-              else begin
-                  //
-                  // alert falha
-                  CallOnStrProc(#9'Envio falhou: %d-%s',[m_Rep.ErrCod,m_Rep.ErrMsg]);
-                  TrataRetFair(nil);
-              end;
-          end;
-      end
-
-      //
-      // mostra msg conforme filtro
-      else begin
-          if m_Filter.filTyp = ftFech then
-          begin
-              CallOnStrProc('Nenhuma NF encontrada!');
-              //
-              // se ja processou todos os modelos do CX
-              if((m_CodMod > 0)and(m_Filter.codmod =65))or
-                ( m_CodMod =00)then
-              begin
-                  //
-                  // termina tarefa
-                  Self.Terminate ;
-              end ;
-          end ;
-      end;
-
-      finally
-          m_Lote.Items.Clear ;
-          if m_Filter.filTyp =ftService then
-              ConnectionADO.Close ;
-      end ;
-
-    //
-    //
-    except
-        on E:EDatabaseError do
+    if not ConnectionADO.Connected then
+    begin
+        ConnectionADO.Connected :=True;
+        if Empresa = nil then
         begin
-            CallOnStrProc('Erro de banco: %s',[E.Message]);
+            Empresa :=TCEmpresa.Instance;
+            Empresa.DoLoad(1);
+            //CallOnStrProc('Emitente: %s-%s',[Empresa.CNPJ,Empresa.RzSoci]);
         end;
-        on E:Exception do
+        if CadEmp = nil then
         begin
-            CallOnStrProc('Erro geral: %s',[E.Message]);
+            CadEmp :=TCCadEmp.New(1) ;
+            CallOnStrProc('Emitente: %s-%s',[CadEmp.CNPJ,CadEmp.xNome]);
         end;
     end;
-end;
 
+    try
+    //
+    // simula o singleton
+    if m_Rep =nil then
+    begin
+        // (aStatusChange =false) desabilita status de processamento
+        m_Rep :=TCBaseACBrNFE.New(False) ;
+    end;
+    m_reg :=m_Rep.param ;
+
+    //
+    // check validade do certificado
+    if m_Rep.getDaysUseCertif <= 7 then
+    begin
+        if(m_AlertCount =0)or(m_Interval >= MSecsPerDay div HoursPerDay) then
+        begin
+            //
+            // sincroniza o alert aqui
+            CallOnCertif(m_Rep.nfe.SSL.CertCNPJ, m_Rep.getDaysUseCertif);
+            //
+            // reset o intervalo
+            m_Interval :=0 ;
+            Inc(m_AlertCount);
+        end;
+
+        //
+        // caso o certificado venceu, termina a thread
+        if m_Rep.getDaysUseCertif <= 0 then
+        begin
+            CallOnStrProc('Certificado vinculado ao CNPJ:%s já venceu!',[CadEmp.CNPJ]);
+            Self.Terminate ;
+            Exit;
+        end;
+    end;
+
+    //
+    // chk filtro
+    case m_Filter.filTyp of
+        ftService:
+        begin
+            m_Filter.nserie :=m_Rep.nSerie;
+            //m_Filter.save :=True;
+            //
+            // atualiza a view
+            m_reg.loadContingOffLine ;
+            CallOnContingOffLine(m_reg.conting_offline.Value);
+            //
+            //CallOnStrProc('Carregando Notas Fiscais (Ser:%d)',[m_Filter.nserie]);
+        end;
+        //
+        //
+        ftFech:
+        begin
+            if m_Filter.codmod < 55 then
+            begin
+                m_Filter.codmod :=55 ;
+                m_CodMod :=m_Filter.codmod ;
+            end
+            //
+            //
+            else begin
+                if m_CodMod > 0 then
+                    m_Filter.codmod :=65 ;
+            end;
+            //CallOnStrProc('Carregando Notas Fiscais (Mod:%d, Ser:%d)',[m_Filter.codmod,m_Filter.nserie]);
+        end;
+    end;
+
+    //
+    // carrega conforme filtro
+    if m_Lote.Load(m_Filter) then
+    begin
+        //
+        // X notas encontradas
+        {if m_Lote.Items.Count > 1 then
+        begin
+            CallOnStrProc('%d nota(s) fiscai(s) encontrada(s)!',[m_Lote.Items.Count]);
+        end;}
+
+        //
+        // inicializa lote
+        codLot :=0;
+        retAssyncDuplCount :=0;
+        m_Rep.nfe.NotasFiscais.Clear ;
+
+        //
+        // loop para processamento
+        for NF in m_Lote.Items do
+        begin
+            if Self.Terminated then Break ;
+
+            //
+            // força proxima NF
+            //
+            nfe :=nil ;
+
+            //
+            // NF processada
+            if NF.CStatProcess then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], já processada',
+                              [NF.m_numdoc,NF.m_codmod,NF.m_nserie]);
+                // proxima NF
+                Continue ;
+            end;
+
+            //
+            // NF cancelada
+            if NF.CstatCancel then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d], cancelada!',
+                              [NF.m_numdoc,NF.m_codmod,NF.m_nserie]);
+                // proxima NF
+                Continue ;
+            end;
+
+            //
+            // alert para consumo indevido
+            if NF.m_codstt =cs.ERR_CONSUMO_INDEVIDO then
+            begin
+                CallOnStrProc('NF:%d [Mod:%d Ser:%.3d]| %d:%s',[
+                  NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt,NF.m_motivo]);
+                // proxima NF
+                Continue ;
+            end;
+
+            //
+            // somente para serviço
+            // autorizador de NFE do CX
+            if m_Filter.filTyp =ftService then
+            begin
+                //
+                // chk se ja foi gerada em Contingencia/Off
+                if(NF.m_codstt =TCNotFis00.CSTT_EMIS_CONTINGE)and
+                  (NF.m_dhcont > 0)and(NF.m_chvnfe <>'') then
+                begin
+                    // se NÃO process NF em contingencia
+                    m_reg.loadSendConting ;
+                    if not m_reg.send_conting.Value then
+                        Continue ;
+                end;
+
+                //
+                // emissão em contingencia Off
+                if m_reg.conting_offline.Value then
+                begin
+                    //
+                    // libera o CX para NF não processada
+                    if NF.m_codstt = 0 then
+                    begin
+                        //
+                        // emissão em contingência offline
+                        ProcContingOff(NF);
+                    end;
+                end
+
+                //
+                // emissão on-line (normal, svan, etc)
+                else begin
+                    //
+                    // NF não processada;
+                    // NF com erro de schema;
+                    // NF com erro nas regras de validação;
+                    // Rejeição 217: NFe não consta na base de dados;
+                    // Rejeição 704: NFC-E com data-hora de emissão atrasada;
+                    // Rejeição 999:  erro geral sefaz
+                    if(NF.m_codstt in[0,cs.ERR_SCHEMA,cs.ERR_REGRAS,cs.NFE_NAO_CONSTA_BD])or
+                      (NF.m_codstt =cs.NFCE_DH_EMIS_RETRO)or
+                      (NF.m_codstt =cs.ERR_GERAL)then
+                    begin
+                        //
+                        //
+                        CallOnStrProc('Atualizando NF: %d [Mod:%d Ser:%.3d], Status: %d',[
+                        NF.m_numdoc,NF.m_codmod,NF.m_nserie,NF.m_codstt]);
+
+                        //
+                        // caso não consiga atualiza a NF
+                        // reporta o erro e vai para a proxima NF
+                        if not NF.UpdateNFe(now, Ord(m_Rep.param.xml_prodescri_rdz.Value), Ord(m_Rep.param.xml_procodigo_int.Value), S) then
+                        begin
+                            CallOnStrProc(#9'Erro: '+S);
+                            Continue ;
+                        end;
+
+                        //
+                        // gera NFE
+                        CallOnStrProc(#9'Gerando NFE ...') ;
+                        nfe :=m_Rep.AddNotaFiscal(NF, True) ;
+                        if nfe <> nil then
+                        begin
+                            //
+                            // registra status/xml/chave
+                            NF.setXML();
+                            //
+                            // reporta upd
+                            CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+
+                        end
+                        else begin
+                            //
+                            // reporta o erro
+                            CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                            //
+                            // força para a proxima nota
+                            Continue ;
+                        end;
+                    end
+                    else
+                        nfe :=nil;
+
+                    //
+                    // pronto p/ envio (nf0_codstt=1)
+                    // contingencia off (nf0_codstt=9)
+                    if NF.m_codstt in[cs.DONE_SEND,cs.CONTING_OFFLINE]then
+                    begin
+                        //
+                        // chk nfe no repositorio
+                        if nfe = nil then
+                        begin
+                            //
+                            // carrega XML
+                            if NF.LoadXML then
+                            begin
+                                //
+                                // add nfe com base no XML
+                                nfe :=m_Rep.AddNotaFiscal(nil, True) ;
+                                nfe.LerXML(NF.m_xml) ;
+                            end
+                            else begin
+                                //
+                                // força XML
+                                nfe :=m_Rep.AddNotaFiscal(NF, True) ;
+                                if nfe <> nil then
+                                begin
+                                    //
+                                    // registra status/xml/chave
+                                    NF.setXML();
+                                    CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+                                end
+                                else begin
+                                    //
+                                    // reporta o erro
+                                    CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                                    //
+                                    // força para a proxima nota
+                                    Continue ;
+                                end;
+                            end;
+                        end;
+
+
+                        //
+                        // envio sincrono
+                        if m_Rep.param.send_lotsync.Value then
+                        begin
+                            CallOnStrProc('Enviando lote[%d] Sync',[NF.m_codseq]);
+                            send :=m_Rep.OnlySendSync(NF) ;
+                        end
+                        //
+                        // envio assincrono
+                        else begin
+                            CallOnStrProc('Enviando lote[%d] Assync',[NF.m_codseq]);
+                            send :=m_Rep.OnlySendAssync(NF.m_codseq);
+                        end;
+
+                        //
+                        // trata retorno com sucesso
+                        if send then
+                        begin
+                            //
+                            // retorno sync
+                            if m_Rep.param.send_lotsync.Value then
+                            begin
+                                // registra retorno
+                                NF.setStatus();
+                                // reporta motivo
+                                CallOnStrProc(#9+NF.m_motivo);
+                            end
+                            //
+                            // retorno assync
+                            else begin
+                                retAssyncDuplCount :=TrataRetAssync ;
+                                if retAssyncDuplCount > 0 then
+                                  TrataRetComDupl(NF);
+                            end;
+                        end
+                        //
+                        // trata retorno sem sucesso
+                        else begin
+                            //
+                            // alert falha
+                            CallOnStrProc(#9'Envio falhou: %d-%s',[m_Rep.ErrCod,m_Rep.ErrMsg]);
+                            TrataRetFair(NF);
+                        end;
+                    end;
+                end;
+            end
+
+            //
+            // fechamento do CX
+            else begin
+                //
+                //
+                if NF.m_codstt in[cs.DONE_SEND,cs.CONTING_OFFLINE] then
+                begin
+                    //
+                    // carrega XML
+                    if NF.LoadXML then
+                    begin
+                        //
+                        // add nfe com base no XML
+                        nfe :=m_Rep.AddNotaFiscal(nil, False) ;
+                        nfe.LerXML(NF.m_xml) ;
+                    end
+                    else begin
+                        //
+                        // força XML
+                        nfe :=m_Rep.AddNotaFiscal(NF, False) ;
+                        if nfe <> nil then
+                        begin
+                            //
+                            // registra status/xml/chave
+                            NF.setXML();
+                            CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+                        end
+                        else begin
+                            //
+                            // reporta o erro
+                            CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                            //
+                            // força para a proxima nota
+                            Continue ;
+                        end;
+                    end;
+                end;
+
+                //
+                //
+                if(NF.m_codstt =cs.ERR_SCHEMA )or
+                  (NF.m_codstt =cs.ERR_REGRAS )or
+                  (NF.m_codstt =cs.ERR_GERAL )or
+                  (NF.m_codstt =cs.NFE_NAO_CONSTA_BD )or
+                  (NF.m_codstt =cs.NFCE_DH_EMIS_RETRO )then
+                //if NF.CStatError then
+                //if not (NF.m_codstt in[cs.CONTING_OFFLINE,cs.DUPL]) then
+                begin
+                    CallOnStrProc(#9'Atualizando...');
+                    if NF.UpdateNFe(now, Ord(m_Rep.param.xml_prodescri_rdz.Value), Ord(m_Rep.param.xml_procodigo_int.Value), S) then
+                        NF.Load()
+                    else begin
+                        CallOnStrProc(S);
+                        Continue ;
+                    end ;
+
+                    //
+                    // gera NFE
+                    CallOnStrProc(#9'Gerando NFE ...') ;
+                    nfe :=m_Rep.AddNotaFiscal(NF, False) ;
+                    if nfe <> nil then
+                    begin
+                        //
+                        // registra status/xml/chave
+                        NF.setXML();
+                        CallOnStrProc(#9'%s, chave: %s',[NF.m_motivo,NF.m_chvnfe]);
+                        if NF.m_codstt =cs.ERR_SCHEMA then
+                            m_Rep.nfe.NotasFiscais.Delete(nfe.Index);
+                    end
+                    else begin
+                        //
+                        // reporta o erro
+                        CallOnStrProc(#9'NFE não gerada: ' +m_Rep.ErrMsg);
+                        //
+                        // força para a proxima nota
+                        Continue ;
+                    end;
+                end;
+
+                //
+                // inicializa lote para posterior envio
+                if(codLot = 0)and(m_Rep.nfe.NotasFiscais.Count >0) then
+                begin
+                    codlot :=NF.m_codseq;
+                end ;
+            end;
+
+            //
+            // consulta protocolo
+            //
+            if(retAssyncDuplCount > 0)or
+              (NF.m_codstt =cs.RET_PENDENTE)or
+              (NF.m_codstt =cs.DUPL)then
+            begin
+                //
+                //
+                TrataRetComDupl(NF);
+            end;
+
+        end;
+        //
+        //
+        if(m_Filter.filTyp =ftFech)and(codlot > 0) then
+        begin
+            // ProcAsync(codlot) ;
+            CallOnStrProc(#9'Enviando lote[%d] Assync',[codlot]);
+            send :=m_Rep.OnlySendAssync(codlot);
+            if send then
+            begin
+                retAssyncDuplCount :=TrataRetAssync ;
+            end
+            //
+            // trata retorno com erros
+            else begin
+                //
+                // alert falha
+                CallOnStrProc(#9'Envio falhou: %d-%s',[m_Rep.ErrCod,m_Rep.ErrMsg]);
+                TrataRetFair(nil);
+            end;
+        end;
+    end
+
+    //
+    // mostra msg conforme filtro
+    else begin
+        if m_Filter.filTyp = ftFech then
+        begin
+            CallOnStrProc('Nenhuma NF encontrada!');
+            //
+            // se ja processou todos os modelos do CX
+            if((m_CodMod > 0)and(m_Filter.codmod =65))or
+              ( m_CodMod =00)then
+            begin
+                //
+                // termina tarefa
+                Self.Terminate ;
+            end ;
+        end ;
+    end;
+
+    finally
+        m_Lote.Items.Clear ;
+        if m_Filter.filTyp =ftService then
+            ConnectionADO.Close ;
+    end ;
+
+end;
 
 function TMySvcThread.TrataRetAssync: Integer;
 var
@@ -877,6 +1393,22 @@ begin
     //
     //
     ret :=m_Rep.nfe.WebServices.Retorno;
+    CallOnStrProc(#9'%d|%s]',[ret.cStat,ret.xMotivo]);
+
+    //
+    // ainda em processamento
+    {if ret.cStat =cs.LOT_EM_PROCESS then
+    begin
+        //
+        // ler retorno até liberar o lote!
+        CallOnStrProc(#9'Aguardando resultado do processamento');
+        repeat
+
+        until(ret.cStat =cs.LOT_PROCESS);
+        //while (not Self.Terminated)and
+        //
+    end;}
+
     //
     // lopp para
     // read e update cada nfe
@@ -899,7 +1431,7 @@ begin
             NF.m_numreci:=ret.Recibo ;
             NF.m_dhreceb:=now ;
 
-            if ret.NFeRetorno.cStat =cs.PROCESS then
+            if ret.NFeRetorno.cStat =cs.LOT_EM_PROCESS then
             begin
                 NF.m_codstt :=nfe.procNFe.cStat ;
                 NF.m_motivo :=nfe.procNFe.xMotivo;
@@ -932,6 +1464,7 @@ begin
             end;
         end;
     end;
+
     //
     // TRATA DUPL
     if Result > 0 then

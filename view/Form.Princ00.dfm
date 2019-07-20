@@ -55,12 +55,13 @@ object frm_Princ00: Tfrm_Princ00
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnChange = vst_Grid1Change
     OnHeaderClick = vst_Grid1HeaderClick
+    ExplicitTop = -1
     Columns = <
       item
         Color = 15000804
         Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coFixed, coAllowFocus]
         Position = 0
-        Width = 320
+        Width = 325
         WideText = 'Chave'
       end
       item
