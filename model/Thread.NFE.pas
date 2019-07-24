@@ -110,6 +110,7 @@ type
     m_AlertCount: Word ;
     procedure CallOnCertif(const aCNPJ: string; const aDays: Word);
     procedure CallOnContingOffLine(const aFlag: Boolean);
+    procedure CallOnExcept(Sender: TObject; const E: Exception);
   protected
     procedure Execute; override;
     procedure RunProc; override;
@@ -172,6 +173,11 @@ begin
     end;
 end;
 
+procedure TMySvcThread.CallOnExcept(Sender: TObject; const E: Exception);
+begin
+
+end;
+
 constructor TMySvcThread.Create(const aFilter: TNotFis00Filter);
 //Create the thread Suspended so that properties can be set before resuming the thread.
 begin
@@ -181,6 +187,7 @@ begin
 //    m_Log.AddSec('%s.Create',[Self.ClassName]);
     //
     m_Lote :=TCNotFis00Lote.Create ;
+
 end;
 
 destructor TMySvcThread.Destroy;
@@ -838,8 +845,13 @@ begin
     //
     // chk conn
     //
-    if not ConnectionADO.Connected then
+    if ConnectionADO.Connected and(m_Filter.filTyp =ftService)then
     begin
+        ConnectionADO.Close ;
+    end;
+
+//    if not ConnectionADO.Connected then
+//    begin
         ConnectionADO.Connected :=True;
         if Empresa = nil then
         begin
@@ -852,7 +864,7 @@ begin
             CadEmp :=TCCadEmp.New(1) ;
             CallOnStrProc('Emitente: %s-%s',[CadEmp.CNPJ,CadEmp.xNome]);
         end;
-    end;
+//    end;
 
     try
       //

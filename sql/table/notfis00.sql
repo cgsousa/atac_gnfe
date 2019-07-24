@@ -28,7 +28,7 @@ go
 
 */
 
-use comercio
+use comercio1
 go
 
 
@@ -471,3 +471,53 @@ go
 if (select character_maximum_length from information_schema.columns where table_name='eventocce' and column_name ='cce_xcorrecao')<1000
   alter table eventocce alter column cce_xcorrecao varchar(1000) null
 go
+
+--//
+--// 22.07.2019
+--// Eventos (Cancelamento e CCe) da NFe
+--drop table eventonfe 
+--go
+if not exists (select *from dbo.sysobjects where id = object_id(N'eventonfe') and objectproperty(id, N'IsTable') = 1) 
+  create table eventonfe (en0_codseq int not null identity(1,1) ,
+    en0_codntf int not null ,
+    --//envio
+    en0_versao smallint null ,
+    en0_codorg smallint not null ,
+    en0_tipamb smallint not null ,
+    en0_cnpj varchar(14) not null,
+    en0_chvnfe char(44) not null ,
+    en0_dhevento datetime not null constraint df__eventonfe_en0_dhevento default getdate() ,
+    en0_tpevento int not null ,
+    en0_numseq smallint not null,
+    en0_textcce varchar(1000) null, --// texto livre da CC-e
+    --//retorno
+    en0_verapp varchar(20) null ,
+    en0_codstt smallint null ,
+    en0_motivo varchar(250) null ,
+    en0_iddest varchar(14) null,
+    en0_emaildest varchar(50) null, 
+    en0_dhreceb datetime null ,
+    en0_numprot char(15) null ,
+    --//control
+    en0_flag smallint 
+
+    ,constraint fk__en0_codntf foreign key (en0_codntf) references notfis00(nf0_codseq) 
+    ,constraint pk__eventonfe primary key (en0_codseq)
+
+  )
+go
+
+if not exists(select 1from syscolumns where id = object_id('eventonfe') and name = 'en0_xml')
+begin
+  --//
+  --// chk compatibilidade
+  declare @versql sysname; set @versql =convert(sysname, serverproperty('ProductVersion'));
+  declare @posdot smallint; set @posdot =charindex('.',@versql);
+  declare @cmplvl smallint; set @cmplvl =substring(@versql,1,@posdot-1);
+  if @cmplvl > 8 --sql 2005 pra cima
+    exec ('alter table eventonfe add en0_xml xml null')
+  else
+    alter table eventonfe add en0_xml text null
+end
+
+

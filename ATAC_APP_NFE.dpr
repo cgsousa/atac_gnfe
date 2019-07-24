@@ -19,7 +19,8 @@ uses
   Form.GenSerialNFE in 'view\Form.GenSerialNFE.pas' {frm_GenSerialNFE},
   Form.RelNFRL02 in 'view\Form.RelNFRL02.pas' {frm_RelNFRL02},
   Thread.NFE in 'model\Thread.NFE.pas',
-  Form.ExportXML in 'view\Form.ExportXML.pas' {frm_ExportXML};
+  Form.ExportXML in 'view\Form.ExportXML.pas' {frm_ExportXML},
+  ueventonfe in 'model\ueventonfe.pas';
 
 {$R *.res}
 {$R ATAC_APP_NFE.UAC.res}

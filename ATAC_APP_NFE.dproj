@@ -94,6 +94,7 @@
 			<DCCReference Include="view\Form.ExportXML.pas">
 				<Form>frm_ExportXML</Form>
 			</DCCReference>
+			<DCCReference Include="model\ueventonfe.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

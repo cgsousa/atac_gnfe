@@ -3758,7 +3758,7 @@ begin
         C.AddCmd('and nf0_codstt not in(101,151,135,155,218)    ');
         C.AddCmd('--//notas nao inutilizadas                    ');
         C.AddCmd('and nf0_codstt not in(102,563)                ');
-        C.AddCmd('--//notas vinculadas                          ');
+        C.AddCmd('--//notas vinculadas ao lote                  ');
         C.AddCmd('and nf0_codlot is not null                    ');
         C.ExecSQL ;
     finally

@@ -55,7 +55,6 @@ object frm_Princ00: Tfrm_Princ00
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnChange = vst_Grid1Change
     OnHeaderClick = vst_Grid1HeaderClick
-    ExplicitTop = -1
     Columns = <
       item
         Color = 15000804
@@ -389,7 +388,7 @@ object frm_Princ00: Tfrm_Princ00
       Top = 5
       Width = 80
       Height = 30
-      Hint = 'Cancelamento / Carta de Corre'#231#227'o'
+      Hint = 'Cancelamento e Carta de Corre'#231#227'o da NF-e'
       Anchors = [akLeft, akBottom]
       Caption = 'Evento'
       DropDownMenu = pm_Evento
