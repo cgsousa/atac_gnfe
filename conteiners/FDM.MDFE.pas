@@ -3,13 +3,15 @@ unit FDM.MDFE;
 interface
 
 uses
-  SysUtils, Classes, ACBrDFeReport, ACBrMDFeDAMDFeClass, ACBrMDFeDAMDFeRLClass,
-  ACBrBase, ACBrDFe, ACBrMDFe;
+  SysUtils, Classes,
+  ACBrDFeReport, ACBrMDFeDAMDFeClass, ACBrMDFeDAMDFeRLClass,
+  ACBrBase, ACBrDFe, ACBrMDFe, ACBrMail;
 
 type
   Tdm_mdfe = class(TDataModule)
     m_MDFe: TACBrMDFe;
     m_DAMDFeRL: TACBrMDFeDAMDFeRL;
+    m_Mail: TACBrMail;
   private
     { Private declarations }
   public

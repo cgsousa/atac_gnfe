@@ -1,4 +1,4 @@
-use comercio
+use comercio1
 go
 
 if exists (select *from dbo.sysobjects where id = object_id(N'sp_manifestodf00_add') and objectproperty(id, N'IsProcedure') = 1)
@@ -95,9 +95,6 @@ as
     --// conforme cnpj/modelo/serie
     set @ser_ident =stuff(@ser_ident,4-len(@md0_nserie),len(@md0_nserie),@md0_nserie);  
     set @ser_ident ='mdfe.'+@emi_cnpj+'.nserie.'+ @ser_ident
-    --if not exists (select *from genserial where ser_ident =@ser_ident)
-    set @ser_ident ='[MDFE]'+@ser_ident ;
-    exec sp_setval @ser_ident 
     exec sp_nextval @ser_ident, @md0_numdoc out, 0;
 
     --//
@@ -158,6 +155,24 @@ as
   --//  
 go
 
+/*
+declare 
+  @ret_cod int,
+  @cod_seq int
 
+exec @ret_cod =sp_manifestodf00_add
+  @codemp =1 ,
+  @codufe =21 ,
+  @tipamb =1,
+  @tpemit =1,
+  @tptransp =1,
+  @modal =0,
+  @tpemis =0,
+  @verproc ='ATAC MDFe 0.01',
+  @ufeini ='MA',
+  @ufefim ='MA',
+  @rntrc =NULL ,
+  @codvei =1,
+  @codseq =@cod_seq out
 
-
+*/

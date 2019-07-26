@@ -131,7 +131,7 @@ object frm_Manifesto: Tfrm_Manifesto
     Top = 0
     Width = 794
     Height = 553
-    ActivePage = tab_Browse
+    ActivePage = tab_Manifesto
     ActiveFont.Charset = DEFAULT_CHARSET
     ActiveFont.Color = clWindowText
     ActiveFont.Height = -11
@@ -157,7 +157,7 @@ object frm_Manifesto: Tfrm_Manifesto
       ColorTo = clNone
       TabColor = clInactiveCaption
       TabColorTo = clNone
-      object vst_GridNFE: TVirtualStringTree
+      object vst_Grid1: TVirtualStringTree
         Left = 241
         Top = 0
         Width = 545
@@ -192,9 +192,10 @@ object frm_Manifesto: Tfrm_Manifesto
         TreeOptions.MiscOptions = [toAcceptOLEDrop, toCheckSupport, toInitOnSave, toToggleOnDblClick, toWheelPanning]
         TreeOptions.PaintOptions = [toHotTrack, toShowDropmark, toShowHorzGridLines, toShowVertGridLines, toUseBlendedImages]
         TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
-        OnGetText = vst_GridNFEGetText
-        ExplicitLeft = 290
-        ExplicitTop = 3
+        OnChecked = vst_Grid1Checked
+        OnGetText = vst_Grid1GetText
+        OnPaintText = vst_Grid1PaintText
+        OnHeaderClick = vst_Grid1HeaderClick
         Columns = <
           item
             CheckBox = True
@@ -357,8 +358,8 @@ object frm_Manifesto: Tfrm_Manifesto
           end
         end
         object btn_Find: TJvImgBtn
-          Left = 130
-          Top = 473
+          Left = 122
+          Top = 465
           Width = 100
           Height = 30
           Anchors = [akRight, akBottom]
@@ -450,6 +451,7 @@ object frm_Manifesto: Tfrm_Manifesto
         Align = alTop
         Caption = ' Identifica'#231#227'o  '
         TabOrder = 0
+        ExplicitTop = -6
         object cbx_mdfTpEmit: TAdvComboBox
           Left = 163
           Top = 16
@@ -554,7 +556,7 @@ object frm_Manifesto: Tfrm_Manifesto
         Top = 70
         Width = 786
         Height = 454
-        ActivePage = tab_Mun
+        ActivePage = tab_Rodo
         ActiveFont.Charset = DEFAULT_CHARSET
         ActiveFont.Color = clWindowText
         ActiveFont.Height = -11
@@ -617,7 +619,6 @@ object frm_Manifesto: Tfrm_Manifesto
             TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
             OnChange = vst_GridMunChange
             OnGetText = vst_GridMunGetText
-            ExplicitTop = 2
             Columns = <
               item
                 Color = clWindow
@@ -660,7 +661,6 @@ object frm_Manifesto: Tfrm_Manifesto
           Highlighted = True
           TabColor = clInactiveCaption
           TabColorTo = clNone
-          ExplicitTop = 27
           object edt_VeiCod: TAdvEditBtn
             Left = 121
             Top = 0
@@ -784,6 +784,7 @@ object frm_Manifesto: Tfrm_Manifesto
               TreeOptions.PaintOptions = [toHotTrack, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowTreeLines, toShowVertGridLines, toUseBlendedImages]
               TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
               OnGetText = vst_GridCdtVincGetText
+              ExplicitLeft = 432
               Columns = <
                 item
                   Color = clWindow

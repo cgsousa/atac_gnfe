@@ -45,6 +45,10 @@
 				<Form>dm_Styles</Form>
 				<DesignClass>TDataModule</DesignClass>
 			</DCCReference>
+			<DCCReference Include="conteiners\FDM.MDFE.pas">
+				<Form>dm_mdfe</Form>
+				<DesignClass>TDataModule</DesignClass>
+			</DCCReference>
 			<DCCReference Include="mdfe\view\Form.ManifestoList.pas">
 				<Form>frm_ManifestoList</Form>
 			</DCCReference>
@@ -64,10 +68,8 @@
 			<DCCReference Include="mdfe\controller\uManifestoCtr.pas"/>
 			<DCCReference Include="mdfe\controller\uCondutorCtr.pas"/>
 			<DCCReference Include="mdfe\controller\uVeiculoCtr.pas"/>
-			<DCCReference Include="conteiners\FDM.MDFE.pas">
-				<Form>dm_mdfe</Form>
-				<DesignClass>TDataModule</DesignClass>
-			</DCCReference>
+			<DCCReference Include="mdfe\uACBrMDFe.pas"/>
+			<DCCReference Include="model\unotfis00.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -100,7 +102,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">0</VersionInfo>
 						<VersionInfo Name="Release">0</VersionInfo>
-						<VersionInfo Name="Build">1</VersionInfo>
+						<VersionInfo Name="Build">2</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -112,7 +114,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Atac Sistemas</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">App gerenciador do MDF-e</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.0.0.1</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.0.0.2</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">ATAC_APP_MDFE</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">(c)</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">Todos os direitos reservados</VersionInfoKeys>

@@ -32,7 +32,7 @@ type
     AdvOfficeStatusBar1: TAdvOfficeStatusBar;
     pag_Control00: TAdvPageControl;
     tab_Browse: TAdvTabSheet;
-    vst_GridNFE: TVirtualStringTree;
+    vst_Grid1: TVirtualStringTree;
     pnl_Filter: TAdvPanel;
     gbx_DtEmis: TAdvGroupBox;
     edt_DatIni: TJvDateEdit;
@@ -87,8 +87,14 @@ type
     procedure pag_Control00Change(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
     procedure btn_CdtRmvClick(Sender: TObject);
-    procedure vst_GridNFEGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
+    procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
+    procedure vst_Grid1HeaderClick(Sender: TVTHeader;
+      HitInfo: TVTHeaderHitInfo);
+    procedure vst_Grid1PaintText(Sender: TBaseVirtualTree;
+      const TargetCanvas: TCanvas; Node: PVirtualNode; Column: TColumnIndex;
+      TextType: TVSTTextType);
+    procedure vst_Grid1Checked(Sender: TBaseVirtualTree; Node: PVirtualNode);
   private
     { Private declarations }
     m_Ctrl: IManifestoCtr;
@@ -114,10 +120,11 @@ implementation
 {$R *.dfm}
 
 uses StrUtils, DateUtils,
-  uTaskDlg, uadodb, udbconst,
-  FDM.NFE, fdm.Styles ,
+  uTaskDlg, uadodb, udbconst, ustr ,
+  FDM.MDFE, fdm.Styles ,
   uManifestoDF, uVeiculoCtr, uVeiculo,
-  Form.Veiculo, Form.Condutor
+  Form.Veiculo, Form.Condutor ,
+  pcnConversao
   ;
 
 const
@@ -202,12 +209,12 @@ procedure Tfrm_Manifesto.btn_FindClick(Sender: TObject);
       M: TCManifestodf01mun;
       I: IManifestodf02nfe ;
     begin
-        vst_GridNFE.Clear ;
+        vst_Grid1.Clear ;
         for N in m_lote.Items do
         begin
             N.Checked :=True ;
 
-            P :=vst_GridNFE.AddChild(nil) ;
+            P :=vst_Grid1.AddChild(nil) ;
             //
             // chk mun. descarga
             M :=m_Ctrl.Model.municipios.indexOf(N.m_dest.EnderDest.cMun,mtDescarga) ;
@@ -232,8 +239,8 @@ procedure Tfrm_Manifesto.btn_FindClick(Sender: TObject);
             else
                 Include(P.States, vsDisabled);
         end;
-        vst_GridNFE.IndexItem :=0 ;
-        vst_GridNFE.Refresh ;
+        vst_Grid1.IndexItem :=0 ;
+        vst_Grid1.Refresh ;
     end;
     //
     //
@@ -279,9 +286,9 @@ begin
 
     F.codmod :=55 ;
     F.nserie :=0;
-    F.status :=sttProcess ;
+    F.status :=sttAutoriza ;
 
-    vst_GridNFE.Clear ;
+    vst_Grid1.Clear ;
     setStatus('Carregando NFE'#13#10'Aguarde...', crSQLWait);
     try
       m_lote.Load(F) ;
@@ -293,7 +300,7 @@ begin
     begin
         LoadGrid() ;
         btn_Filter.Click ;
-        ActiveControl :=vst_GridNFE ;
+        ActiveControl :=vst_Grid1 ;
         btn_Vincula.Enabled :=True ;
     end
     else begin
@@ -411,13 +418,15 @@ begin
                 // add nfe somente para mum. descarga
                 if M.tipoMun =mtDescarga then
                 begin
-                    M.nfeList.addNew(
-                        TCManifestodf02nfe.New( N.m_chvnfe, '', False,
-//                                                N.m_codseq,
-                                                N.m_icmstot.vNF,
-                                                N.m_transp.Vol.Items[0].pesoB
+                    I :=M.nfeList.indexOf(N.m_chvnfe) ;
+                    if I = nil then
+                        M.nfeList.addNew(
+                          TCManifestodf02nfe.New( N.m_chvnfe, '', False,
+                                                  N.m_icmstot.vNF,
+                                                  N.m_transp.Vol.Items[0].pesoB,
+                                                  N.m_codseq
                                                 )
-                    ) ;
+                        ) ;
                 end;
             end;
         end;
@@ -427,7 +436,7 @@ begin
         pag_Control00.ActivePageIndex :=1;
         pag_Control01.ActivePageIndex :=0;
         ActiveControl :=vst_GridMun ;
-        vst_GridNFE.Clear ;
+        vst_Grid1.Clear ;
     end;
 end;
 
@@ -560,7 +569,7 @@ begin
 
     pag_Control01.ActivePageIndex :=0;
 
-    vst_GridNFE.Clear ;
+    vst_Grid1.Clear ;
 
     //
     // load grid
@@ -768,6 +777,7 @@ procedure Tfrm_Manifesto.vst_GridMunGetText(Sender: TBaseVirtualTree;
 var
   M: TCManifestodf01mun ;
   N: IManifestodf02nfe ;
+  S:UtilStr ;
 begin
     if Assigned(Node) then
     begin
@@ -799,16 +809,28 @@ begin
                 N :=M.nfeList.getDataList[Node.Index] ;
                 case Column of
                     0: CellText :=N.chvNFE ;
-                    1: CellText :='';
-                    2: CellText :='';
-                    3: CellText :='';
+                    1: CellText :='1';
+                    2: CellText :=S.fCur(N.vlrNtf);
+                    3: CellText :=S.fFlt(N.volPsoB);
                 end;
             end;
         end;
     end;
 end;
 
-procedure Tfrm_Manifesto.vst_GridNFEGetText(Sender: TBaseVirtualTree;
+procedure Tfrm_Manifesto.vst_Grid1Checked(Sender: TBaseVirtualTree;
+  Node: PVirtualNode);
+var
+  N: TCNotFis00 ;
+begin
+    if Assigned(Node) then
+    begin
+        N :=m_Lote.Items[Node.Index] ;
+        N.Checked := Node.CheckState =csCheckedNormal ;
+    end;
+end;
+
+procedure Tfrm_Manifesto.vst_Grid1GetText(Sender: TBaseVirtualTree;
   Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
   var CellText: string);
 var
@@ -825,6 +847,64 @@ begin
         05: CellText :=FormatDateTime('dd/MM/yyyy HH:NN', N.m_dtemis) ;
         06: CellText :=CFrmtStr.Cur(N.m_icmstot.vNF) ;
         07: CellText :=CFrmtStr.Flt(N.m_transp.Vol.Items[0].pesoB, 3) ;
+    end;
+end;
+
+procedure Tfrm_Manifesto.vst_Grid1HeaderClick(Sender: TVTHeader;
+  HitInfo: TVTHeaderHitInfo);
+var
+  C: TVirtualTreeColumn;
+  P: PVirtualNode;
+  N: TCNotFis00 ;
+begin
+    //
+    // checkbox ativo
+    //
+    if hhiOnCheckbox in HitInfo.HitPosition then
+    begin
+        C :=vst_Grid1.Header.Columns[HitInfo.Column] ;
+        P :=vst_Grid1.RootNode.FirstChild;
+        while Assigned(P) do
+        begin
+            N :=m_Lote.Items[P.Index] ;
+            N.Checked :=(C.CheckState = csCheckedNormal) ;
+            if N.Checked then
+            begin
+                vst_Grid1.CheckState[P] :=csCheckedNormal;
+                P :=vst_Grid1.GetNextInitialized(P);
+            end
+            else begin
+                vst_Grid1.CheckState[P] :=csUncheckedNormal;
+                P :=vst_Grid1.GetNextNoInit(P);
+            end;
+        end;
+        vst_Grid1.Refresh ;
+    end;
+end;
+
+procedure Tfrm_Manifesto.vst_Grid1PaintText(Sender: TBaseVirtualTree;
+  const TargetCanvas: TCanvas; Node: PVirtualNode; Column: TColumnIndex;
+  TextType: TVSTTextType);
+var
+  C: TCanvas;
+  N: TCNotFis00 ;
+  cs: NotFis00CodStatus ;
+begin
+    C :=TargetCanvas ;
+    if TextType = ttNormal then
+    begin
+        N :=m_Lote.Items[Node.Index] ;
+        if(Node = Sender.FocusedNode)and(Column = Sender.FocusedColumn) then
+        begin
+            C.Font.Color :=clWhite ;
+        end
+        else begin
+            //TpcnTipoEmissao = (teNormal, teContingencia, teSCAN, teDPEC, teFSDA, teSVCAN, teSVCRS, teSVCSP, teOffLine);
+            if N.m_tipemi <> teNormal then
+                TargetCanvas.Font.Color :=clMaroon
+            else
+                TargetCanvas.Font.Color :=clGreen ;
+        end;
     end;
 end;
 

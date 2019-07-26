@@ -3,6 +3,7 @@ program ATAC_APP_MDFE;
 uses
   Forms,
   fdm.Styles in 'conteiners\fdm.Styles.pas' {dm_Styles: TDataModule},
+  FDM.MDFE in 'conteiners\FDM.MDFE.pas' {dm_mdfe: TDataModule},
   Form.ManifestoList in 'mdfe\view\Form.ManifestoList.pas' {frm_ManifestoList},
   uIntf in 'interfaces\uIntf.pas',
   uCondutor in 'mdfe\uCondutor.pas',
@@ -14,16 +15,17 @@ uses
   uManifestoCtr in 'mdfe\controller\uManifestoCtr.pas',
   uCondutorCtr in 'mdfe\controller\uCondutorCtr.pas',
   uVeiculoCtr in 'mdfe\controller\uVeiculoCtr.pas',
-  FDM.MDFE in 'conteiners\FDM.MDFE.pas' {dm_mdfe: TDataModule};
+  uACBrMDFe in 'mdfe\uACBrMDFe.pas',
+  unotfis00 in 'model\unotfis00.pas';
 
 {$R *.res}
 
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.Title := 'Atac Gerenciador MDF-e';
+  Application.Title := 'Atac Manifesto de Documentos Fiscais';
   Application.CreateForm(Tdm_Styles, dm_Styles);
-  Application.CreateForm(Tfrm_ManifestoList, frm_ManifestoList);
   Application.CreateForm(Tdm_mdfe, dm_mdfe);
+  Application.CreateForm(Tfrm_ManifestoList, frm_ManifestoList);
   Application.Run;
 end.

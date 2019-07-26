@@ -3,6 +3,7 @@ object dm_mdfe: Tdm_mdfe
   Height = 178
   Width = 244
   object m_MDFe: TACBrMDFe
+    MAIL = m_Mail
     Configuracoes.Geral.SSLLib = libNone
     Configuracoes.Geral.SSLCryptLib = cryNone
     Configuracoes.Geral.SSLHttpLib = httpNone
@@ -37,5 +38,16 @@ object dm_mdfe: Tdm_mdfe
     PrintDialog = True
     Left = 136
     Top = 24
+  end
+  object m_Mail: TACBrMail
+    Host = '127.0.0.1'
+    Port = '25'
+    SetSSL = False
+    SetTLS = False
+    Attempts = 3
+    DefaultCharset = UTF_8
+    IDECharset = CP1252
+    Left = 99
+    Top = 92
   end
 end

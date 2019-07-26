@@ -45,9 +45,8 @@ object frm_ManifestoList: Tfrm_ManifestoList
         Progress.BorderColor = clBlack
         Progress.ShowBorder = False
         Progress.Stacked = False
-        Text = 'F2-Busca cadastro'
         TimeFormat = 'hh:mm:ss'
-        Width = 121
+        Width = 80
       end
       item
         AppearanceStyle = psLight
@@ -163,6 +162,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnChange = vst_Grid1Change
     OnGetText = vst_Grid1GetText
+    ExplicitTop = -1
     Columns = <
       item
         Alignment = taRightJustify
@@ -319,8 +319,6 @@ object frm_ManifestoList: Tfrm_ManifestoList
     StatusBar.Color = 14606046
     StatusBar.ColorTo = 11119017
     StatusBar.GradientDirection = gdVertical
-    ExplicitLeft = -6
-    ExplicitTop = -1
     DesignSize = (
       198
       511)
@@ -459,7 +457,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
     object btn_Config: TJvFooterBtn
       Left = 8
       Top = 5
-      Width = 90
+      Width = 100
       Height = 30
       Hint = 'Configura a forma de emiss'#227'o'
       Anchors = [akLeft, akBottom]
@@ -473,9 +471,9 @@ object frm_ManifestoList: Tfrm_ManifestoList
       SpaceInterval = 6
     end
     object btn_Filter: TJvFooterBtn
-      Left = 102
+      Left = 112
       Top = 5
-      Width = 80
+      Width = 90
       Height = 30
       Hint = 'Mostra/Esconde o Filtro'
       Anchors = [akLeft, akBottom]
@@ -488,22 +486,38 @@ object frm_ManifestoList: Tfrm_ManifestoList
       ButtonIndex = 1
       SpaceInterval = 6
     end
-    object btn_Close: TJvFooterBtn
-      Left = 930
+    object btn_Cons: TJvFooterBtn
+      Left = 208
       Top = 5
-      Width = 80
+      Width = 90
+      Height = 30
+      Hint = 'Consulta status do servi'#231'o'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Consultar'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 6
+      OnClick = btn_ConsClick
+      Alignment = taLeftJustify
+      ButtonIndex = 2
+      SpaceInterval = 6
+    end
+    object btn_Close: TJvFooterBtn
+      Left = 910
+      Top = 5
+      Width = 100
       Height = 30
       Anchors = [akRight, akBottom]
       Caption = 'Fechar'
       TabOrder = 0
       OnClick = btn_CloseClick
-      ButtonIndex = 2
+      ButtonIndex = 3
       SpaceInterval = 6
     end
     object btn_New: TJvFooterBtn
-      Left = 188
+      Left = 304
       Top = 5
-      Width = 80
+      Width = 90
       Height = 30
       Anchors = [akLeft, akBottom]
       Caption = 'Novo'
@@ -512,57 +526,41 @@ object frm_ManifestoList: Tfrm_ManifestoList
       TabOrder = 5
       OnClick = btn_NewClick
       Alignment = taLeftJustify
-      ButtonIndex = 3
+      ButtonIndex = 4
       SpaceInterval = 6
     end
     object btn_Edit: TJvFooterBtn
-      Left = 274
+      Left = 400
       Top = 5
-      Width = 80
+      Width = 90
       Height = 30
       Anchors = [akLeft, akBottom]
-      Caption = 'Editar'
+      Caption = 'Alterar'
       ParentShowHint = False
       ShowHint = False
       TabOrder = 4
       OnClick = btn_EditClick
       Alignment = taLeftJustify
-      ButtonIndex = 4
-      SpaceInterval = 6
-    end
-    object btn_Detalh: TJvFooterBtn
-      Left = 360
-      Top = 5
-      Width = 80
-      Height = 30
-      Anchors = [akLeft, akBottom]
-      Caption = 'Detalhar'
-      TabOrder = 8
-      OnClick = btn_DetalhClick
-      Alignment = taLeftJustify
       ButtonIndex = 5
       SpaceInterval = 6
     end
-    object btn_Cons: TJvFooterBtn
-      Left = 446
+    object btn_Detalh: TJvFooterBtn
+      Left = 496
       Top = 5
-      Width = 80
+      Width = 90
       Height = 30
-      Hint = 'Consulta status do servi'#231'o'
       Anchors = [akLeft, akBottom]
-      Caption = 'Consultar'
-      DropDownMenu = AdvPopupMenu1
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 6
+      Caption = 'Notas Fiscais'
+      TabOrder = 8
+      OnClick = btn_DetalhClick
       Alignment = taLeftJustify
       ButtonIndex = 6
       SpaceInterval = 6
     end
     object btn_Send: TJvFooterBtn
-      Left = 532
+      Left = 592
       Top = 5
-      Width = 80
+      Width = 90
       Height = 30
       Hint = 'Autoriza Nota Fiscal'
       Anchors = [akLeft, akBottom]
@@ -576,9 +574,9 @@ object frm_ManifestoList: Tfrm_ManifestoList
       SpaceInterval = 6
     end
     object btn_Canc: TJvFooterBtn
-      Left = 618
+      Left = 688
       Top = 5
-      Width = 80
+      Width = 90
       Height = 30
       Anchors = [akLeft, akBottom]
       Caption = 'Cancelar'
@@ -594,23 +592,11 @@ object frm_ManifestoList: Tfrm_ManifestoList
     object act_ConsStt: TAction
       Caption = 'Consultar Servi'#231'o'
       Hint = 'Consultar status do servi'#231'o'
-      OnExecute = act_ConsSttExecute
     end
     object act_ConsProt: TAction
       Caption = 'Consular Protocolo'
       Hint = 'Consular Protocolo'
       OnExecute = act_ConsProtExecute
-    end
-  end
-  object AdvPopupMenu1: TAdvPopupMenu
-    Version = '2.5.4.3'
-    Left = 408
-    Top = 384
-    object ConsultarServio1: TMenuItem
-      Action = act_ConsStt
-    end
-    object ConsularProtocolo1: TMenuItem
-      Action = act_ConsProt
     end
   end
 end

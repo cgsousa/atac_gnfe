@@ -1,11 +1,11 @@
-use comercio
+use comercio1
 go
 
-if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_codmdf')
-  alter table notfis00 add 
-    nf0_codmdf int null,
-    constraint fk__nf0_codmdf foreign key (nf0_codmdf) references manifestodf00(md0_codseq) 
-go
+--if not exists(select 1 from syscolumns where id = object_id('notfis00') and name = 'nf0_codmdf')
+--  alter table notfis00 add 
+--    nf0_codmdf int null,
+--    constraint fk__nf0_codmdf foreign key (nf0_codmdf) references manifestodf00(md0_codseq) 
+--go
 
 --//
 --// cadastro de condutor 
@@ -50,7 +50,7 @@ go
 
 
 --//
---// MDF-e Manifesto de documento fiscal eletronico
+--// Manifesto de documento fiscal 
 --//  
 --drop table manifestodf00
 if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf00') and objectproperty(id, N'IsTable') = 1)
@@ -81,7 +81,7 @@ if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf00'
     md0_codstt smallint null ,
     md0_motivo varchar(250) null ,
     md0_chmdfe char(44) null ,
-    md0_xml text null ,
+    --md0_xml text null ,
     --//
     --//retorno
     md0_verapp varchar(20) ,
@@ -90,11 +90,26 @@ if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf00'
     md0_numprot char(15) ,
     md0_digval char(28)   
 
-    ,constraint pk__manifestodfe00 primary key (md0_codseq) 
+    ,constraint pk__manifestodf00 primary key (md0_codseq) 
     ,constraint fk__md0_codvei foreign key (md0_codvei) references cadveiculo(vei_codseq) 
 
   )
 go
+
+if not exists(select 1from syscolumns where id = object_id('manifestodf00') and name = 'md0_xml')
+begin
+  --//
+  --// chk compatibilidade
+  declare @versql sysname; set @versql =convert(sysname, serverproperty('ProductVersion'));
+  declare @posdot smallint; set @posdot =charindex('.',@versql);
+  declare @cmplvl smallint; set @cmplvl =substring(@versql,1,@posdot-1);
+  if @cmplvl > 8 --> sql 2005
+    exec ('alter table manifestodf00 add md0_xml xml null')
+  else
+    alter table manifestodf00 add md0_xml text null
+end
+go
+
 
 --//
 --// municipios de carregamento/descarregamento
@@ -147,11 +162,11 @@ if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf02n
     md2_chvnfe char(44) not null ,
     md2_codbar varchar(14) null  ,
     md2_indree smallint null ,
-    --md2_codntf int not null ,
     md2_vlrntf numeric (15,2) null ,
-    md2_volpsob numeric (12,3) null 
+    md2_volpsob numeric (12,3) null ,
+    md2_codntf int not null 
     ,constraint fk__md2_codmun foreign key (md2_codmun) references manifestodf01mun(md1_codseq) 
-    --,constraint fk__md2_codntf foreign key (md2_codntf) references notfis00(nf0_codseq) 
+    ,constraint fk__md2_codntf foreign key (md2_codntf) references notfis00(nf0_codseq) 
   )
 go
 
