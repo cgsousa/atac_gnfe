@@ -70,6 +70,9 @@
 			<DCCReference Include="mdfe\controller\uVeiculoCtr.pas"/>
 			<DCCReference Include="mdfe\uACBrMDFe.pas"/>
 			<DCCReference Include="model\unotfis00.pas"/>
+			<DCCReference Include="mdfe\view\Form.EventoMDFe.pas">
+				<Form>frm_EventoMDFe</Form>
+			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -102,7 +105,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">0</VersionInfo>
 						<VersionInfo Name="Release">0</VersionInfo>
-						<VersionInfo Name="Build">2</VersionInfo>
+						<VersionInfo Name="Build">5</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -114,7 +117,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Atac Sistemas</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">App gerenciador do MDF-e</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.0.0.2</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.0.0.5</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">ATAC_APP_MDFE</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">(c)</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">Todos os direitos reservados</VersionInfoKeys>

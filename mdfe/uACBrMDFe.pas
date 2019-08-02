@@ -12,7 +12,7 @@ interface
 uses Windows, SysUtils, Classes, Generics.Collections ,
   ACBrDFeReport, ACBrMDFeDAMDFeClass, ACBrMDFeDAMDFeRLClass,
   ACBrBase, ACBrDFe, ACBrMDFe, ACBrMDFeManifestos, ACBrMail,
-  ACBrMDFeWebServices,
+  ACBrMDFeWebServices, pmdfeProcMDFe, pmdfeEnvEventoMDFe ,
   FDM.MDFE,
   uManifestoDF, uparam,
   Form.ViewLOG;
@@ -31,6 +31,7 @@ type
     tip_emit: TPair<string,smallint>;
     tip_transp: TPair<string,smallint>;
     ver_doc: TPair<string,smallint>;
+    cod_und: TPair<string,smallint>;
 
     send_assync: TPair<string,Boolean>;
 
@@ -62,9 +63,7 @@ type
     //
     function getMDFe: TACBrMDFe;
     property mdfe: TACBrMDFe read getMDFe;
-    //
-//    function getParam: TRegNFE ;
-//    property param: TRegNFE read getParam;
+
     //
     function AddManifesto(mdf: IManifestoDF): Manifesto;
 
@@ -75,9 +74,10 @@ type
     function OnlySend(mdf: IManifestoDF): Boolean;
     function OnlyCons(mdf: IManifestoDF): Boolean;
     function OnlyCanc(mdf: IManifestoDF; const aJust: String): Boolean;
+    function OnlyEncerra(mdf: IManifestoDF): Boolean;
 
-    function OnlyInut(const cnpj, just: String;
-      const ano, codmod, nserie, numini, numfin: Integer): Boolean;
+    function consSitMDFe(mdf: IManifestoDF): Boolean ;
+
     //
     function PrintDAMDFe(mdf: IManifestoDF): Boolean ;
 
@@ -138,8 +138,10 @@ type
     function OnlySend(mdf: IManifestoDF): Boolean;
     function OnlyCons(mdf: IManifestoDF): Boolean;
     function OnlyCanc(mdf: IManifestoDF; const aJust: String): Boolean;
-    function OnlyInut(const cnpj, just: String;
-      const ano, codmod, nserie, numini, numfin: Integer): Boolean;
+    function OnlyEncerra(mdf: IManifestoDF): Boolean;
+
+    function consSitMDFe(mdf: IManifestoDF): Boolean ;
+
     //
     function PrintDAMDFe(mdf: IManifestoDF): Boolean ;
     function SendMail(mdf: IManifestoDF; const dest_email: string =''): Boolean;
@@ -156,6 +158,7 @@ uses StrUtils, DateUtils, TypInfo, WinInet, DB,
   unotfis00, uadodb, uini, ucademp,
   ACBrUtil, ACBrDFeSSL, ACBrDFeException, ACBr_WinHttp ,
   pcnConversao, pcnConversaoNFe, pmdfeMDFe, pmdfeConversaoMDFe,
+  pmdfeRetConsSitMDFe, pmdfeRetEnvEventoMDFe ,
   blcksock,
   RLPrinters ,
   uCondutor
@@ -180,14 +183,18 @@ var
 var
   cs: NotFis00CodStatus ;
 begin
-    //
-    // reset
-    m_MDFE.Manifestos.Clear;
 
     //
     // add
     Result :=m_MDFE.Manifestos.Add ;
     mdfe:=Result.MDFe ;
+
+    //
+    // retorna somente um manifesto vazio
+    if mdf = nil then
+    begin
+        Exit(Result);
+    end;
 
     //
     // ide
@@ -353,6 +360,122 @@ begin
     end;
 end;
 
+function TCBaseACBrMDFe.consSitMDFe(mdf: IManifestoDF): Boolean;
+var
+  ws: TMDFeConsulta ;
+  E: TRetEventoMDFeCollectionItem;
+  R: TRetInfEventoCollectionItem;
+  L: IEventoMDFList;
+  C: IEventoMDF ;
+var
+  I: Integer;
+  tpEvento, numSeq: Integer;
+  encerr, cancel: Boolean ;
+begin
+    //
+    // limpa rep.
+    m_MDFE.Manifestos.Clear;
+
+    m_ErrCod :=0;
+    m_ErrMsg :='';
+
+    Result :=m_MDFE.Consultar(mdf.chMDFe) ;
+    Result :=Result and(m_ErrCod =0);
+    if Result then
+    begin
+        ws :=m_MDFE.WebServices.Consulta ;
+        //
+        // inicializa lista de eventos
+        L :=TCEventoMDFList.Create ;
+        L.Load(mdf.id) ;
+
+        //
+        // reg. eventos
+        for I :=0 to ws.procEventoMDFe.Count -1 do
+        begin
+            tpEvento :=0;
+            numSeq :=0;
+
+            E :=ws.procEventoMDFe.Items[I] ;
+            case E.RetEventoMDFe.InfEvento.tpEvento of
+                teCancelamento: tpEvento :=TCEventoMDF.RE_CANCELA ;
+                teEncerramento: tpEvento :=TCEventoMDF.RE_ENCERRA ;
+                teInclusaoCondutor: tpEvento :=TCEventoMDF.RE_INC_CONDUTOR ;
+            end;
+            numSeq :=E.RetEventoMDFe.InfEvento.nSeqEvento ;
+
+            //
+            // chk exists evento
+            C :=L.IndexOf(tpEvento, numSeq) ;
+            if C = nil then
+            begin
+                //
+                //
+                C :=TCEventoMDF.New(mdf.id,
+                                    E.RetEventoMDFe.InfEvento.cOrgao,
+                                    Ord(E.RetEventoMDFe.InfEvento.tpAmb),
+                                    E.RetEventoMDFe.InfEvento.chMDFe,
+                                    E.RetEventoMDFe.InfEvento.dhEvento,
+                                    tpEvento, numSeq) ;
+
+                //
+                // info para cancelamento
+                C.xJust :=E.RetEventoMDFe.InfEvento.detEvento.xJust ;
+                //
+                // info para encerramento
+                C.setEncerra( E.RetEventoMDFe.InfEvento.detEvento.dtEnc ,
+                              E.RetEventoMDFe.InfEvento.detEvento.cMun);
+                //
+                // info para inc. de condutor
+                // ...
+
+
+                //
+                // info status/protocolo
+                if E.RetEventoMDFe.retEvento.Count > 0 then
+                begin
+                    R :=E.RetEventoMDFe.retEvento.Items[0] ;
+                    C.setStatus(R.RetInfEvento.cStat,
+                                R.RetInfEvento.xMotivo);
+                    C.setProtocolo( R.RetInfEvento.nProt,
+                                    R.RetInfEvento.verAplic,
+                                    '',
+                                    R.RetInfEvento.dhRegEvento );
+                end;
+
+                //
+                // grava no banco
+                C.cmdInsert ;
+            end;
+        end;
+
+        //
+        // reg. protocolo de autorização
+        //P :=m_MDFE.WebServices.Consulta.protMDFe ;
+        if ws.protMDFe.cStat <> ws.cStat then
+        begin
+            mdf.setRet( ws.cStat, ws.xMotivo ,
+                        ws.protMDFe.verAplic,
+                        '',
+                        ws.protMDFe.nProt,
+                        ws.protMDFe.digVal ,
+                        ws.protMDFe.dhRecbto);
+            m_ErrCod :=ws.cStat;
+            m_ErrMsg :=ws.xMotivo;
+        end
+        else begin
+            mdf.setRet( ws.protMDFe.cStat, ws.protMDFe.xMotivo ,
+                        ws.protMDFe.verAplic,
+                        '',
+                        ws.protMDFe.nProt,
+                        ws.protMDFe.digVal ,
+                        ws.protMDFe.dhRecbto);
+            m_ErrCod :=ws.protMDFe.cStat;
+            m_ErrMsg :=ws.protMDFe.xMotivo;
+        end;
+    end;
+end;
+
 constructor TCBaseACBrMDFe.Create(const aStatusChange: Boolean;
   const aParam: TRegMDFe);
 begin
@@ -495,6 +618,12 @@ begin
 //    m_NFE.Configuracoes.Arquivos.PathInu  := m_Ini.ReadString( 'Arquivos','PathInu'    ,'') ;
     m_MDFE.Configuracoes.Arquivos.PathEvento :=m_MDFE.Configuracoes.Arquivos.PathSalvar;
 
+    //
+    // DAMDFE
+    ini.Section :='DANFE';
+    m_MDFE.DAMDFE.Sistema := 'Atac Ssistemas - www.atacsistemas.com.br';
+    m_MDFE.DAMDFE.Logo    :=ini.ValStr('LogoMarca') ;
+
 end;
 
 class function TCBaseACBrMDFe.New(const aStatusChange: Boolean;
@@ -513,19 +642,116 @@ end;
 
 function TCBaseACBrMDFe.OnlyCanc(mdf: IManifestoDF;
   const aJust: String): Boolean;
+var
+  M: Manifesto ;
+  E: TInfEventoCollectionItem;
 begin
 
+    m_MDFE.EventoMDFe.Evento.Clear;
+
+    E :=m_MDFE.EventoMDFe.Evento.New ;
+    E.infEvento.CNPJCPF   :=OnlyNumber(CadEmp.CNPJ);
+    E.infEvento.cOrgao    :=mdf.codufe;
+    E.infEvento.dhEvento  :=now;
+    E.infEvento.tpEvento  :=teCancelamento;
+    E.infEvento.nSeqEvento:=1;
+    E.infEvento.chMDFe     :=mdf.chMDFe;
+    E.infEvento.detEvento.nProt :=mdf.numProt;
+    E.infEvento.detEvento.xJust :=aJust;
+
+    Result :=m_MDFE.EnviarEvento(mdf.id) ;
+    if Result then
+    begin
+        m_ErrCod :=E.RetInfEvento.cStat;
+        m_ErrMsg :=E.RetInfEvento.xMotivo;
+        Result :=m_ErrCod in[101, 135] ;
+//        if Result then
+//        begin
+//            {NF.m_codstt :=E.RetInfEvento.cStat ;
+//            NF.m_motivo :=E.RetInfEvento.xMotivo;
+//            NF.m_dhreceb:=E.RetInfEvento.dhRegEvento;
+//            NF.m_verapp :=E.RetInfEvento.verAplic;
+//            NF.m_numprot:=E.RetInfEvento.nProt;
+//            NF.m_digval :=''; //E.RetInfEvento.digVal;}
+//        end ;
+    end
+    else
+        m_ErrMsg :=m_MDFE.WebServices.EnvEvento.xMotivo;
 end;
 
 function TCBaseACBrMDFe.OnlyCons(mdf: IManifestoDF): Boolean;
 begin
-
+    m_MDFE.Manifestos.Clear;
+    m_ErrCod :=0;
+    m_ErrMsg :='';
+    Result :=m_MDFE.Consultar(mdf.chMDFe) ;
+    Result :=Result and(m_ErrCod =0);
+    if Result then
+    begin
+        {NF.m_codstt :=m_NFE.WebServices.Consulta.cStat ;
+        NF.m_motivo :=m_NFE.WebServices.Consulta.XMotivo ;
+        NF.m_dhreceb:=m_NFE.WebServices.Consulta.DhRecbto;
+        NF.m_verapp :=m_NFE.WebServices.Consulta.verAplic;
+        NF.m_numprot:=m_NFE.WebServices.Consulta.Protocolo;
+        NF.m_digval :=m_NFE.WebServices.Consulta.protNFe.digVal;
+        }
+    end;
 end;
 
-function TCBaseACBrMDFe.OnlyInut(const cnpj, just: String; const ano, codmod,
-  nserie, numini, numfin: Integer): Boolean;
+function TCBaseACBrMDFe.OnlyEncerra(mdf: IManifestoDF): Boolean;
+var
+//  M: Manifesto ;
+  E: TInfEventoCollectionItem;
+  M: TCManifestodf01mun;
 begin
 
+    //
+    // ler mun.
+    for M in mdf.municipios.getDataList do
+    begin
+        if M.tipoMun = mtDescarga then
+          Break ;
+    end;
+
+    m_MDFE.EventoMDFe.Evento.Clear;
+
+    E :=m_MDFE.EventoMDFe.Evento.New ;
+    E.infEvento.CNPJCPF   :=OnlyNumber(CadEmp.CNPJ);
+    E.infEvento.cOrgao    :=mdf.codufe;
+    E.infEvento.dhEvento  :=TADOQuery.getDateTime;
+    E.infEvento.tpEvento  :=teEncerramento;
+    E.infEvento.nSeqEvento:=1;
+    E.infEvento.chMDFe    :=mdf.chMDFe;
+    E.infEvento.detEvento.nProt :=mdf.numProt;
+    E.infEvento.detEvento.cUF :=mdf.codufe;
+    E.infEvento.detEvento.dtEnc :=E.infEvento.dhEvento ;
+
+    if M <> nil then
+    begin
+        E.infEvento.detEvento.cMun:=M.codigoMun;
+    end
+    else begin
+        E.infEvento.detEvento.cMun:=CadEmp.ender.cMun;
+    end;
+
+    Result :=m_MDFE.EnviarEvento(mdf.id) ;
+    if Result then
+    begin
+        m_ErrCod :=E.RetInfEvento.cStat;
+        m_ErrMsg :=E.RetInfEvento.xMotivo;
+        Result :=m_ErrCod in[132, 135] ;
+//        if Result then
+//        begin
+//            {NF.m_codstt :=E.RetInfEvento.cStat ;
+//            NF.m_motivo :=E.RetInfEvento.xMotivo;
+//            NF.m_dhreceb:=E.RetInfEvento.dhRegEvento;
+//            NF.m_verapp :=E.RetInfEvento.verAplic;
+//            NF.m_numprot:=E.RetInfEvento.nProt;
+//            NF.m_digval :=''; //E.RetInfEvento.digVal;}
+//        end ;
+    end
+    else
+        m_ErrMsg :=m_MDFE.WebServices.EnvEvento.xMotivo;
 end;
 
 function TCBaseACBrMDFe.OnlySend(mdf: IManifestoDF): Boolean;
@@ -659,8 +885,71 @@ begin
 end;
 
 function TCBaseACBrMDFe.PrintDAMDFe(mdf: IManifestoDF): Boolean;
+var
+  ptr: TRLPrinterWrapper;
+  M: Manifesto ;
 begin
+    if m_MDFE.DAMDFE <> nil then
+    begin
+        //
+        // load padrão
+        if mdf.xml <> '' then
+        begin
+            M :=AddManifesto(nil) ;
+            M.LerXML(mdf.xml) ;
+            //
+            // ler info protocolo
+            if mdf.tpAmbiente = 0 then
+                M.MDFe.procMDFe.tpAmb   :=taProducao
+            else
+                M.MDFe.procMDFe.tpAmb   :=taHomologacao;
+            M.MDFe.procMDFe.verAplic:=mdf.verApp ;
+            M.MDFe.procMDFe.chMDFe   :=mdf.chMDFe ;
+            M.MDFe.procMDFe.dhRecbto:=mdf.dhRecebto;
+            M.MDFe.procMDFe.nProt   :=mdf.numProt;
+            M.MDFe.procMDFe.digVal  :=mdf.digVal ;
+            M.MDFe.procMDFe.cStat   :=mdf.Status ;
+            M.MDFe.procMDFe.xMotivo :=mdf.motivo ;
+            M.GerarXML ;
+        end
+        //
+        // load XML do local
+        else begin
 
+            //
+            // set root
+            raise ENotFis00.Create('Não carregou o XML!');
+            {local :=param.arq_SaveXML_RootPath.Value ;
+            if Pos('proc', local) = 0 then
+            begin
+                local :=PathWithDelim(local) +'proc';
+            end;
+            local :=FormatPath(local,'',NF.m_emit.CNPJCPF,NF.m_dtemis);
+
+            //
+            // format filename
+            F :=Format('%s-procNFe.XML',[NF.m_chvnfe]);
+            F :=PathWithDelim(local) +F ;
+
+            //
+            // chk exists
+            Result :=FileExists(F) ;
+            if Result then
+            begin
+                m_NFE.NotasFiscais.Clear ;
+                m_NFE.NotasFiscais.LoadFromFile(F, True);
+                N :=m_NFE.NotasFiscais.Items[0] ;
+            end
+            else
+                raise ENotFis00.CreateFmt('Arquivo "%s" não encontrado!',[F]);
+            }
+        end;
+
+        //
+        // print
+        M.Imprimir ;
+
+    end;
 end;
 
 function TCBaseACBrMDFe.SendMail(mdf: IManifestoDF;
@@ -683,6 +972,7 @@ var
 //  tp_emis: TpcnTipoEmissao;
   tp_emit: TTpEmitenteMDFe;
   tp_transp: TTransportadorMDFe;
+  un_med: TUnidMed;
 begin
 
     S :=TStringList.Create ;
@@ -775,6 +1065,27 @@ begin
             S.Clear;
         end;
         tip_transp.Value :=p.ReadInt() ;
+
+        cod_und.Key :='mdfe.cod_unidmed';
+        p :=params.IndexOf(cod_und.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(cod_und.Key, ftArray) ;
+            p.xValor:='2';
+            p.Catego:=CST_CATEGO;
+            P.Descricao:='Cód.unidade de medida do Peso Bruto da Carga/Mercadorias transportadas';
+            //
+            // obtem os tipos enumerados
+            for un_med:= Low(TUnidMed) to High(TUnidMed) do
+                S.Add(
+                    GetEnumName(TypeInfo(TUnidMed), Integer(un_med))
+                    ) ;
+            P.Comple :=S.CommaText ;
+            p.Save ;
+            S.Clear;
+        end;
+        cod_und.Value :=p.ReadInt() ;
+
 
         send_assync.Key :='mdfe.envio_assinc';
         p :=params.IndexOf(send_assync.Key) ;

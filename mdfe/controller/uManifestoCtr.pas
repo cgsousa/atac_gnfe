@@ -23,6 +23,8 @@ type
     procedure Insert ;
     procedure Edit ;
     function Merge(): TModelUpdateKind;
+
+
   end;
 
   TCManifestoCtr = class(TInterfacedObject, IManifestoCtr, IManifestoDFList)
@@ -174,7 +176,8 @@ end;
 
 procedure TCManifestoCtr.Edit;
 begin
-
+    m_Model.Edit
+    ;
 end;
 
 procedure TCManifestoCtr.ExecView;

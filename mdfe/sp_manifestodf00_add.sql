@@ -42,6 +42,7 @@ create procedure sp_manifestodf00_add(
   @ufefim char(2) ,
   @rntrc varchar(8) ,
   @codvei smallint ,
+  @codund smallint ,
   @codseq int out 
 )
 as
@@ -84,7 +85,8 @@ as
       --//
       --// especifico p/ rodoviario
       md0_rntrc  =@rntrc  ,
-      md0_codvei =@codvei
+      md0_codvei =@codvei ,
+      md0_codund =@codund
     where md0_codseq =@codseq
 
   --//
@@ -128,7 +130,8 @@ as
                               --//
                               --// especifico p/ rodoviario
                               md0_rntrc ,
-                              md0_codvei)
+                              md0_codvei,
+                              md0_codund)
     values                  ( @codemp ,
                               @codufe ,
                               @tipamb ,
@@ -147,7 +150,8 @@ as
                               @md0_dhemis ,
                               null  ,
                               @rntrc  ,
-                              @codvei );
+                              @codvei ,
+                              @codund);
     set @codseq =ident_current('manifestodf00');
   end
   --//

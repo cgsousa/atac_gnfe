@@ -77,6 +77,8 @@ if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf00'
     --// especifico p/ rodoviario
     md0_rntrc varchar(8) null ,
     md0_codvei smallint not null,
+    --// totalizadores
+    md0_codund smallint not null,
     --//
     md0_codstt smallint null ,
     md0_motivo varchar(250) null ,
@@ -94,6 +96,10 @@ if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf00'
     ,constraint fk__md0_codvei foreign key (md0_codvei) references cadveiculo(vei_codseq) 
 
   )
+go
+
+if not exists(select 1from syscolumns where id = object_id('manifestodf00') and name = 'md0_codund')
+  alter table manifestodf00 add md0_codund smallint null
 go
 
 if not exists(select 1from syscolumns where id = object_id('manifestodf00') and name = 'md0_xml')
@@ -183,3 +189,45 @@ if not exists (select *from dbo.sysobjects where id = object_id(N'manifestodf03c
     ,constraint pk__manifestodf03cond primary key (md3_codmdf, md3_codvei, md3_codcdt) 
   )
 go
+
+
+--// Registro de Eventos do MDF-e
+--drop table eventomdfe 
+--go
+if not exists (select *from dbo.sysobjects where id = object_id(N'eventomdfe') and objectproperty(id, N'IsTable') = 1) 
+  create table eventomdfe (em0_codseq int not null identity(1,1) ,
+    em0_codmdf int not null ,
+    --//envio
+    em0_versao smallint null ,
+    em0_codorg smallint not null ,
+    em0_tipamb smallint not null ,
+    em0_chvmdfe char(44) not null ,
+    em0_dhevento datetime not null constraint df__em0_dhevento default getdate() ,
+    em0_tpevento int not null ,
+    em0_numseq smallint not null,
+    em0_xjust varchar(250) null , --//just. cancelamento
+    em0_datenc smalldatetime null , --//data encerramento
+    em0_munenc int null , --//cod.mun encerramento
+    --//retorno
+    em0_verapp varchar(20) null ,
+    em0_codstt smallint null ,
+    em0_motivo varchar(250) null ,
+    em0_dhreceb datetime null ,
+    em0_numprot char(15) null 
+    ,constraint fk__em0_codmdf foreign key (em0_codmdf) references manifestodf00(md0_codseq) 
+    ,constraint pk__eventomdfe primary key (em0_codseq)
+  )
+go
+
+if not exists(select 1from syscolumns where id = object_id('eventomdfe') and name = 'em0_xml')
+begin
+  --//
+  --// chk compatibilidade
+  declare @versql sysname; set @versql =convert(sysname, serverproperty('ProductVersion'));
+  declare @posdot smallint; set @posdot =charindex('.',@versql);
+  declare @cmplvl smallint; set @cmplvl =substring(@versql,1,@posdot-1);
+  if @cmplvl > 8 --sql 2005 pra cima
+    exec ('alter table eventomdfe add em0_xml xml null')
+  else
+    alter table eventomdfe add em0_xml text null
+end

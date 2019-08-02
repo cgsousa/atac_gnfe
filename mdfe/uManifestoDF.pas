@@ -16,6 +16,7 @@ uses
   uIntf, uVeiculo, uCondutor;
 
 type
+  ECodUnidIsEmpty = class(Exception);
   EMunCargaIsEmpty = class(Exception);
   EVeiculoIsEmpty = class(Exception);
   ECondutorIsEmpty = class(Exception);
@@ -42,6 +43,9 @@ type
   //
   // Informações dos Documentos fiscais vinculados ao manifesto
   IManifestodf02nfe = Interface(IInterface)
+    function getIdMun: Int32;
+    procedure setIdMun(Value: Int32);
+    property idMun: Int32 read getIdMun write setIdMun;
     function getChvNFE: string;
     procedure setChvNFE(Value: string);
     property chvNFE: string read getChvNFE write setChvNFE;
@@ -61,7 +65,10 @@ type
     property codNtf: Int32 read getCodNtf write setCodNtf;
 
     function getState: TModelState;
-    property State: TModelState read getState ;
+    procedure setState(const Value: TModelState);
+    property State: TModelState read getState write setState;
+
+    procedure cmdDelete ;
   end;
   TCManifestodf02nfe = class;
 
@@ -90,6 +97,10 @@ type
     function getTipMun: TManifestodf01munTyp;
     procedure setTipMun(Value: TManifestodf01munTyp) ;
     property tipoMun: TManifestodf01munTyp read getTipMun write setTipMun;
+
+    function qNFe: Integer ;
+    function vCarga: Currency;
+    function qCarga: Currency;
   end;
   TCManifestodf01mun = class;
 
@@ -97,6 +108,7 @@ type
     function addNew(aMun: TCManifestodf01mun): TCManifestodf01mun ;
     procedure clearItems ;
     function getDataList: TObjectList<TCManifestodf01mun> ;
+    function getFirstMun(const aTyp: TManifestodf01munTyp): TCManifestodf01mun;
   end;
   TCManifestodf01munList = class;
 
@@ -232,6 +244,10 @@ type
     function getMunDescarga: TCManifestodf01MunDescarga; //IManifestodf01munList ;
     property munDescarga: TCManifestodf01MunDescarga read getMunDescarga ;
 
+    function getCodUnd: Int16 ;
+    procedure setCodUnd(Value: Int16);
+    property codund: Int16 read getCodUnd write setCodUnd ;
+
     function getStatus: Int16 ;
     property Status: Int16 read getStatus ;
 
@@ -240,6 +256,9 @@ type
 
     function getChMDFe: string ;
     property chMDFe: string read getChMDFe;
+
+    function getXML(): string ;
+    property xml: string read getXML;
 
     //
     // info de protocolo
@@ -258,6 +277,7 @@ type
       const ret_dhreceb: Tdatetime) ;
 
     procedure loadFromDataset(ds: TDataSet);
+
     function cmdFind(const afilter: TManifestoFilter): Boolean ;
     procedure cmdInsert ;
     procedure cmdUpdate ;
@@ -267,6 +287,7 @@ type
     procedure Edit ;
 
     function Merge(): TModelUpdateKind;
+
   end;
 
 
@@ -305,9 +326,11 @@ type
     m_rntrc: string;
     m_codvei: Int16;
 
-    m_Municipios: TCManifestodf01munList ;
+    m_Municipios: TCManifestodf01munList;
     m_ModalRodo: TCManifestodf04Rodo ;
     m_MunDescarga: TCManifestodf01MunDescarga;
+
+    m_codund: Int16;
 
     m_codstt: Int16;
     m_motivo: string;
@@ -363,14 +386,17 @@ type
     procedure setRNTRC(Value: string) ;
 
     function getMunicipios: TCManifestodf01munList;
-//    function getMunCarga: IManifestodf01munList;
     function getModalRodo: TCManifestodf04Rodo ;
     function getMunDescarga: TCManifestodf01MunDescarga;
+
+    function getCodUnd: Int16 ;
+    procedure setCodUnd(Value: Int16);
 
     function getStatus: Int16 ;
     function getMotivo: string ;
 
-    function getChMDFE: string ;
+    function getChMDFE: string;
+    function getXML(): string ;
 
     //
     // info protocolo
@@ -391,6 +417,7 @@ type
     procedure loadFromDataset(ds: TDataSet);
     function cmdFind(const afilter: TManifestoFilter): Boolean ;
     function isValid: Boolean ;
+
     procedure Insert;
     procedure Edit ;
     function Load: Boolean ;
@@ -413,13 +440,17 @@ type
     property ufeIni: string read getUFeIni write setUFeIni;
     property ufeFim: string read getUFeFim write setUFeFim;
     property rntrc: string read getRNTRC write setRNTRC;
-//    property munCarga: Imanifestodf01munList read getMunCarga ;
+
     property municipios: TCManifestodf01munList read getMunicipios ;
     property modalRodo: TCManifestodf04Rodo read getModalRodo ;
     property munDescarga: TCManifestodf01MunDescarga read getMunDescarga ;
+
+    property codund: Int16 read getCodUnd write setCodUnd ;
+
     property Status: Int16 read getStatus ;
     property motivo: string read getMotivo;
     property chMDFE: string read getChMDFE;
+    property xml: string read getXML;
 
     property verApp: string read getVerApp ;
     property dhRecebto: TDatetime read getDHRecebto ;
@@ -430,6 +461,7 @@ type
     procedure setRet(const aCodStt: Int16; const aMotivo,
       ret_verapp, ret_numreci, ret_numprot, ret_digval: string;
       const ret_dhreceb: Tdatetime) ;
+
   public
     class function CLoad(const aFilter: TManifestoFilter): TDataSet;
   public
@@ -461,6 +493,10 @@ type
     property UFeMun: string read getUFeMun write setUFeMun;
     property tipoMun: TManifestodf01munTyp read getTipMun write setTipMun;
     property nfeList: TCManifestodf02nfeList read m_NFEList implements IManifestodf02nfeList;
+
+    function qNFe: Integer ;
+    function vCarga: Currency;
+    function qCarga: Currency;
   public
     class function New(const codseq, codmun: Int32; const xmunic, ufemun: string;
       const tipmun: TManifestodf01munTyp): TCmanifestodf01mun ;
@@ -478,11 +514,13 @@ type
       const tipmun: TManifestodf01munTyp): TCManifestodf01mun; overload;
     procedure clearItems ;
     function getDataList: TObjectList<TCManifestodf01mun> ;
+    function getFirstMun(const aTyp: TManifestodf01munTyp): TCManifestodf01mun;
   end;
 
 
   TCManifestodf02nfe = class(TInterfacedObject, IManifestodf02nfe)
   private
+    m_idmun: Int32;
     m_chvnfe: string;
     m_codbar: string;
     m_indree: Boolean;
@@ -490,6 +528,9 @@ type
     m_vlrntf: Currency;
     m_volpsob: Double;
     m_State: TModelState ;
+
+    function getIdMun: Int32;
+    procedure setIdMun(Value: Int32);
 
     function getChvNFE: string;
     procedure setChvNFE(Value: string);
@@ -507,16 +548,19 @@ type
     procedure setVolPsoB(Value: Double);
 
     function getState: TModelState;
+    procedure setState(const Value: TModelState);
   public
+    property idMun: Int32 read getIdMun write setIdMun;
     property chvNFE: string read getChvNFE write setChvNFE;
     property codBarras: string read getCodBar write setCodBar;
     property vlrNtf: Currency read getVlrNtf write setVlrNtf;
     property volPsoB: Double read getVolPsoB write setVolPsoB;
     property codNtf: Int32 read getCodNtf write setCodNtf;
-    property State: TModelState read getState ;
-    class function New(const chvnfe, codbar: string; const indree: Boolean;
+    property State: TModelState read getState write setState;
+    class function New(const idmun: Int32; const chvnfe, codbar: string; const indree: Boolean;
       const vlrntf: Currency; const volpsob: Double;
       const codntf: Int32): IManifestodf02nfe ;
+    procedure cmdDelete ;
   end;
 
   TCManifestodf02nfeList =class(TAggregatedObject, IManifestodf02nfeList)
@@ -578,6 +622,198 @@ type
     property Items: TList<IManifestoDF> read getItems ;
     function Load(const aFilter: TManifestoFilter): Boolean;
   end;
+
+  //
+  //
+  //TpEventoMDF = (mdf) ;
+  IEventoMDF = interface
+    function getID: Integer ;
+    procedure setID(const aValue: Integer) ;
+    property ID: Integer read getID write setID;
+
+    function getCodMDF: Integer ;
+    procedure setCodMDF(const aValue: Integer) ;
+    property codMDF: Integer read getCodMDF write setCodMDF;
+
+    function getCodOrg:	smallint;
+    procedure setCodOrg(const aValue: smallint) ;
+    property codOrg: SmallInt read getCodOrg write setCodOrg;
+
+    function getTipAmb: smallint;
+    procedure setTipAmb(const aValue: smallint) ;
+    property tipAmb: smallint read getTipAmb write setTipAmb;
+
+    function getChvMDFe: string ;
+    procedure setChvMDFe(const aValue: string) ;
+    property chvMDFe: string read getChvMDFe write setChvMDFe;
+
+    function getDHEvento: TDateTime;
+    procedure setDHEvento(const aValue: TDateTime) ;
+    property dhEvento: Tdatetime read getDHEvento write setDHEvento;
+
+    function getTpEvento: Integer ;
+    procedure setTpEvento(const aValue: Integer) ;
+    property tpEvento: Integer read getTpEvento write setTpEvento;
+
+    function getNumSeq:	smallint;
+    procedure setNumSeq(const aValue: smallint) ;
+    property numSeq: smallint read getNumSeq write setNumSeq;
+
+    function getJust: string ;
+    procedure setJust(const aValue: string) ;
+    property xJust: string read getJust write setJust;
+
+    function getDHEncerra: TDateTime;
+    property dhEncerra: Tdatetime read getDHEncerra;
+    function getCMunEncerra: Integer ;
+    property cMunEncerra: Integer read getCMunEncerra;
+    procedure setEncerra(const aDH: TDateTime; aCodMun: Integer) ;
+
+    function getStatus: SmallInt ;
+    property Status: Int16 read getStatus ;
+    function getMotivo: string ;
+    property motivo: string read getMotivo ;
+
+    procedure setStatus(const aCodigo: smallint; const aMotivo: string) ;
+
+    //
+    // info de protocolo
+    function getVerApp: string ;
+    property verApp: string read getVerApp ;
+    function getDHRecebto: TDatetime ;
+    property dhRecebto: TDatetime read getDHRecebto ;
+    function getNumProt: string ;
+    property numProt: string read getNumProt ;
+    function getDigVal: string ;
+    property digVal: string read getDigVal ;
+    procedure setProtocolo(const aNumProt, aVerApp, aDigVal: string;
+      const aDHReceb: TDateTime ) ;
+
+    procedure cmdInsert ;
+
+  end;
+
+  TCEventoMDF = class(TInterfacedObject, IEventoMDF)
+  private
+    m_codseq: Integer ;
+    m_codmdf: Integer ;
+//    em0_versao	smallint
+    m_codorg: smallint;
+    m_tipamb: smallint;
+    m_chvmdfe: string ;
+    m_dhevento: Tdatetime ;
+    m_tpevento: Integer ;
+    m_numseq: smallint;
+    m_xjust: string ;
+    m_dhenc: Tdatetime;
+    m_cmunenc: Integer;
+    m_verapp: string ;
+    m_codstt:	smallint;
+    m_motivo: string ;
+    m_dhreceb: TDateTime;
+    m_numprot: string ;
+    m_digval: string ;
+//    em0_xml	xml
+
+    function getID: Integer ;
+    procedure setID(const aValue: Integer) ;
+
+    function getCodMDF: Integer ;
+    procedure setCodMDF(const aValue: Integer) ;
+
+    function getCodOrg:	smallint;
+    procedure setCodOrg(const aValue: smallint) ;
+
+    function getTipAmb: smallint;
+    procedure setTipAmb(const aValue: smallint) ;
+
+    function getChvMDFe: string ;
+    procedure setChvMDFe(const aValue: string) ;
+
+    function getDHEvento: Tdatetime;
+    procedure setDHEvento(const aValue: TDateTime) ;
+
+    function getTpEvento: Integer ;
+    procedure setTpEvento(const aValue: Integer) ;
+
+    function getNumSeq:	smallint;
+    procedure setNumSeq(const aValue: smallint) ;
+
+    function getJust: string ;
+    procedure setJust(const aValue: string) ;
+
+    function getDHEncerra: TDateTime;
+    function getCMunEncerra: Integer ;
+    procedure setEncerra(const aDtEnc: TDateTime; aCodMun: Integer) ;
+
+    function getStatus: Int16 ;
+    function getMotivo: string ;
+    procedure setStatus(const aCodigo: smallint; const aMotivo: string) ;
+
+    //
+    // info pront
+    function getVerApp: string ;
+    function getDHRecebto: TDatetime ;
+    function getNumProt: string ;
+    function getDigVal: string ;
+    procedure setProtocolo(const aNumProt, aVerApp, aDigVal: string;
+      const aDHReceb: TDateTime ) ;
+
+    procedure cmdInsert ;
+  public
+    const RE_CANCELA =110111;
+    const RE_ENCERRA =110112;
+    const RE_INC_CONDUTOR =110114;
+  public
+    property ID: Integer read getID;
+    property codMDF: Integer read getCodMDF;
+    property codOrg: SmallInt read getCodOrg;
+    property tipAmb: smallint read getTipAmb;
+    property chvMDFe: string read getChvMDFe;
+    property dhEvento: Tdatetime read getDHEvento;
+    property tpEvento: Integer read getTpEvento ;
+    property numSeq: smallint read getNumSeq;
+    property xJust: string read getJust;
+    property dhEncerra: Tdatetime read getDHEncerra;
+    property cMunEncerra: Integer read getCMunEncerra;
+    property Status: Int16 read getStatus ;
+    property motivo: string read getMotivo;
+    property verApp: string read getVerApp ;
+    property dhRecebto: TDatetime read getDHRecebto ;
+    property numProt: string read getNumProt ;
+    property digVal: string read getDigVal ;
+  public
+    class function New(const aCodMDF: Integer;
+      const aCodOrg, aTipAmb: Smallint;
+      const aChvMDF: string ;
+      const aDHEvento: Tdatetime;
+      const aTpEvento: Integer;
+      const aNumSeq: smallint): IEventoMDF ;
+  end;
+
+  //
+  // lista de EventoMDF
+  IEventoMDFList = interface (IDataList<IEventoMDF>)
+    function Load(const aCodMDF: Integer): Boolean;
+    function IndexOf(const aTpEvento: Integer;
+      const aNumSeq: SmallInt): IEventoMDF;
+  end;
+  //TCEventoMDFList = class(TAggregatedObject, IEventoMDFList)
+  TCEventoMDFList = class(TInterfacedObject, IEventoMDFList)
+  private
+    m_DataList: TList<IEventoMDF> ;
+    function getItems: TList<IEventoMDF>;
+  protected
+  public
+    constructor Create();
+    function addNew(aItem: IEventoMDF): IEventoMDF ;
+    procedure clearItems ;
+    property Items: TList<IEventoMDF> read getItems ;
+    function Load(const aCodMDF: Integer): Boolean;
+    function IndexOf(const aTpEvento: Integer;
+      const aNumSeq: SmallInt): IEventoMDF;
+  end;
+
 
 
 
@@ -716,9 +952,19 @@ begin
     Q.AddCmd('  md0_indcnlvrd,                              ');
     Q.AddCmd('  md0_rntrc ,                                 ');
     Q.AddCmd('  md0_codvei,                                 ');
+    Q.AddCmd('  md0_codund,                                 ');
+
     Q.AddCmd('  md0_codstt,                                 ');
     Q.AddCmd('  md0_motivo,                                 ');
     Q.AddCmd('  md0_chmdfe                                  ');
+    Q.AddCmd('  --//                                        ');
+    Q.AddCmd('  --// info protocolo                         ');
+    Q.AddCmd('  ,md0_verapp                                 ');
+    Q.AddCmd('  ,md0_dhreceb                                ');
+    Q.AddCmd('  ,md0_digval                                 ');
+    Q.AddCmd('  ,md0_numprot                                ');
+    Q.AddCmd('  ,md0_numreci                                ');
+
     Q.AddCmd('from manifestodf00                            ');
     if aFilter.codseq > 0 then
         Q.AddCmd('where md0_codseq = @codseq                ')
@@ -777,11 +1023,16 @@ begin
             // carrega condutores
             Self.loadCondutores ;
 
+            //
+            // set state para browser
             Self.State :=msBrowse ;
         end
-        else
-            Self.Inicialize
-            ;
+        else begin
+            //
+            // set state para inactive
+            Self.State :=msInactive;
+            Self.Inicialize ;
+        end;
     finally
         Q.Free ;
     end;
@@ -874,6 +1125,7 @@ begin
             sp.AddParamWithValue('@ufefim', ftString, Self.m_ufefim);
             sp.AddParamWithValue('@rntrc', ftString, Self.m_rntrc);
             sp.AddParamWithValue('@codvei', ftSmallint, Self.m_codvei);
+            sp.AddParamWithValue('@codund', ftSmallint, Self.m_codund);
             sp.AddParamOut('@codseq', ftInteger);
             try
                 //
@@ -886,7 +1138,7 @@ begin
                 //
                 // registra um serial
                 serial :=TCGenSerial.New(Format('[MDFE]mdfe.%s.nserie.%.3d',[CadEmp.CNPJ,1]),
-                                          'UUID para MDFE por MOD/SERIE','',
+                                          'Sequencial de 1 a 999.999.999, por estabelecimento e série','',
                                           1, 1, 1, 999999999
                                           );
                 serial.setValue ;
@@ -947,6 +1199,9 @@ begin
                     //
                     for N in M.nfeList.getDataList do
                     begin
+                        if N.State =msDelete then
+                        //N.del
+                        else begin
                         C2.Param('@codmun').Value :=codseq ;
                         C2.Param('@chvnfe').Value :=N.chvNFE;
                         C2.Param('@vlrntf').Value :=N.vlrNtf;
@@ -962,6 +1217,7 @@ begin
                                 C.Connection.RollbackTrans;
                             end;
                             raise;
+                        end;
                         end;
                     end;
                 end;
@@ -1051,6 +1307,7 @@ begin
             sp.AddParamWithValue('@ufefim', ftString, Self.m_ufefim);
             sp.AddParamWithValue('@rntrc', ftString, Self.m_rntrc);
             sp.AddParamWithValue('@codvei', ftSmallint, Self.m_codvei);
+            sp.AddParamWithValue('@codund', ftSmallint, Self.m_codund);
             sp.AddParamWithValue('@codseq', ftInteger, Self.m_codseq);
             try
                 //
@@ -1091,6 +1348,7 @@ begin
     m_Municipios :=TCmanifestodf01munList.Create ;
     m_ModalRodo :=TCManifestodf04Rodo.Create ;
     m_MunDescarga :=TCManifestodf01MunDescarga.Create;
+    //
 end;
 
 destructor TCManifestoDF.Destroy;
@@ -1131,6 +1389,11 @@ function TCManifestoDF.getCodUFe: Int16;
 begin
     Result :=m_codufe
     ;
+end;
+
+function TCManifestoDF.getCodUnd: Int16;
+begin
+    Result :=m_codund ;
 end;
 
 function TCManifestoDF.getDHEmis: TDateTime;
@@ -1272,9 +1535,37 @@ begin
 
 end;
 
+function TCManifestoDF.getXML: string;
+var
+  Q: TADOQuery;
+  fmd0_xml: TField;
+begin
+    //
+    //
+    if Trim(Self.m_xml)= '' then
+    begin
+        //
+        //
+        Q :=TADOQuery.NewADOQuery() ;
+        try
+            Q.AddCmd('select md0_xml from manifestodf00 where md0_codseq =%d;',[Self.m_codseq]) ;
+            Q.Open ;
+            fmd0_xml :=Q.Field('md0_xml') ;
+            if not fmd0_xml.IsNull then
+            begin
+                Self.m_xml :=Trim(fmd0_xml.AsString) ;
+            end;
+        finally
+            Q.Free ;
+        end;
+    end;
+    //
+    //
+    Result :=Trim(Self.m_xml);
+end;
+
 procedure TCManifestoDF.Inicialize;
 begin
-    m_StateChange :=msInactive ;
     m_codseq :=0;
     m_codemp :=1;
     m_codufe :=0;
@@ -1295,6 +1586,7 @@ begin
     m_indcnlvrd:=False;
     m_rntrc:='';
     m_codvei:=0;
+    m_codund:=2;
     m_codstt :=0;
     m_motivo :='';
     m_xml :='';
@@ -1312,7 +1604,9 @@ end;
 function TCManifestoDF.isValid: Boolean;
 begin
     Result :=False ;
-    if m_Municipios.getDataList.Count = 0 then
+    if Self.m_codund < 0 then
+        raise ECodUnidIsEmpty.Create('Código da unidade de carga deve ser informado!')
+    else if m_Municipios.getDataList.Count = 0 then
         raise EMunCargaIsEmpty.Create('Nenhum município de carregamento/descarregamento vinculado ao manifesto!')
     else if m_ModalRodo.veiculo.id = 0 then
         raise EVeiculoIsEmpty.Create('Nenhum veículo vinculado ao manifesto!')
@@ -1395,9 +1689,18 @@ begin
         m_indcnlvrd :=Boolean(ds.FieldByName('md0_indcnlvrd').AsInteger);
     m_rntrc  :=ds.FieldByName('md0_rntrc').AsString ;
     m_codvei :=ds.FieldByName('md0_codvei').AsInteger;
+    m_codund :=ds.FieldByName('md0_codund').AsInteger;
+
     m_codstt :=ds.FieldByName('md0_codstt').AsInteger;
     m_motivo :=ds.FieldByName('md0_motivo').AsString ;
     m_chmdfe :=ds.FieldByName('md0_chmdfe').AsString ;
+    //
+    // INFO PROT
+    m_verapp :=ds.FieldByName('md0_verapp').AsString ;
+    m_dhrecebto :=ds.FieldByName('md0_dhreceb').AsDateTime ;
+    m_numreci :=ds.FieldByName('md0_numreci').AsString ;
+    m_numprot :=ds.FieldByName('md0_numprot').AsString ;
+    m_digval :=ds.FieldByName('md0_digval').AsString ;
     //
     //
     Self.loadMunDocs ;
@@ -1439,6 +1742,8 @@ begin
         Q.AddCmd('where md1_codmdf =@codmdf            ');
         Q.AddCmd('order by md1_tipmun                  ');
         Q.Open ;
+        //
+        // ler field mun
         md1_codseq :=Q.Field('md1_codseq') ;
         while not Q.Eof do
         begin
@@ -1471,6 +1776,7 @@ begin
                 // docs vinculados
                 M.nfeList.addNew(
                     TCManifestodf02nfe.New(
+                        md1_codseq.AsInteger ,
                         Q.Field('md2_chvnfe').AsString,
                         Q.Field('md2_codbar').AsString,
                         Boolean(Q.Field('md2_indree').AsInteger),
@@ -1515,6 +1821,11 @@ procedure TCManifestoDF.setCodUF(Value: Int16);
 begin
     m_codufe :=Value;
 
+end;
+
+procedure TCManifestoDF.setCodUnd(Value: Int16);
+begin
+    m_codund :=Value ;
 end;
 
 procedure TCManifestoDF.setDHEmis(Value: TDateTime);
@@ -1594,14 +1905,12 @@ end;
 
 procedure TCManifestoDF.setTpAmb(Value: Int16);
 begin
-    m_tipamb :=Value
-    ;
+    m_tipamb :=Value ;
 end;
 
 procedure TCManifestoDF.setTpEmis(Value: Int16);
 begin
-    m_tpemis :=Value
-    ;
+    m_tpemis :=Value ;
 end;
 
 procedure TCManifestoDF.setTpEmit(Value: Int16);
@@ -1742,6 +2051,23 @@ begin
     Result.m_ufemun :=ufemun ;
 end;
 
+function TCmanifestodf01mun.qCarga: Currency;
+var
+  N: IManifestodf02nfe;
+begin
+    Result :=0;
+    for N in m_NFEList.getDataList do
+    begin
+        Result :=Result +N.volPsoB ;
+    end;
+end;
+
+function TCmanifestodf01mun.qNFe: Integer;
+begin
+    Result :=m_NFEList.getDataList.Count ;
+
+end;
+
 procedure TCmanifestodf01mun.setCodMun(Value: Int32);
 begin
     m_codmun :=Value
@@ -1765,6 +2091,17 @@ procedure TCmanifestodf01mun.setUFeMun(Value: string);
 begin
     m_ufemun :=Value;
 
+end;
+
+function TCmanifestodf01mun.vCarga: Currency;
+var
+  N: IManifestodf02nfe;
+begin
+    Result :=0;
+    for N in m_NFEList.getDataList do
+    begin
+        Result :=Result +N.vlrNtf ;
+    end;
 end;
 
 { TCmanifestodf01munList }
@@ -1795,6 +2132,26 @@ function TCmanifestodf01munList.getDataList: TObjectList<TCManifestodf01mun> ;
 begin
     Result :=m_DataList
     ;
+end;
+
+function TCmanifestodf01munList.getFirstMun(
+  const aTyp: TManifestodf01munTyp): TCManifestodf01mun;
+var
+  found: Boolean ;
+begin
+    found :=False ;
+    for Result in m_DataList do
+    begin
+        if Result.m_tipmun =aTyp then
+        begin
+            found :=True ;
+            Break;
+        end;
+    end;
+    if not found then
+    begin
+        Result :=nil ;
+    end;
 end;
 
 function TCmanifestodf01munList.indexOf(
@@ -1854,6 +2211,22 @@ end;
 
 { TCManifestodf02nfe }
 
+procedure TCManifestodf02nfe.cmdDelete;
+var
+  C: TADOCommand ;
+begin
+    C :=TADOCommand.NewADOCommand();
+    try
+{        C.AddCmd('declare @codmun int; set @codmun =%d;',[self.]);
+declare @codntf int; set @codntf =1;
+delete from manifestodf02nfe
+where md2_codmun =@codmun
+and   md2_codntf =@codntf}
+    finally
+
+    end;
+end;
+
 function TCManifestodf02nfe.getChvNFE: string;
 begin
     Result :=m_chvnfe;
@@ -1870,6 +2243,11 @@ function TCManifestodf02nfe.getCodNtf: Int32;
 begin
     Result :=m_codntf ;
 
+end;
+
+function TCManifestodf02nfe.getIdMun: Int32;
+begin
+    Result :=m_idmun ;
 end;
 
 function TCManifestodf02nfe.getState: TModelState;
@@ -1890,12 +2268,14 @@ begin
 
 end;
 
-class function TCManifestodf02nfe.New(const chvnfe, codbar: string;
+class function TCManifestodf02nfe.New(const idmun: Int32;
+  const chvnfe, codbar: string;
   const indree: Boolean;
   const vlrntf: Currency; const volpsob: Double;
   const codntf: Int32): IManifestodf02nfe;
 begin
     Result :=TCManifestodf02nfe.Create ;
+    Result.idMun :=idmun ;
     Result.chvNFE :=chvnfe ;
     Result.codBarras :=codbar;
     Result.vlrNtf :=vlrntf ;
@@ -1920,6 +2300,18 @@ begin
 
 end;
 
+procedure TCManifestodf02nfe.setIdMun(Value: Int32);
+begin
+    m_idmun :=Value;
+
+end;
+
+procedure TCManifestodf02nfe.setState(const Value: TModelState);
+begin
+    m_State :=Value ;
+
+end;
+
 procedure TCManifestodf02nfe.setVlrNtf(Value: Currency);
 begin
     m_vlrntf :=Value;
@@ -1938,7 +2330,7 @@ function TCManifestodf02nfeList.addNew(
   aNFE: IManifestodf02nfe): IManifestodf02nfe;
 begin
     if aNFE = nil then
-        Result :=TCManifestodf02nfe.New('','',False,0,0,0)
+        Result :=TCManifestodf02nfe.New(0,'','',False,0,0,0)
     else
         Result :=aNFE;
     m_DataList.Add(Result) ;
@@ -2056,5 +2448,376 @@ begin
     Self.status :=mfsNone;
 end;
 
+
+{ TCEventoMDFList }
+
+function TCEventoMDFList.addNew(aItem: IEventoMDF): IEventoMDF;
+begin
+    if aItem = nil then
+        Result :=TCEventoMDF.Create ;
+    m_DataList.Add(Result);
+end;
+
+procedure TCEventoMDFList.clearItems;
+begin
+    m_DataList.Clear ;
+
+end;
+
+constructor TCEventoMDFList.Create();
+begin
+    //inherited Create; //(aController);
+    m_DataList :=TList<IEventoMDF>.Create ;
+
+end;
+
+function TCEventoMDFList.getItems: TList<IEventoMDF>;
+begin
+    Result :=m_DataList ;
+
+end;
+
+function TCEventoMDFList.IndexOf(const aTpEvento: Integer;
+  const aNumSeq: SmallInt): IEventoMDF;
+var
+  found: Boolean;
+  E: IEventoMDF;
+begin
+    found :=False ;
+    for E in m_DataList do
+    begin
+        if(Result.tpEvento =aTpEvento)and
+          (Result.numSeq =aNumSeq)then
+        begin
+            Break ;
+        end;
+    end;
+    if found then
+        Result :=E
+    else
+        Result :=nil;
+end;
+
+function TCEventoMDFList.Load(const aCodMDF: Integer): Boolean;
+var
+  Q: TADOQuery ;
+  E: IEventoMDF ;
+begin
+    clearItems ;
+
+    Q :=TADOQuery.NewADOQuery() ;
+    try
+        Q.AddCmd('declare @codmdf int; set @codmdf =%d;    ',[aCodMDF]);
+        Q.AddCmd('select em0_codseq,                       ');
+        Q.AddCmd('  em0_codmdf,                            ');
+        Q.AddCmd('  em0_codorg,                            ');
+        Q.AddCmd('  em0_tipamb,                            ');
+//        Q.AddCmd('  em0_cnpj,                              ');
+        Q.AddCmd('  em0_chvmdfe,                           ');
+        Q.AddCmd('  em0_dhevento,                          ');
+        Q.AddCmd('  em0_tpevento,                          ');
+        Q.AddCmd('  em0_numseq,                            ');
+        Q.AddCmd('  em0_xjust,                             ');
+        Q.AddCmd('  em0_verapp,                            ');
+        Q.AddCmd('  em0_codstt,                            ');
+        Q.AddCmd('  em0_motivo,                            ');
+        Q.AddCmd('  em0_dhreceb,                           ');
+        Q.AddCmd('  em0_numprot                            ');
+        Q.AddCmd('from eventomdfe where em0_codmdf =@codmdf');
+        Q.Open ;
+        while not Q.Eof do
+        begin
+            E :=Self.addNew(nil) ;
+            E.ID :=Q.Field('em0_codseq').AsInteger;
+            E.codMDF :=Q.Field('em0_codmdf').AsInteger;
+            E.codOrg :=Q.Field('em0_codorg').AsInteger;
+            E.tipAmb :=Q.Field('em0_tipamb').AsInteger;
+            E.chvMDFe :=Q.Field('em0_chvmdfe').AsString;
+            E.dhEvento :=Q.Field('em0_dhevento').AsDateTime;
+            E.tpEvento :=Q.Field('em0_tpevento').AsInteger;
+            E.numSeq :=Q.Field('em0_numseq').AsInteger;
+            E.xJust :=Q.Field('em0_xjust').AsString;
+            E.setStatus(Q.Field('em0_codstt').AsInteger,
+                        Q.Field('em0_motivo').AsString);
+            E.setProtocolo( Q.Field('em0_numprot').AsString,
+                            Q.Field('em0_verapp').AsString,
+                            Q.Field('em0_digval').AsString,
+                            Q.Field('em0_dhreceb').AsDateTime);
+            Q.Next ;
+        end;
+    finally
+        Q.Free ;
+    end;
+end;
+
+
+{ TCEventoMDF }
+
+procedure TCEventoMDF.cmdInsert;
+var
+  C: TADOCommand ;
+begin
+    C :=TADOCommand.NewADOCommand() ;
+    try
+        C.AddCmd('declare @codmdf	  int     ; set @codmdf  =%d    ;',[self.m_codmdf]) ;
+        C.AddCmd('declare @codorg	  smallint; set @codorg  =%d    ;',[self.m_codorg]) ;
+        C.AddCmd('declare @tipamb	  smallint; set @tipamb  =%d    ;',[self.m_tipamb]) ;
+        C.AddCmd('declare @chvmdfe  char(44); set @chvmdfe =%s    ;',[C.FStr(self.m_chvmdfe)]);
+        C.AddCmd('declare @dhevento	datetime; set @dhevento=?     ;');
+        C.AddCmd('declare @tpevento	int     ; set @tpevento =%d   ;',[self.m_tpevento]) ;
+        C.AddCmd('declare @numseq	  smallint; set @numseq =%d     ;',[self.m_numseq]) ;
+        case self.tpEvento of
+            RE_CANCELA: //cancelamento
+            begin
+              C.AddCmd('declare @xjust	  varchar(250); set @xjust =%s  ;',[C.FStr(self.m_xjust)]);
+              C.AddCmd('declare @datenc    datetime;                     ');
+              C.AddCmd('declare @munenc  int     ;                       ') ;
+            end;
+            RE_ENCERRA://encerramento
+            begin
+              C.AddCmd('declare @xjust	  varchar(250);                   ');
+              C.AddCmd('declare @datenc   datetime; set @datenc   =?     ;');
+              C.AddCmd('declare @munenc   int     ; set @munenc   =%d    ;',[self.m_cmunenc]) ;
+            end;
+        end;
+        C.AddCmd('declare @verapp	  varchar(20) ; set @verapp =%s ;',[C.FStr(self.m_verapp)]);
+        C.AddCmd('declare @codstt	  smallint; set @codstt =%d     ;',[self.m_codstt]) ;
+        C.AddCmd('declare @motivo	  varchar(250); set @motivo =%s ;',[C.FStr(self.m_motivo)]);
+        C.AddCmd('declare @dhreceb  datetime; set @dhreceb =?     ;');
+        C.AddCmd('declare @numprot  char(15); set @numprot=%s     ;',[C.FStr(self.m_numprot)]);
+        C.AddCmd('insert into eventomdfe( em0_codmdf ,             ');
+        C.AddCmd('                        em0_codorg ,             ');
+        C.AddCmd('                        em0_tipamb ,             ');
+        C.AddCmd('                        em0_chvmdfe,             ');
+        C.AddCmd('                        em0_dhevento,            ');
+        C.AddCmd('                        em0_tpevento,            ');
+        C.AddCmd('                        em0_numseq,              ');
+        C.AddCmd('                        em0_xjust,               ');
+        C.AddCmd('                        em0_datenc,              ');
+        C.AddCmd('                        em0_munenc,              ');
+        C.AddCmd('                        em0_verapp,              ');
+        C.AddCmd('                        em0_codstt,              ');
+        C.AddCmd('                        em0_motivo,              ');
+        C.AddCmd('                        em0_dhreceb,             ');
+        C.AddCmd('                        em0_numprot)             ');
+        C.AddCmd('values                ( @codmdf	 ,               ');
+        C.AddCmd('                        @codorg	 ,               ');
+        C.AddCmd('                        @tipamb	 ,               ');
+        C.AddCmd('                        @chvmdfe ,               ');
+        C.AddCmd('                        @dhevento,               ');
+        C.AddCmd('                        @tpevento,               ');
+        C.AddCmd('                        @numseq	 ,               ');
+        C.AddCmd('                        @xjust	 ,               ');
+        C.AddCmd('                        @datenc	 ,               ');
+        C.AddCmd('                        @munenc  ,               ');
+        C.AddCmd('                        @verapp	 ,               ');
+        C.AddCmd('                        @codstt	 ,               ');
+        C.AddCmd('                        @motivo	 ,               ');
+        C.AddCmd('                        @dhreceb ,               ');
+        C.AddCmd('                        @numprot )               ');
+
+        try
+            C.AddParamWithValue('@dhevento', ftDateTime, Self.m_dhevento);
+            C.AddParamWithValue('@dhreceb', ftDateTime, Self.m_dhreceb) ;
+            //
+            // somente para encerramento
+            if self.tpEvento =RE_ENCERRA then
+            begin
+                C.AddParamWithValue('@datenc', ftDateTime, Self.m_dhenc) ;
+            end;
+
+            //
+            // start uma transação, caso não tenha!
+            if not C.Connection.InTransaction then
+                C.Connection.BeginTrans ;
+
+            //
+            // exec o insert
+            C.Execute ;
+
+            //
+            // obtem o novo id
+            Self.m_codseq :=TADOQuery.ident_current('eventomdfe');
+
+            //
+            //
+            C.Connection.CommitTrans ;
+
+        except
+            if C.Connection.InTransaction then
+                C.Connection.RollbackTrans ;
+            raise;
+        end;
+    finally
+        C.Free ;
+    end;
+end;
+
+function TCEventoMDF.getChvMDFe: string;
+begin
+    Result :=m_chvmdfe ;
+end;
+
+function TCEventoMDF.getCMunEncerra: Integer;
+begin
+    Result :=m_cmunenc ;
+end;
+
+function TCEventoMDF.getCodMDF: Integer;
+begin
+    Result :=m_codmdf ;
+end;
+
+function TCEventoMDF.getCodOrg: smallint;
+begin
+    Result :=m_codorg;
+end;
+
+function TCEventoMDF.getDHEncerra: TDateTime;
+begin
+    Result :=m_dhenc ;
+end;
+
+function TCEventoMDF.getDHEvento: Tdatetime;
+begin
+    Result :=m_dhevento;
+end;
+
+function TCEventoMDF.getDHRecebto: TDatetime;
+begin
+    Result :=m_dhreceb;
+end;
+
+function TCEventoMDF.getDigVal: string;
+begin
+    Result :=m_digval;
+end;
+
+function TCEventoMDF.getID: Integer;
+begin
+    Result :=m_codseq;
+end;
+
+function TCEventoMDF.getJust: string;
+begin
+    Result :=m_xjust;
+end;
+
+function TCEventoMDF.getMotivo: string;
+begin
+    Result :=m_motivo;
+end;
+
+function TCEventoMDF.getNumProt: string;
+begin
+    Result :=m_numprot;
+end;
+
+function TCEventoMDF.getNumSeq: smallint;
+begin
+    Result :=m_numseq;
+end;
+
+function TCEventoMDF.getStatus: Int16;
+begin
+    Result :=m_codstt;
+end;
+
+function TCEventoMDF.getTipAmb: smallint;
+begin
+    Result :=m_tipamb;
+end;
+
+function TCEventoMDF.getTpEvento: Integer;
+begin
+    Result :=m_tpevento;
+end;
+
+function TCEventoMDF.getVerApp: string;
+begin
+    Result :=m_verapp;
+end;
+
+class function TCEventoMDF.New(const aCodMDF: Integer;
+  const aCodOrg, aTipAmb: Smallint;
+  const aChvMDF: string ;
+  const aDHEvento: Tdatetime; const aTpEvento: Integer;
+  const aNumSeq: smallint): IEventoMDF;
+begin
+    Result :=TCEventoMDF.Create ;
+    Result.codMDF :=aCodMDF ;
+    Result.codOrg :=aCodOrg ;
+    Result.tipAmb :=aTipAmb ;
+    Result.chvMDFe:=aChvMDF ;
+    Result.dhEvento:=aDHEvento ;
+    Result.tpEvento :=aTpEvento ;
+    Result.numSeq :=aNumSeq ;
+end;
+
+procedure TCEventoMDF.setChvMDFe(const aValue: string);
+begin
+    m_chvmdfe :=aValue ;
+end;
+
+procedure TCEventoMDF.setCodMDF(const aValue: Integer);
+begin
+    m_codmdf :=aValue ;
+end;
+
+procedure TCEventoMDF.setCodOrg(const aValue: smallint);
+begin
+    m_codorg :=aValue ;
+end;
+
+procedure TCEventoMDF.setDHEvento(const aValue: TDateTime);
+begin
+    m_dhevento :=aValue ;
+end;
+
+procedure TCEventoMDF.setEncerra(const aDtEnc: TDateTime; aCodMun: Integer);
+begin
+    m_dhenc :=aDtEnc ;
+    m_cmunenc :=aCodMun ;
+end;
+
+procedure TCEventoMDF.setID(const aValue: Integer);
+begin
+    m_codseq :=aValue ;
+end;
+
+procedure TCEventoMDF.setJust(const aValue: string);
+begin
+    m_xjust :=aValue ;
+end;
+
+procedure TCEventoMDF.setNumSeq(const aValue: smallint);
+begin
+    m_numseq :=aValue ;
+end;
+
+procedure TCEventoMDF.setProtocolo(const aNumProt, aVerApp, aDigVal: string;
+  const aDHReceb: TDateTime);
+begin
+    m_numprot :=aNumProt ;
+    m_verapp :=aVerApp ;
+    m_digval :=aDigVal ;
+    m_dhreceb :=aDHReceb ;
+end;
+
+procedure TCEventoMDF.setStatus(const aCodigo: smallint; const aMotivo: string);
+begin
+    m_codstt :=aCodigo ;
+    m_motivo :=aMotivo ;
+end;
+
+procedure TCEventoMDF.setTipAmb(const aValue: smallint);
+begin
+    m_tipamb :=aValue;
+end;
+
+procedure TCEventoMDF.setTpEvento(const aValue: Integer);
+begin
+    m_tpevento :=aValue;
+end;
 
 end.

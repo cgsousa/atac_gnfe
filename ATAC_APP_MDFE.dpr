@@ -16,7 +16,8 @@ uses
   uCondutorCtr in 'mdfe\controller\uCondutorCtr.pas',
   uVeiculoCtr in 'mdfe\controller\uVeiculoCtr.pas',
   uACBrMDFe in 'mdfe\uACBrMDFe.pas',
-  unotfis00 in 'model\unotfis00.pas';
+  unotfis00 in 'model\unotfis00.pas',
+  Form.EventoMDFe in 'mdfe\view\Form.EventoMDFe.pas' {frm_EventoMDFe};
 
 {$R *.res}
 

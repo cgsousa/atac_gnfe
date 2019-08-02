@@ -13,8 +13,9 @@ uses
   AdvOfficeStatusBar, AdvOfficeStatusBarStylers, AdvPanel, AdvPageControl,
   AdvCombo, AdvEdit, JvExMask, JvToolEdit, AdvGroupBox,
   AdvToolBar, AdvGlowButton, AdvMenus, AdvToolBarStylers, AdvEdBtn,
+  GradientLabel,
 
-  uIntf, uManifestoCtr, unotfis00, uCondutorCtr, uCondutor
+  uIntf, uManifestoCtr, unotfis00, uVeiculoCtr, uCondutorCtr
   ;
 
 type
@@ -46,17 +47,15 @@ type
     cbx_mdfTpEmit: TAdvComboBox;
     cbx_mdfTpTrasp: TAdvComboBox;
     edt_mdfNumDoc: TAdvEdit;
-    edt_mdDtEmis: TAdvEdit;
+    edt_mdfDtEmis: TAdvEdit;
     pag_Control01: TAdvPageControl;
     tab_Mun: TAdvTabSheet;
     tab_Rodo: TAdvTabSheet;
     vst_GridMun: TVirtualStringTree;
-    edt_VeiCod: TAdvEditBtn;
     pnl_Footer: TJvFooter;
     btn_Filter: TJvFooterBtn;
     btn_Close: TJvFooterBtn;
     btn_Vincula: TJvFooterBtn;
-    btn_Remove: TJvFooterBtn;
     btn_Save: TJvFooterBtn;
     pnl_Condutor: TAdvPanel;
     vst_GridCdtVinc: TVirtualStringTree;
@@ -66,9 +65,13 @@ type
     btn_CdtRmv: TJvImgBtn;
     Label1: TLabel;
     Label2: TLabel;
+    cbx_CodUnd: TAdvComboBox;
+    GradientLabel1: TGradientLabel;
+    vst_GridCadVei: TVirtualStringTree;
+    btn_CadVei: TJvImgBtn;
+    btn_Desvinc: TJvImgBtn;
     procedure FormDestroy(Sender: TObject);
     procedure btn_FindClick(Sender: TObject);
-    procedure edt_VeiCodClickBtn(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure vst_GridMunChange(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure vst_GridMunGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -84,7 +87,6 @@ type
       Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
       var CellText: string);
     procedure btn_CdtAddClick(Sender: TObject);
-    procedure pag_Control00Change(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
     procedure btn_CdtRmvClick(Sender: TObject);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -95,17 +97,40 @@ type
       const TargetCanvas: TCanvas; Node: PVirtualNode; Column: TColumnIndex;
       TextType: TVSTTextType);
     procedure vst_Grid1Checked(Sender: TBaseVirtualTree; Node: PVirtualNode);
+    procedure vst_GridCadVeiGetText(Sender: TBaseVirtualTree;
+      Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
+      var CellText: string);
+    procedure btn_CadVeiClick(Sender: TObject);
+    procedure pag_Control00Change(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure btn_DesvincClick(Sender: TObject);
+    procedure vst_GridMunBeforeItemErase(Sender: TBaseVirtualTree;
+      TargetCanvas: TCanvas; Node: PVirtualNode; ItemRect: TRect;
+      var ItemColor: TColor; var EraseAction: TItemEraseAction);
+    procedure vst_GridMunPaintText(Sender: TBaseVirtualTree;
+      const TargetCanvas: TCanvas; Node: PVirtualNode; Column: TColumnIndex;
+      TextType: TVSTTextType);
   private
     { Private declarations }
     m_Ctrl: IManifestoCtr;
-    m_StatusBar: TCStatusBarWidget;
     m_Lote: TCNotFis00Lote;
+    m_VeiculoCtr: TCVeiculoCtr;
     m_CondutorCtr: TCCondutorCtr;
     procedure loadGridMun ;
     procedure loadVeiculo ;
     procedure loadCondutores;
+  private
+    { Status Bar }
+    m_StatusBar: TCStatusBarWidget;
+    m_panelState: TAdvOfficeStatusPanel ;
+    m_panelFilter: TAdvOfficeStatusPanel ;
+    m_panelItems: TAdvOfficeStatusPanel ;
+    m_panelProgress: TAdvOfficeStatusPanel ;
+    procedure setStatusBar(const aPos: Int64 =0) ;
+
   protected
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+
   public
     { Public declarations }
     constructor Create(aCtrl: IManifestoCtr); reintroduce ;
@@ -119,10 +144,10 @@ implementation
 
 {$R *.dfm}
 
-uses StrUtils, DateUtils,
+uses StrUtils, DateUtils, MaskUtils, TypInfo,
   uTaskDlg, uadodb, udbconst, ustr ,
   FDM.MDFE, fdm.Styles ,
-  uManifestoDF, uVeiculoCtr, uVeiculo,
+  uManifestoDF, uVeiculo, uCondutor,
   Form.Veiculo, Form.Condutor ,
   pcnConversao
   ;
@@ -133,7 +158,36 @@ const
       'Município de Descarregamento'
       );
 
+//  TpcteTipoRodado = (trNaoAplicavel, trTruck, trToco, trCavaloMecanico, trVAN, trUtilitario, trOutros);
+function getTpRod(const aTyp: TpcteTipoRodado): string ;
+begin
+    Result :=GetEnumName(TypeInfo(TpcteTipoRodado), Integer(aTyp)) ;
+
+end;
+
+//  TpcteTipoCarroceria = (tcNaoAplicavel, tcAberta, tcFechada, tcGraneleira, tcPortaContainer, tcSider);
+function getTpCar(const aTyp: TpcteTipoCarroceria): string ;
+begin
+    Result :=GetEnumName(TypeInfo(TpcteTipoCarroceria), Integer(aTyp)) ;
+
+end;
+
+
 { Tfrm_Manifesto }
+
+procedure Tfrm_Manifesto.btn_CadVeiClick(Sender: TObject);
+var
+  M: IVeiculo;
+  V: IView ;
+begin
+    V :=Tfrm_Veiculo.Create(m_VeiculoCtr);
+    m_VeiculoCtr.Model :=m_Ctrl.Model.modalRodo.veiculo ;
+    m_VeiculoCtr.Model.OnModelChanged :=(V as Tfrm_Veiculo).ModelChanged ;
+    m_VeiculoCtr.Model.Insert ;
+    V.Execute ;
+    loadVeiculo ;
+    ActiveControl :=vst_GridCadVei ;
+end;
 
 procedure Tfrm_Manifesto.btn_CdtAddClick(Sender: TObject);
 var
@@ -185,6 +239,24 @@ procedure Tfrm_Manifesto.btn_CloseClick(Sender: TObject);
 begin
     Self.Close;
 
+end;
+
+procedure Tfrm_Manifesto.btn_DesvincClick(Sender: TObject);
+var
+  P: PVirtualNode ;
+  M: TCManifestodf01mun;
+  N: IManifestodf02nfe ;
+begin
+    if CMsgDlg.Confirm('Deseja desvincular a nota fiscal selecionada do manifesto?')then
+    begin
+        P :=vst_GridMun.GetFirstSelected();
+        P.States :=P.States +[vsDeleting] ;
+
+        M :=m_Ctrl.Model.municipios.getDataList[P.Parent.Parent.Index] ;
+        N :=M.nfeList.getDataList[P.Index] ;
+        N.State :=msDelete ;
+
+    end;
 end;
 
 procedure Tfrm_Manifesto.btn_FilterClick(Sender: TObject);
@@ -298,10 +370,11 @@ begin
 
     if m_lote.Items.Count > 0 then
     begin
-        LoadGrid() ;
-        btn_Filter.Click ;
-        ActiveControl :=vst_Grid1 ;
         btn_Vincula.Enabled :=True ;
+        btn_Filter.Click ;
+        LoadGrid() ;
+        ActiveControl :=vst_Grid1 ;
+        setStatusBar();
     end
     else begin
         btn_Vincula.Enabled :=False ;
@@ -311,6 +384,9 @@ begin
 end;
 
 procedure Tfrm_Manifesto.btn_SaveClick(Sender: TObject);
+var
+  P: PVirtualNode;
+  V: IVeiculo ;
 begin
 
     pag_Control00.ActivePageIndex :=1 ;
@@ -325,8 +401,21 @@ begin
     //m_Ctrl.Model.dataHoraEmissao :=0
     //m_Ctrl.Model.ufeIni  :=edt_mdfUFCarga.Text ;
     //m_Ctrl.Model.ufeFim  :=edt_mdfUFDescarga.Text ;
+    m_Ctrl.Model.codund :=cbx_CodUnd.ItemIndex;
+    //
+    // sel vei
+
+    if vst_GridCadVei.IndexItem > -1 then
+    begin
+        P :=vst_GridCadVei.GetFirstChecked();
+        V :=m_VeiculoCtr.ModelList.Items[P.Index];
+        m_Ctrl.Model.modalRodo.veiculo.cmdFind(V.id) ;
+    end;
 
     try
+        //
+        // valid input
+
         if m_Ctrl.Merge =mukInsert then
         begin
             CMsgDlg.Info(SInsertSucess,['MANIFESTO'])
@@ -336,17 +425,16 @@ begin
         end;
         ModalResult :=mrOk ;
     except
+        on E: ECodUnidIsEmpty do
+        begin
+            CMsgDlg.Error(E.Message);
+            ActiveControl :=cbx_CodUnd;
+        end;
+
         on E: EMunCargaIsEmpty do
         begin
             CMsgDlg.Error(E.Message);
             pag_Control01.ActivePageIndex :=0 ;
-        end;
-
-        on E: EVeiculoIsEmpty do
-        begin
-            CMsgDlg.Error(E.Message);
-            pag_Control01.ActivePageIndex :=1 ;
-            ActiveControl :=edt_VeiCod;
         end;
 
         on E: ECondutorIsEmpty do
@@ -444,9 +532,17 @@ constructor Tfrm_Manifesto.Create(aCtrl: IManifestoCtr);
 begin
     inherited Create(Application);
     m_Ctrl :=aCtrl;
-    m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
     m_lote :=TCNotFis00Lote.Create ;
+    m_VeiculoCtr :=TCVeiculoCtr.Create;
     m_CondutorCtr :=TCCondutorCtr.Create ;
+
+    //
+    // add Panels
+    m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
+    m_panelState:=m_StatusBar.AddPanel(psHTML, '', 75, taCenter) ;
+    m_panelFilter:=m_StatusBar.AddPanel(psHTML, '<b>F2</b> Filtro', 75, taCenter) ;
+    m_panelItems:=m_StatusBar.AddPanel(psHTML, '', 200) ;
+    m_panelProgress:=m_StatusBar.AddPanel(psProgress, '', 250) ;
 
     edt_PedIni.Clear;
     edt_PedFin.Clear;
@@ -460,55 +556,24 @@ begin
     cbx_mdfTpEmit.AddItem('3 - Prestador de serviço de transporte que emitirá CT-e Globalizado', nil);
 
     cbx_mdfTpTrasp.AddText('"1 - ETC","2 - TAC","3 - CTC"');
-end;
+    //
+    // unid med
+    cbx_CodUnd.AddText('"00-uM3","01-uKG","02-uTON","03-uUNIDADE","04-uLITROS","05-uMMBTU"');
 
-procedure Tfrm_Manifesto.edt_VeiCodClickBtn(Sender: TObject);
-var
-  M: IVeiculo ;
-  V: IView ;
-  C: IVeiculoCtr;
-var
-  cod,e: Integer ;
-begin
-    try
-        Val(edt_VeiCod.Text, cod, e) ;
-        if cod > 0 then
-        begin
-            m_Ctrl.Model.modalRodo.veiculo.cmdFind(cod);
-        end
-        else begin
-            C :=TCVeiculoCtr.Create();
-            V :=Tfrm_Veiculo.Create(C);
-            C.Model :=m_Ctrl.Model.modalRodo.veiculo ;
-            C.Model.OnModelChanged :=(V as Tfrm_Veiculo).ModelChanged ;
-            C.Model.Insert ;
-            V.Execute ;
-        end;
-        if m_Ctrl.Model.modalRodo.veiculo.id > 0 then
-        begin
-            edt_VeiCod.Text :=Format('Id:%d, Placa: %s, Tara em (Kg): %d',[
-                                      m_Ctrl.Model.modalRodo.veiculo.id ,
-                                      m_Ctrl.Model.modalRodo.veiculo.placa ,
-                                      m_Ctrl.Model.modalRodo.veiculo.tara]) ;
-            edt_VeiCod.formatReadOnly(True);
-            pnl_Condutor.Enabled :=True ;
-        end
-        else
-            pnl_Condutor.Enabled :=False ;
-    except
-        on E: EBuscaIsEmpty do
-        begin
-            CMsgDlg.Error(E.Message);
-            edt_VeiCod.SetFocus ;
-            pnl_Condutor.Enabled :=False ;
-        end;
-    end;
 end;
 
 procedure Tfrm_Manifesto.Execute;
 begin
     Self.ShowModal ;
 
+end;
+
+procedure Tfrm_Manifesto.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+    if m_Ctrl.Model.State <> msBrowse then
+    begin
+        CanClose :=CMsgDlg.Confirm('As mudanças ainda não foram salvas!'#13#10'Deseja sair?') ;
+    end;
 end;
 
 procedure Tfrm_Manifesto.FormDestroy(Sender: TObject);
@@ -519,60 +584,46 @@ end;
 
 procedure Tfrm_Manifesto.FormShow(Sender: TObject);
 begin
-    Self.Inicialize ;
-
-end;
-
-procedure Tfrm_Manifesto.Inicialize;
-begin
     //
-    // muda o stado da view conforme o estado do model
-    //
-
-    //
-    // format titulo
-    if m_Ctrl.Model.id > 0 then
-    begin
-        if m_Ctrl.Model.State <> msBrowse then
-            Self.Caption :=Format('Edição de Manifesto[Id: %d]',[m_Ctrl.Model.id])
-        else
-            Self.Caption :=Format('Consulta de Manifesto[Id: %d]',[m_Ctrl.Model.id])
-    end
-    else
-        Self.Caption :='Emissão de Manifesto';
-
-    if m_Ctrl.Model.State <> msBrowse then
-    begin
-        edt_DatIni.Date :=StartOfTheMonth(Date);
-        edt_DatFin.Date :=Date;
-        if m_Ctrl.Model.State = msInsert then
-        begin
-            pag_Control00.ActivePageIndex :=0 ;
-            ActiveControl :=edt_DatFin;
-        end
-        else
-            pag_Control00.ActivePageIndex :=1;
-    end
-    else begin
-        tab_Browse.TabVisible :=False ;
-    end;
-
-    cbx_mdfTpEmit.Enabled :=m_Ctrl.Model.State <> msBrowse;
-    cbx_mdfTpTrasp.Enabled :=m_Ctrl.Model.State <> msBrowse;
-    edt_mdfNumDoc.Enabled :=False ;
-    edt_mdDtEmis.Enabled :=False ;
-
-    btn_Filter.Visible :=tab_Browse.TabVisible ;
-    btn_Vincula.Visible :=tab_Browse.TabVisible;
-    btn_Remove.Visible :=tab_Browse.TabVisible ;
-    btn_Save.Visible :=tab_Browse.TabVisible ;
-
-    pag_Control01.ActivePageIndex :=0;
-
+    // inicializa controls
     vst_Grid1.Clear ;
 
     //
-    // load grid
+    // inicializa View conforme model
+    Self.Inicialize ;
+
+    //
+    // trava controls
+    pag_Control01.ActivePageIndex :=0;
+    btn_Vincula.Enabled :=False ;
+    //
+    //
+    setStatusBar();
+end;
+
+procedure Tfrm_Manifesto.Inicialize;
+var
+  U: UtilStr ;
+begin
+    //
+    // inicializa a view conforme o model
+    //
+
+    cbx_mdfTpEmit.ItemIndex :=m_Ctrl.Model.tpEmitente ;
+    cbx_mdfTpTrasp.ItemIndex:=m_Ctrl.Model.tpTransportador;
+    cbx_CodUnd.ItemIndex :=m_Ctrl.Model.codund ;
+    if m_Ctrl.Model.State = msInsert then
+    begin
+        edt_mdfNumDoc.Text :='';
+        edt_mdfDtEmis.Text :='';
+    end
+    else begin
+        edt_mdfNumDoc.Text :=FormatMaskText('000\.000\.000;0; ',U.Zeros(m_Ctrl.Model.numeroDoc,9)) ;
+        edt_mdfDtEmis.Text :=U.fDtTm(m_Ctrl.Model.dhEmissao,'DD/MM/YYYY hh:nn') ;
+    end;
+
+    //
+    // load mun/docs
     loadGridMun ;
 
     //
@@ -583,48 +634,46 @@ begin
     // load condutores
     loadCondutores ;
 
-    edt_mdfNumDoc.IntValue :=m_Ctrl.Model.numeroDoc ;
-    if m_Ctrl.Model.dhEmissao > 0 then
+
+    //
+    // muda o stado da view conforme o estado do model
+    //
+
+    //
+    // habilita para insert/edit
+    if m_Ctrl.Model.State <> msBrowse then
     begin
-        edt_mdDtEmis.Text    :=DateTimeToStr(m_Ctrl.Model.dhEmissao, LocalFormatSettings) ;
+        edt_DatIni.Date :=StartOfTheMonth(Date);
+        edt_DatFin.Date :=Date;
+        if m_Ctrl.Model.State = msInsert then
+        begin
+            pag_Control00.ActivePageIndex :=0 ;
+            ActiveControl :=edt_DatIni;
+        end
+        else begin
+            pag_Control00.ActivePageIndex :=1;
+        end;
+    end
+    //
+    // somente leitura
+    else begin
+        tab_Browse.TabVisible :=False ;
+        gbx_Ident.Enabled :=False ;
+        btn_Filter.Visible :=False ;
+        btn_Vincula.Enabled :=False;
+        btn_Desvinc.Visible :=False;
+        btn_Save.Enabled :=False;
+        btn_CadVei.Visible :=False;
+        pnl_Condutor.Enabled :=False;
     end;
-
-    cbx_mdfTpEmit.ItemIndex :=m_Ctrl.Model.tpEmitente;
-    cbx_mdfTpTrasp.ItemIndex :=m_Ctrl.Model.tpTransportador ;
-
-//    case m_Ctrl.Model.State of
-//        msInactive: ResetWContrls(gbx_Ident, True);
-//    end;
-
-    {btn_New.Enabled :=m_Ctrl.Model.State = msInactive;
-    btn_Save.Enabled:=m_Ctrl.Model.State in[msInsert, msEdit];
-    btn_Cancel.Enabled:=m_Ctrl.Model.State in[msInsert, msEdit];
-    btn_Delete.Enabled:=m_Ctrl.Model.State = msBrowse;
-    btn_Edit.Enabled  :=m_Ctrl.Model.State = msBrowse;
-    btn_Send.Enabled  :=m_Ctrl.Model.State = msBrowse;
-    }
 end;
 
 procedure Tfrm_Manifesto.KeyDown(var Key: Word; Shift: TShiftState);
 begin
     case Key of
-        VK_RETURN:
-        if ActiveControl =edt_VeiCod then
-        begin
-            if edt_VeiCod.ReadOnly or edt_VeiCod.IsEmpty() then
-                inherited
-            else
-                edt_VeiCodClickBtn(edt_VeiCod);
-        end
-        else
-            inherited;
-        VK_BACK:
-        if ActiveControl = edt_VeiCod then
-        begin
-            edt_VeiCod.formatReadOnly(False) ;
-            m_Ctrl.Model.modalRodo.veiculo.Inicialize ;
-            pnl_Condutor.Enabled :=False ;
-        end;
+//        VK_F1: pnl_Help.Visible :=not pnl_Help.Visible ;
+        VK_F2: if btn_Filter.Visible then btn_Filter.Click ;
+        VK_ESCAPE: btn_Close.Click ;
     else
         inherited;
     end;
@@ -697,29 +746,30 @@ end;
 
 procedure Tfrm_Manifesto.loadVeiculo;
 var
-  C: TCVeiculoCtr;
-  I: IVeiculo ;
+  V: IVeiculo ;
+var
+  P: PVirtualNode ;
 begin
-    C :=TCVeiculoCtr.Create ;
-    C.ModelList.Load ;
-    edt_VeiCod.Lookup.DisplayList.Clear;
-    edt_VeiCod.Lookup.ValueList.Clear  ;
-    for I in C.ModelList.Items do
+    //
+    // carga cad.veiculo
+    m_VeiculoCtr.ModelList.Load ;
+
+    vst_GridCadVei.Clear ;
+    for V in m_VeiculoCtr.ModelList.Items do
     begin
-        edt_VeiCod.Lookup.DisplayList.Add(I.placa);
-        edt_VeiCod.Lookup.ValueList.Add(IntToStr(I.id));
+        P :=vst_GridCadVei.AddChild(nil) ;
+        P.CheckType :=ctRadioButton ;
+        if P.Index =0 then
+            P.CheckState :=csCheckedNormal;
     end;
-    edt_VeiCod.Lookup.DisplayCount :=8 ;
-    edt_VeiCod.Lookup.NumChars :=1;
-    edt_VeiCod.Lookup.History :=True;
-    edt_VeiCod.Lookup.Multi :=False;
-    edt_VeiCod.Lookup.Enabled :=true ;
 
     if m_Ctrl.Model.modalRodo.veiculo.id > 0 then
     begin
-        edt_VeiCod.Text :=IntToStr(m_Ctrl.Model.modalRodo.veiculo.id);
-        edt_VeiCodClickBtn(edt_VeiCod) ;
-    end;
+        V :=m_VeiculoCtr.ModelList.indexOf(m_Ctrl.Model.modalRodo.veiculo.id) ;
+        vst_GridCadVei.IndexItem :=m_VeiculoCtr.ModelList.Items.IndexOf(V);
+    end
+    else
+        vst_GridCadVei.IndexItem :=0 ;
 end;
 
 procedure Tfrm_Manifesto.ModelChanged;
@@ -730,8 +780,67 @@ end;
 
 procedure Tfrm_Manifesto.pag_Control00Change(Sender: TObject);
 begin
-    btn_Vincula.Enabled :=pag_Control00.ActivePageIndex =0;
+    setStatusBar()
+    ;
+end;
 
+procedure Tfrm_Manifesto.setStatusBar(const aPos: Int64);
+var
+  M: TCManifestodf01mun;
+begin
+    if aPos > 0 then
+        m_panelProgress.Progress.Position :=aPos
+    else begin
+        case m_Ctrl.Model.State of
+            msInactive: m_panelState.Text :='<b>Inativo</b>';
+            msEdit: m_panelState.Text :='<b>Edição</b>';
+            msInsert: m_panelState.Text :='<b>NOVO</b>';
+            msBrowse: m_panelState.Text :='<b>Consulta</b>';
+        end;
+
+        if pag_Control00.ActivePage =tab_Browse then
+        begin
+            if m_Lote.Items.Count > 0 then
+                m_panelItems.Text :=Format(' <b>%d</b> Notas Fiscais encontradas',[m_Lote.Items.Count])
+            else
+                m_panelItems.Text :=' Nenhum';
+        end
+        else begin
+            M :=m_Ctrl.Model.municipios.getFirstMun(mtDescarga);
+            if M <> nil then
+                m_panelItems.Text :=Format(' <b>%d</b> Notas Fiscais vinculadas',[M.qNFe])
+            else
+                m_panelItems.Text :=' Nenhuma NFE vinculada';
+        end;
+    end;
+end;
+
+procedure Tfrm_Manifesto.vst_GridCadVeiGetText(Sender: TBaseVirtualTree;
+  Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
+  var CellText: string);
+var
+  V: IVeiculo ;
+begin
+    if Assigned(Node) then
+    begin
+        V :=m_VeiculoCtr.ModelList.Items[Node.Index] ;
+        case Column of
+            00: CellText :=IntToStr(V.id) ;
+            01: if V.placa <> '' then
+                begin
+                    CellText :=FormatMaskText('LLLL\-9999;0; ',V.placa);
+                end
+                else begin
+                    CellText :='';
+                end;
+            02: CellText :=IntToStr(V.tara) ;
+            03: CellText :=IntToStr(V.capacidadeKg) ;
+            04: CellText :=IntToStr(V.capacidadeM3) ;
+            05: CellText :=getTpRod(TpcteTipoRodado(V.tipRodado)) ;
+            06: CellText :=getTpCar(TpcteTipoCarroceria(V.tipCarroceria)) ;
+            07: CellText :=V.ufLicenca;
+        end;
+    end;
 end;
 
 procedure Tfrm_Manifesto.vst_GridCdtCadGetText(Sender: TBaseVirtualTree;
@@ -760,14 +869,32 @@ begin
     end;
 end;
 
+procedure Tfrm_Manifesto.vst_GridMunBeforeItemErase(Sender: TBaseVirtualTree;
+  TargetCanvas: TCanvas; Node: PVirtualNode; ItemRect: TRect;
+  var ItemColor: TColor; var EraseAction: TItemEraseAction);
+begin
+    if vsDeleting in Node.States then
+        ItemColor := clBtnFace
+    else
+        ItemColor :=vst_GridMun.Color;
+    EraseAction := eaColor;
+end;
+
 procedure Tfrm_Manifesto.vst_GridMunChange(Sender: TBaseVirtualTree;
   Node: PVirtualNode);
+var
+  M: TCManifestodf01mun;
+  N: IManifestodf02nfe ;
 begin
     case Sender.GetNodeLevel(Node) of
         2: // docs (NFE) vinculados
-        btn_Remove.Enabled :=True ;
+        begin
+            M :=m_Ctrl.Model.municipios.getDataList[Node.Parent.Parent.Index] ;
+            N :=M.nfeList.getDataList[Node.Index] ;
+            btn_Desvinc.Enabled :=N.State <> msDelete ;
+        end;
     else
-        btn_Remove.Enabled :=False;
+        btn_Desvinc.Enabled :=False;
     end;
 end;
 
@@ -814,6 +941,22 @@ begin
                     3: CellText :=S.fFlt(N.volPsoB);
                 end;
             end;
+        end;
+    end;
+end;
+
+procedure Tfrm_Manifesto.vst_GridMunPaintText(Sender: TBaseVirtualTree;
+  const TargetCanvas: TCanvas; Node: PVirtualNode; Column: TColumnIndex;
+  TextType: TVSTTextType);
+begin
+    if TextType = ttNormal then
+    begin
+        if Assigned(Node) and ((Node <> Sender.FocusedNode))then
+        begin
+            if vsDeleting in Node.States then
+                TargetCanvas.Font.Color :=clBtnShadow
+            else
+                TargetCanvas.Font.Color :=clWindowText ;
         end;
     end;
 end;

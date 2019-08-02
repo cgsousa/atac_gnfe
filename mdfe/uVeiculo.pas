@@ -195,7 +195,8 @@ type
     constructor Create(aController: IInterface);
     destructor Destroy; override ;
     function addNew(aItem: IVeiculo): IVeiculo ;
-    function indexOf(const id: Int32): IVeiculo;
+    function indexOf(const id: Int32): IVeiculo; //overload ;
+    //function indexOf(const aItem: IVeiculo): Integer; overload ;
     procedure clearItems ;
     procedure Load;
   end;
@@ -703,8 +704,18 @@ begin
 end;
 
 function TCVeiculoList.indexOf(const id: Int32): IVeiculo;
+var
+  I: IVeiculo ;
 begin
-
+    Result :=nil;
+    for I in Self.Items do
+    begin
+        if I.id =id then
+        begin
+            Result :=I ;
+            Break ;
+        end;
+    end;
 end;
 
 procedure TCVeiculoList.Load;
@@ -712,6 +723,11 @@ var
   ds: TDataSet ;
   I: IVeiculo ;
 begin
+    //
+    // clear
+    Self.clearItems ;
+    //
+    //
     ds :=TCVeiculo.CLoad(0) ;
     try
         while not ds.Eof do

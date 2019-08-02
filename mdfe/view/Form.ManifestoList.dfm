@@ -171,7 +171,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
         Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coResizable, coShowDropMark, coVisible, coFixed, coAllowFocus, coUseCaptionAlignment]
         Position = 0
         Width = 75
-        WideText = 'Id'
+        WideText = 'Id(Codigo)'
       end
       item
         Position = 1
@@ -430,7 +430,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
       TabOrder = 3
       TabStop = True
       Alignment = taLeftJustify
-      Caption = 'Mostrar chave da NFe'
+      Caption = 'Mostrar chave do MDF-e'
       ReturnIsTab = False
       State = cbChecked
       Themed = True
@@ -457,7 +457,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
     object btn_Config: TJvFooterBtn
       Left = 8
       Top = 5
-      Width = 100
+      Width = 90
       Height = 30
       Hint = 'Configura a forma de emiss'#227'o'
       Anchors = [akLeft, akBottom]
@@ -471,7 +471,7 @@ object frm_ManifestoList: Tfrm_ManifestoList
       SpaceInterval = 6
     end
     object btn_Filter: TJvFooterBtn
-      Left = 112
+      Left = 102
       Top = 5
       Width = 90
       Height = 30
@@ -486,8 +486,8 @@ object frm_ManifestoList: Tfrm_ManifestoList
       ButtonIndex = 1
       SpaceInterval = 6
     end
-    object btn_Cons: TJvFooterBtn
-      Left = 208
+    object btn_ConsSvc: TJvFooterBtn
+      Left = 198
       Top = 5
       Width = 90
       Height = 30
@@ -497,15 +497,15 @@ object frm_ManifestoList: Tfrm_ManifestoList
       ParentShowHint = False
       ShowHint = True
       TabOrder = 6
-      OnClick = btn_ConsClick
+      OnClick = btn_ConsSvcClick
       Alignment = taLeftJustify
       ButtonIndex = 2
       SpaceInterval = 6
     end
     object btn_Close: TJvFooterBtn
-      Left = 910
+      Left = 920
       Top = 5
-      Width = 100
+      Width = 90
       Height = 30
       Anchors = [akRight, akBottom]
       Caption = 'Fechar'
@@ -515,72 +515,75 @@ object frm_ManifestoList: Tfrm_ManifestoList
       SpaceInterval = 6
     end
     object btn_New: TJvFooterBtn
-      Left = 304
+      Left = 294
       Top = 5
       Width = 90
       Height = 30
       Anchors = [akLeft, akBottom]
-      Caption = 'Novo'
+      Caption = 'Emiss'#227'o'
+      DropDownMenu = pm_Emissao
       ParentShowHint = False
       ShowHint = False
       TabOrder = 5
-      OnClick = btn_NewClick
       Alignment = taLeftJustify
       ButtonIndex = 4
       SpaceInterval = 6
     end
-    object btn_Edit: TJvFooterBtn
-      Left = 400
-      Top = 5
-      Width = 90
-      Height = 30
-      Anchors = [akLeft, akBottom]
-      Caption = 'Alterar'
-      ParentShowHint = False
-      ShowHint = False
-      TabOrder = 4
-      OnClick = btn_EditClick
-      Alignment = taLeftJustify
-      ButtonIndex = 5
-      SpaceInterval = 6
-    end
-    object btn_Detalh: TJvFooterBtn
-      Left = 496
-      Top = 5
-      Width = 90
-      Height = 30
-      Anchors = [akLeft, akBottom]
-      Caption = 'Notas Fiscais'
-      TabOrder = 8
-      OnClick = btn_DetalhClick
-      Alignment = taLeftJustify
-      ButtonIndex = 6
-      SpaceInterval = 6
-    end
     object btn_Send: TJvFooterBtn
-      Left = 592
+      Left = 390
       Top = 5
       Width = 90
       Height = 30
       Hint = 'Autoriza Nota Fiscal'
       Anchors = [akLeft, akBottom]
-      Caption = 'Enviar'
+      Caption = 'Autorizar USO'
       ParentShowHint = False
       ShowHint = True
       TabOrder = 3
       OnClick = btn_SendClick
       Alignment = taLeftJustify
-      ButtonIndex = 7
+      ButtonIndex = 5
       SpaceInterval = 6
     end
-    object btn_Canc: TJvFooterBtn
-      Left = 688
+    object btn_Print: TJvFooterBtn
+      Left = 486
+      Top = 5
+      Width = 90
+      Height = 30
+      Hint = 'Impress'#227'o do Documento Auxiliar'
+      Anchors = [akLeft, akBottom]
+      Caption = 'DAMDFE'
+      TabOrder = 8
+      OnClick = btn_PrintClick
+      Alignment = taLeftJustify
+      ButtonIndex = 6
+      SpaceInterval = 6
+    end
+    object btn_Cons: TJvFooterBtn
+      Left = 582
       Top = 5
       Width = 90
       Height = 30
       Anchors = [akLeft, akBottom]
-      Caption = 'Cancelar'
+      Caption = 'Consultar'
+      ParentShowHint = False
+      ShowHint = False
+      TabOrder = 4
+      OnClick = btn_ConsClick
+      Alignment = taLeftJustify
+      ButtonIndex = 7
+      SpaceInterval = 6
+    end
+    object btn_Evento: TJvFooterBtn
+      Left = 678
+      Top = 5
+      Width = 90
+      Height = 30
+      Hint = 'Registro de Eventos'
+      Anchors = [akLeft, akBottom]
+      Caption = 'Evento'
       TabOrder = 7
+      OnClick = btn_EventoClick
       Alignment = taLeftJustify
       ButtonIndex = 8
       SpaceInterval = 6
@@ -589,14 +592,38 @@ object frm_ManifestoList: Tfrm_ManifestoList
   object ActionList1: TActionList
     Left = 408
     Top = 328
-    object act_ConsStt: TAction
-      Caption = 'Consultar Servi'#231'o'
-      Hint = 'Consultar status do servi'#231'o'
+    object act_New: TAction
+      Category = 'EMIS'
+      Caption = 'Novo'
+      Hint = 'Emite um novo Manifesto'
+      OnExecute = act_NewExecute
     end
-    object act_ConsProt: TAction
-      Caption = 'Consular Protocolo'
-      Hint = 'Consular Protocolo'
-      OnExecute = act_ConsProtExecute
+    object act_Edit: TAction
+      Category = 'EMIS'
+      Caption = 'Alterar'
+      Hint = 'Altera dados do Manifesto'
+      OnExecute = act_EditExecute
+    end
+    object act_Browse: TAction
+      Category = 'EMIS'
+      Caption = 'Visualizar'
+      Hint = 'Consulta dados do MDF'
+      OnExecute = act_BrowseExecute
+    end
+  end
+  object pm_Emissao: TAdvPopupMenu
+    MenuStyler = dm_Styles.AdvMenuOfficeStyler1
+    Version = '2.5.4.3'
+    Left = 408
+    Top = 384
+    object Emisso1: TMenuItem
+      Action = act_New
+    end
+    object Alterar1: TMenuItem
+      Action = act_Edit
+    end
+    object Visualizar1: TMenuItem
+      Action = act_Browse
     end
   end
 end

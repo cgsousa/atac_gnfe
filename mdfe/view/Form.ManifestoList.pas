@@ -1,3 +1,159 @@
+{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
+{$MINSTACKSIZE $00004000}
+{$MAXSTACKSIZE $00100000}
+{$IMAGEBASE $00400000}
+{$APPTYPE GUI}
+{$WARN SYMBOL_DEPRECATED ON}
+{$WARN SYMBOL_LIBRARY ON}
+{$WARN SYMBOL_PLATFORM ON}
+{$WARN SYMBOL_EXPERIMENTAL ON}
+{$WARN UNIT_LIBRARY ON}
+{$WARN UNIT_PLATFORM ON}
+{$WARN UNIT_DEPRECATED ON}
+{$WARN UNIT_EXPERIMENTAL ON}
+{$WARN HRESULT_COMPAT ON}
+{$WARN HIDING_MEMBER ON}
+{$WARN HIDDEN_VIRTUAL ON}
+{$WARN GARBAGE ON}
+{$WARN BOUNDS_ERROR ON}
+{$WARN ZERO_NIL_COMPAT ON}
+{$WARN STRING_CONST_TRUNCED ON}
+{$WARN FOR_LOOP_VAR_VARPAR ON}
+{$WARN TYPED_CONST_VARPAR ON}
+{$WARN ASG_TO_TYPED_CONST ON}
+{$WARN CASE_LABEL_RANGE ON}
+{$WARN FOR_VARIABLE ON}
+{$WARN CONSTRUCTING_ABSTRACT ON}
+{$WARN COMPARISON_FALSE ON}
+{$WARN COMPARISON_TRUE ON}
+{$WARN COMPARING_SIGNED_UNSIGNED ON}
+{$WARN COMBINING_SIGNED_UNSIGNED ON}
+{$WARN UNSUPPORTED_CONSTRUCT ON}
+{$WARN FILE_OPEN ON}
+{$WARN FILE_OPEN_UNITSRC ON}
+{$WARN BAD_GLOBAL_SYMBOL ON}
+{$WARN DUPLICATE_CTOR_DTOR ON}
+{$WARN INVALID_DIRECTIVE ON}
+{$WARN PACKAGE_NO_LINK ON}
+{$WARN PACKAGED_THREADVAR ON}
+{$WARN IMPLICIT_IMPORT ON}
+{$WARN HPPEMIT_IGNORED ON}
+{$WARN NO_RETVAL ON}
+{$WARN USE_BEFORE_DEF ON}
+{$WARN FOR_LOOP_VAR_UNDEF ON}
+{$WARN UNIT_NAME_MISMATCH ON}
+{$WARN NO_CFG_FILE_FOUND ON}
+{$WARN IMPLICIT_VARIANTS ON}
+{$WARN UNICODE_TO_LOCALE ON}
+{$WARN LOCALE_TO_UNICODE ON}
+{$WARN IMAGEBASE_MULTIPLE ON}
+{$WARN SUSPICIOUS_TYPECAST ON}
+{$WARN PRIVATE_PROPACCESSOR ON}
+{$WARN UNSAFE_TYPE OFF}
+{$WARN UNSAFE_CODE OFF}
+{$WARN UNSAFE_CAST OFF}
+{$WARN OPTION_TRUNCATED ON}
+{$WARN WIDECHAR_REDUCED ON}
+{$WARN DUPLICATES_IGNORED ON}
+{$WARN UNIT_INIT_SEQ ON}
+{$WARN LOCAL_PINVOKE ON}
+{$WARN MESSAGE_DIRECTIVE ON}
+{$WARN TYPEINFO_IMPLICITLY_ADDED ON}
+{$WARN RLINK_WARNING ON}
+{$WARN IMPLICIT_STRING_CAST ON}
+{$WARN IMPLICIT_STRING_CAST_LOSS ON}
+{$WARN EXPLICIT_STRING_CAST OFF}
+{$WARN EXPLICIT_STRING_CAST_LOSS OFF}
+{$WARN CVT_WCHAR_TO_ACHAR ON}
+{$WARN CVT_NARROWING_STRING_LOST ON}
+{$WARN CVT_ACHAR_TO_WCHAR OFF}
+{$WARN CVT_WIDENING_STRING_LOST OFF}
+{$WARN XML_WHITESPACE_NOT_ALLOWED ON}
+{$WARN XML_UNKNOWN_ENTITY ON}
+{$WARN XML_INVALID_NAME_START ON}
+{$WARN XML_INVALID_NAME ON}
+{$WARN XML_EXPECTED_CHARACTER ON}
+{$WARN XML_CREF_NO_RESOLVE ON}
+{$WARN XML_NO_PARM ON}
+{$WARN XML_NO_MATCHING_PARM ON}
+{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
+{$MINSTACKSIZE $00004000}
+{$MAXSTACKSIZE $00100000}
+{$IMAGEBASE $00400000}
+{$APPTYPE GUI}
+{$WARN SYMBOL_DEPRECATED ON}
+{$WARN SYMBOL_LIBRARY ON}
+{$WARN SYMBOL_PLATFORM ON}
+{$WARN SYMBOL_EXPERIMENTAL ON}
+{$WARN UNIT_LIBRARY ON}
+{$WARN UNIT_PLATFORM ON}
+{$WARN UNIT_DEPRECATED ON}
+{$WARN UNIT_EXPERIMENTAL ON}
+{$WARN HRESULT_COMPAT ON}
+{$WARN HIDING_MEMBER ON}
+{$WARN HIDDEN_VIRTUAL ON}
+{$WARN GARBAGE ON}
+{$WARN BOUNDS_ERROR ON}
+{$WARN ZERO_NIL_COMPAT ON}
+{$WARN STRING_CONST_TRUNCED ON}
+{$WARN FOR_LOOP_VAR_VARPAR ON}
+{$WARN TYPED_CONST_VARPAR ON}
+{$WARN ASG_TO_TYPED_CONST ON}
+{$WARN CASE_LABEL_RANGE ON}
+{$WARN FOR_VARIABLE ON}
+{$WARN CONSTRUCTING_ABSTRACT ON}
+{$WARN COMPARISON_FALSE ON}
+{$WARN COMPARISON_TRUE ON}
+{$WARN COMPARING_SIGNED_UNSIGNED ON}
+{$WARN COMBINING_SIGNED_UNSIGNED ON}
+{$WARN UNSUPPORTED_CONSTRUCT ON}
+{$WARN FILE_OPEN ON}
+{$WARN FILE_OPEN_UNITSRC ON}
+{$WARN BAD_GLOBAL_SYMBOL ON}
+{$WARN DUPLICATE_CTOR_DTOR ON}
+{$WARN INVALID_DIRECTIVE ON}
+{$WARN PACKAGE_NO_LINK ON}
+{$WARN PACKAGED_THREADVAR ON}
+{$WARN IMPLICIT_IMPORT ON}
+{$WARN HPPEMIT_IGNORED ON}
+{$WARN NO_RETVAL ON}
+{$WARN USE_BEFORE_DEF ON}
+{$WARN FOR_LOOP_VAR_UNDEF ON}
+{$WARN UNIT_NAME_MISMATCH ON}
+{$WARN NO_CFG_FILE_FOUND ON}
+{$WARN IMPLICIT_VARIANTS ON}
+{$WARN UNICODE_TO_LOCALE ON}
+{$WARN LOCALE_TO_UNICODE ON}
+{$WARN IMAGEBASE_MULTIPLE ON}
+{$WARN SUSPICIOUS_TYPECAST ON}
+{$WARN PRIVATE_PROPACCESSOR ON}
+{$WARN UNSAFE_TYPE OFF}
+{$WARN UNSAFE_CODE OFF}
+{$WARN UNSAFE_CAST OFF}
+{$WARN OPTION_TRUNCATED ON}
+{$WARN WIDECHAR_REDUCED ON}
+{$WARN DUPLICATES_IGNORED ON}
+{$WARN UNIT_INIT_SEQ ON}
+{$WARN LOCAL_PINVOKE ON}
+{$WARN MESSAGE_DIRECTIVE ON}
+{$WARN TYPEINFO_IMPLICITLY_ADDED ON}
+{$WARN RLINK_WARNING ON}
+{$WARN IMPLICIT_STRING_CAST ON}
+{$WARN IMPLICIT_STRING_CAST_LOSS ON}
+{$WARN EXPLICIT_STRING_CAST OFF}
+{$WARN EXPLICIT_STRING_CAST_LOSS OFF}
+{$WARN CVT_WCHAR_TO_ACHAR ON}
+{$WARN CVT_NARROWING_STRING_LOST ON}
+{$WARN CVT_ACHAR_TO_WCHAR OFF}
+{$WARN CVT_WIDENING_STRING_LOST OFF}
+{$WARN XML_WHITESPACE_NOT_ALLOWED ON}
+{$WARN XML_UNKNOWN_ENTITY ON}
+{$WARN XML_INVALID_NAME_START ON}
+{$WARN XML_INVALID_NAME ON}
+{$WARN XML_EXPECTED_CHARACTER ON}
+{$WARN XML_CREF_NO_RESOLVE ON}
+{$WARN XML_NO_PARM ON}
+{$WARN XML_NO_MATCHING_PARM ON}
 unit Form.ManifestoList;
 
 interface
@@ -36,33 +192,41 @@ type
     btn_Filter: TJvFooterBtn;
     btn_Close: TJvFooterBtn;
     btn_Send: TJvFooterBtn;
-    btn_Edit: TJvFooterBtn;
-    btn_New: TJvFooterBtn;
     btn_Cons: TJvFooterBtn;
-    btn_Canc: TJvFooterBtn;
-    btn_Detalh: TJvFooterBtn;
+    btn_New: TJvFooterBtn;
+    btn_ConsSvc: TJvFooterBtn;
+    btn_Evento: TJvFooterBtn;
+    btn_Print: TJvFooterBtn;
     ActionList1: TActionList;
-    act_ConsStt: TAction;
-    act_ConsProt: TAction;
+    act_New: TAction;
+    act_Edit: TAction;
+    pm_Emissao: TAdvPopupMenu;
+    Emisso1: TMenuItem;
+    Alterar1: TMenuItem;
+    act_Browse: TAction;
+    Visualizar1: TMenuItem;
     procedure FormShow(Sender: TObject);
     procedure btn_FindClick(Sender: TObject);
     procedure vst_Grid1GetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
-    procedure btn_NewClick(Sender: TObject);
-    procedure btn_EditClick(Sender: TObject);
     procedure btn_FilterClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btn_SendClick(Sender: TObject);
-    procedure btn_DetalhClick(Sender: TObject);
     procedure btn_ConfigClick(Sender: TObject);
     procedure btn_CloseClick(Sender: TObject);
     procedure vst_Grid1Change(Sender: TBaseVirtualTree; Node: PVirtualNode);
-    procedure act_ConsProtExecute(Sender: TObject);
+    procedure btn_ConsSvcClick(Sender: TObject);
+    procedure btn_PrintClick(Sender: TObject);
+    procedure act_NewExecute(Sender: TObject);
+    procedure act_EditExecute(Sender: TObject);
+    procedure btn_EventoClick(Sender: TObject);
     procedure btn_ConsClick(Sender: TObject);
+    procedure act_BrowseExecute(Sender: TObject);
   private
     { Private declarations }
     m_Ctrl: TCManifestoCtr;
     m_Param: TRegMDFe;
+    procedure Inicialize;
   protected
     { StatusBar }
     m_StatusBar: TCStatusBarWidget;
@@ -74,7 +238,6 @@ type
     procedure setStatusBar(const aPos: Int64 =0) ;
   public
     { Public declarations }
-    procedure Inicialize;
     procedure ModelChanged;
     procedure Execute;
   end;
@@ -87,9 +250,8 @@ implementation
 
 uses StrUtils, DateUtils,
   pcnConversao, pmdfeConversaoMDFe, ACBrUtil, ACBrMDFeManifestos,
-  uadodb, uTaskDlg, udbconst, ucademp,
-  uManifestoDF,
-  fdm.Styles, Form.Manifesto, Form.ParametroList;
+  uTaskDlg, uadodb, udbconst, ucademp, uManifestoDF, ustr ,
+  fdm.Styles, Form.Manifesto, Form.ParametroList, Form.EventoMDFe;
 
 
 
@@ -97,38 +259,83 @@ uses StrUtils, DateUtils,
 
 { Tfrm_ManifestoList }
 
-procedure Tfrm_ManifestoList.act_ConsProtExecute(Sender: TObject);
+procedure Tfrm_ManifestoList.act_BrowseExecute(Sender: TObject);
 var
   M: IManifestoDF;
-//  rep: Tdm_nfe ;
-//  ret: Boolean ;
+  V: IView ;
 begin
-    if CMsgDlg.Confirm('Deseja consultar o Protocolo de autorização?') then
+
+    M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
+    if(M <> nil)and(M.id > 0) then
     begin
-{        M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
-
-        setStatus('Processando...',crHourGlass);
-        try
-          rep :=Tdm_nfe.getInstance ;
-          ret :=rep.OnlyConsMDFe(M) ;
-          setStatus(rep.ErrMsg);
-
-          if ret then
-          begin
-              CMsgDlg.Info(M.motivo) ;
-//              setStatus('Carregando a grade de dados');
-//              LoadGrid ;
-          end
-          else begin
-              CMsgDlg.Warning(Format('%d-%s',[Tdm_nfe.getInstance.ErrCod,Tdm_nfe.getInstance.ErrMsg])) ;
-          end;
-
-        finally
-          setStatus('');
-        end;
-}
+        V :=Tfrm_Manifesto.Create(m_Ctrl);
+        m_Ctrl.Model :=M ;
+        m_Ctrl.Model.State :=msBrowse;
+        m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
+        //m_Ctrl.Inicialize ;
+        V.Execute ;
     end;
-    ActiveControl :=vst_Grid1;
+
+    ActiveControl :=vst_Grid1 ;
+end;
+
+procedure Tfrm_ManifestoList.act_EditExecute(Sender: TObject);
+var
+  M: IManifestoDF;
+  V: IView ;
+begin
+    if CMsgDlg.Confirm('Deseja alterar o manifesto?') then
+    begin
+        M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
+        if(M <> nil)and(M.id > 0) then
+        begin
+            V :=Tfrm_Manifesto.Create(m_Ctrl);
+            m_Ctrl.Model :=M ;
+            m_Ctrl.Edit;
+            m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
+            //m_Ctrl.Inicialize ;
+            V.Execute ;
+        end;
+    end;
+    ActiveControl :=vst_Grid1 ;
+end;
+
+procedure Tfrm_ManifestoList.act_NewExecute(Sender: TObject);
+var
+  M: IManifestoDF;
+  V: IView ;
+begin
+    if CMsgDlg.Confirm('Deseja emitir um novo manifesto?') then
+    begin
+        M :=TCManifestoDF.Create ;
+        V :=Tfrm_Manifesto.Create(m_Ctrl);
+        m_Ctrl.Model:=M;
+        m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
+        m_Ctrl.Insert;
+        //m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
+        m_Ctrl.View :=V;
+        //m_Ctrl.Inicialize ;
+        V.Execute ;
+    end;
+    ActiveControl :=vst_Grid1 ;
+end;
+
+procedure Tfrm_ManifestoList.btn_EventoClick(Sender: TObject);
+var
+  E: IView ;
+  rep: IBaseACBrMDFe;
+begin
+
+    //
+    // ler manifesto selecionado
+    m_Ctrl.Model :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
+    if(m_Ctrl.Model <> nil)and(m_Ctrl.Model.Status in[100]) then
+    begin
+        rep :=TCBaseACBrMDFe.New(True, m_Param) ;
+        E :=Tfrm_EventoMDFe.New(m_Ctrl.Model, rep) ;
+        E.Execute ;
+    end;
+
 end;
 
 procedure Tfrm_ManifestoList.btn_CloseClick(Sender: TObject);
@@ -159,6 +366,38 @@ end;
 
 procedure Tfrm_ManifestoList.btn_ConsClick(Sender: TObject);
 var
+  rep: IBaseACBrMDFe;
+  M: Manifesto ;
+begin
+    if CMsgDlg.Confirm('Deseja consultar a situação do MDF-e?')then
+    begin
+        //
+        // ler manifesto selecionado
+        m_Ctrl.Model :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
+
+        setStatus('Consultando situação do MDF-e'#13#10'Aguarde...',crHourGlass);
+        try
+          rep :=TCBaseACBrMDFe.New(True, m_Param) ;
+          if rep.consSitMDFe(m_Ctrl.Model) then
+          begin
+              CMsgDlg.Info('%d|%s',[rep.ErrCod,rep.ErrMsg]) ;
+              //setStatus('Carregando a grade de dados');
+              //LoadGrid ;
+          end
+          else begin
+              CMsgDlg.Warning(Format('%d-%s',[rep.ErrCod,rep.ErrMsg])) ;
+          end;
+
+        finally
+          setStatus('');
+        end;
+
+    end;
+    ActiveControl :=vst_Grid1;
+end;
+
+procedure Tfrm_ManifestoList.btn_ConsSvcClick(Sender: TObject);
+var
   rep: IBaseACBrMDFe ;
 begin
     if CMsgDlg.Confirm('Deseja consultar o status do serviço?') then
@@ -178,45 +417,6 @@ begin
         end;
     end;
     ActiveControl :=vst_Grid1;
-end;
-
-procedure Tfrm_ManifestoList.btn_DetalhClick(Sender: TObject);
-var
-  M: IManifestoDF;
-  V: IView ;
-begin
-    M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
-    if(M <> nil)and(M.id > 0) then
-    begin
-        V :=Tfrm_Manifesto.Create(m_Ctrl);
-        m_Ctrl.Model :=M ;
-        m_Ctrl.Model.State :=msBrowse ;
-        m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
-        //m_Ctrl.Inicialize ;
-        V.Execute ;
-    end;
-    ActiveControl :=vst_Grid1 ;
-end;
-
-procedure Tfrm_ManifestoList.btn_EditClick(Sender: TObject);
-var
-  M: IManifestoDF;
-  V: IView ;
-begin
-    if CMsgDlg.Confirm('Deseja editar o manifesto?') then
-    begin
-        M :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
-        if(M <> nil)and(M.id > 0) then
-        begin
-            V :=Tfrm_Manifesto.Create(m_Ctrl);
-            m_Ctrl.Model :=M ;
-            m_Ctrl.Model.Edit;
-            m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
-            //m_Ctrl.Inicialize ;
-            V.Execute ;
-        end;
-    end;
-    ActiveControl :=vst_Grid1 ;
 end;
 
 procedure Tfrm_ManifestoList.btn_FilterClick(Sender: TObject);
@@ -269,32 +469,32 @@ begin
         vst_Grid1.RootNodeCount :=m_Ctrl.ModelList.Items.Count;
         vst_Grid1.IndexItem :=0;
         btn_Filter.Click ;
-        btn_Detalh.Enabled :=True ;
+        act_Browse.Enabled  :=True;
         ActiveControl :=vst_Grid1;
     end
     else begin
         CMsgDlg.Info('Nenhuma manifesto encontrado neste filtro!') ;
+        act_Browse.Enabled  :=False;
         ActiveControl :=edt_DatIni;
     end;
 end;
 
-procedure Tfrm_ManifestoList.btn_NewClick(Sender: TObject);
+procedure Tfrm_ManifestoList.btn_PrintClick(Sender: TObject);
 var
-  M: IManifestoDF;
-  V: IView ;
+  M: Manifesto ;
+  rep: IBaseACBrMDFe;
 begin
-    if CMsgDlg.Confirm('Deseja emitir um novo manifesto?') then
+    if CMsgDlg.Confirm('Deseja imprimir o documento auxiliar?')then
     begin
-        M :=TCManifestoDF.Create ;
-        V :=Tfrm_Manifesto.Create(m_Ctrl);
-        m_Ctrl.Model:=M;
-        m_Ctrl.Model.Insert;
-        m_Ctrl.Model.OnModelChanged :=(V as Tfrm_Manifesto).ModelChanged ;
-        m_Ctrl.View :=V;
-        //m_Ctrl.Inicialize ;
-        V.Execute ;
+        //
+        // ler manifesto selecionado
+        m_Ctrl.Model :=m_Ctrl.ModelList.Items[vst_Grid1.IndexItem] ;
+        if(m_Ctrl.Model <> nil)and(m_Ctrl.Model.Status in[9,100]) then
+        begin
+            rep :=TCBaseACBrMDFe.New(True, m_Param) ;
+            rep.PrintDAMDFe(m_Ctrl.Model) ;
+        end;
     end;
-    ActiveControl :=vst_Grid1 ;
 end;
 
 procedure Tfrm_ManifestoList.btn_SendClick(Sender: TObject);
@@ -303,10 +503,10 @@ var
   M: Manifesto ;
 //  F: TManifestoFilter;
 begin
-    if CMsgDlg.Confirm('Deseja autorizar o uso do manifesto?')then
+    if CMsgDlg.Confirm('Deseja autorizar o USO do manifesto?')then
     begin
         rep :=TCBaseACBrMDFe.New(True, m_Param) ;
-        setStatus('Processando o MDF-e'#13#10'Aguarde...', crHourGlass);
+        setStatus('Processando o Manifesto'#13#10'Aguarde...', crHourGlass);
         try
             //
             // ler manifesto selecionado
@@ -347,7 +547,8 @@ end;
 
 procedure Tfrm_ManifestoList.FormCreate(Sender: TObject);
 begin
-    m_Ctrl :=TCManifestoCtr.Create ;
+    Caption :=Application.Title ;
+
     //
     // statusBar
     m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
@@ -372,23 +573,29 @@ end;
 
 procedure Tfrm_ManifestoList.FormShow(Sender: TObject);
 begin
-    Caption :=Application.Title ;
-
-    edt_DatIni.Date :=StartOfTheMonth(Date);
-    edt_DatFin.Date :=Date;
-
-    ActiveControl :=edt_DatFin;
-
     Self.Inicialize ;
+
 end;
 
 procedure Tfrm_ManifestoList.Inicialize;
 begin
-    btn_Edit.Enabled  :=False;
-    btn_Detalh.Enabled:=False;
+    m_Ctrl :=TCManifestoCtr.Create ;
+
+    edt_DatIni.Date :=StartOfTheMonth(Date);
+    edt_DatFin.Date :=Date;
+
+    ActiveControl :=edt_DatIni;
+
+    act_Edit.Enabled  :=False;
+    act_Browse.Enabled  :=False;
     btn_Send.Enabled:=False;
-    btn_Canc.Enabled:=False;
+    btn_Print.Enabled:=False;
+    btn_Cons.Enabled:=False;
+
+    btn_Evento.Enabled:=False;
+
     vst_Grid1.Clear ;
+
     setStatusBar();
 end;
 
@@ -439,7 +646,6 @@ begin
             //
             // ckk doc cancelado
             cancel  :=M.Status in[101, 151, 155];
-
 
             if process then
             begin
@@ -495,7 +701,13 @@ begin
             btn_Send.Enabled :=True;
         end;
 
-        btn_Edit.Enabled :=(not process)and(not cancel);
+        act_Edit.Enabled :=(not process)and(not cancel);
+
+        btn_Print.Enabled :=process or(M.Status=9);
+
+        btn_Cons.Enabled:=process or cancel;
+
+        btn_Evento.Enabled :=process;
     end;
 end;
 
@@ -504,11 +716,14 @@ procedure Tfrm_ManifestoList.vst_Grid1GetText(Sender: TBaseVirtualTree;
   var CellText: string);
 var
   M: IManifestoDF ;
+  mun: TCManifestodf01mun;
+  U: UtilStr;
 begin
     CellText :='';
     if Assigned(Node) then
     begin
         M :=m_Ctrl.ModelList.Items[Node.Index] ;
+        mun :=M.municipios.getFirstMun(mtDescarga);
         case Column of
           00: CellText :=IntToStr(M.id) ;
           01: CellText :=M.chMDFE ;
@@ -525,7 +740,10 @@ begin
           06: CellText :=TpEmisToStr(TpcnTipoEmissao(m.tpEmissao)) ;
           07: CellText :=M.ufeIni ;
           08: CellText :=M.ufeFim ;
-          //09: CellText :=IntToStr(M.id) ;
+          09: CellText :=U.fInt(mun.qNFe);
+          10: CellText :=U.fFlt(mun.vCarga);
+          11: CellText :=UnidMedToDescricaoStr(TUnidMed(M.codund));
+          12: CellText :=U.fFlt(mun.qCarga);
         end;
     end;
 end;
