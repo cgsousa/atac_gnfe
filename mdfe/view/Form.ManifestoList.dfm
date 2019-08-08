@@ -162,7 +162,6 @@ object frm_ManifestoList: Tfrm_ManifestoList
     TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
     OnChange = vst_Grid1Change
     OnGetText = vst_Grid1GetText
-    ExplicitTop = -1
     Columns = <
       item
         Alignment = taRightJustify

@@ -34,6 +34,9 @@ type
     cod_und: TPair<string,smallint>;
 
     send_assync: TPair<string,Boolean>;
+    imp_confirm: TPair<string,Boolean>;
+    imp_mpreview: TPair<string,Boolean>;
+    imp_msetup: TPair<string,Boolean>;
 
     //
     // local dos arquivos gravados
@@ -76,6 +79,7 @@ type
     function OnlyCanc(mdf: IManifestoDF; const aJust: String): Boolean;
     function OnlyEncerra(mdf: IManifestoDF): Boolean;
 
+    function recepLote(mdf: IManifestoDF): Boolean ;
     function consSitMDFe(mdf: IManifestoDF): Boolean ;
 
     //
@@ -140,7 +144,9 @@ type
     function OnlyCanc(mdf: IManifestoDF; const aJust: String): Boolean;
     function OnlyEncerra(mdf: IManifestoDF): Boolean;
 
-    function consSitMDFe(mdf: IManifestoDF): Boolean ;
+    function recepLote(mdf: IManifestoDF): Boolean ;
+    function consSitMDFe(mdf: IManifestoDF): Boolean;
+//    function
 
     //
     function PrintDAMDFe(mdf: IManifestoDF): Boolean ;
@@ -788,7 +794,9 @@ begin
     m_ErrCod :=0;
     m_ErrMsg :='';
 
-    Result :=m_MDFE.Enviar(mdf.id, False);
+    Result :=m_MDFE.Enviar( mdf.id,
+                            m_Param.imp_confirm.Value,
+                            m_Param.send_assync.Value);
     Result :=Result and(Self.m_ErrCod =0);
 end;
 
@@ -952,6 +960,98 @@ begin
     end;
 end;
 
+function TCBaseACBrMDFe.recepLote(mdf: IManifestoDF): Boolean;
+var
+  M: Manifesto ;
+  ws_send: TMDFeRecepcao;
+  ws_ret: TMDFeRetRecepcao;
+var
+  cs: NotFis00CodStatus ;
+begin
+
+    //
+    // adiciona o manifesto ao repositorio
+    // assina e validação
+    M :=AddManifesto(mdf) ;
+    if M <> nil then
+    begin
+        //
+        // grava xml, chave e status
+        //
+        mdf.setXML(Self.ErrCod, Self.ErrMsg, OnlyNumber(M.MDFe.infMDFe.Id), M.XMLAssinado);
+
+        //
+        // chk status de erros (assinatura,validaçao e regras de negocio)
+        //
+        if Self.ErrCod in[cs.ERR_CHECK_ASSINA,cs.ERR_SCHEMA,cs.ERR_REGRAS] then
+        begin
+            Exit(False);
+        end;
+    end
+    else begin
+        Self.m_ErrMsg :='Não foi possível gerar o MDF-e!';
+        Exit(false);
+    end;
+
+    m_ErrCod :=0;
+    m_ErrMsg :='';
+
+    //
+    // envia lote
+    Result :=m_MDFE.Enviar( mdf.id,
+                            m_Param.imp_confirm.Value,
+                            not m_Param.send_assync.Value);
+    Result :=Result and(Self.m_ErrCod =0);
+    //
+    // trata retorno
+    if Result then
+    begin
+        //
+        // reg. assync
+        if m_Param.send_assync.Value then
+        begin
+            ws_ret :=m_MDFE.WebServices.Retorno ;
+            if ws_ret.cStat =104 then
+                mdf.setRet( ws_ret.cStat, ws_ret.xMotivo,
+                            ws_ret.verAplic,
+                            ws_ret.Recibo ,
+                            M.MDFe.procMDFe.nProt,
+                            M.MDFe.procMDFe.digVal,
+                            M.MDFe.procMDFe.dhRecbto
+                )
+            else
+                mdf.setRet( ws_ret.cStat, ws_ret.xMotivo,
+                        ws_ret.verAplic,
+                        ws_ret.Recibo ,
+                        '',
+                        M.MDFe.procMDFe.digVal,
+                        M.MDFe.procMDFe.dhRecbto
+                );
+        end
+        //
+        // reg. sync
+        else begin
+            ws_send :=m_MDFE.WebServices.Enviar ;
+            if ws_send.cStat =100 then
+                mdf.setRet( ws_send.cStat, ws_send.xMotivo,
+                            ws_send.verAplic,
+                            '' ,
+                            M.MDFe.procMDFe.nProt,
+                            M.MDFe.procMDFe.digVal,
+                            M.MDFe.procMDFe.dhRecbto
+                )
+            else
+                mdf.setRet( ws_send.cStat, ws_send.xMotivo,
+                            ws_send.verAplic,
+                            '' ,
+                            '',
+                            '',
+                            ws_send.dhRecbto
+                );
+        end;
+    end;
+end;
+
 function TCBaseACBrMDFe.SendMail(mdf: IManifestoDF;
   const dest_email: string): Boolean;
 begin
@@ -1086,7 +1186,6 @@ begin
         end;
         cod_und.Value :=p.ReadInt() ;
 
-
         send_assync.Key :='mdfe.envio_assinc';
         p :=params.IndexOf(send_assync.Key) ;
         if p = nil then
@@ -1098,6 +1197,46 @@ begin
             p.Save ;
         end;
         send_assync.Value :=p.ReadBoo() ;
+
+
+//    imp_confirm: TPair<string,Boolean>;
+        imp_confirm.Key :='mdfe.imp_confirmado';
+        p :=params.IndexOf(imp_confirm.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(imp_confirm.Key, ftBoolean) ;
+            p.xValor:='1';
+            p.Catego:=CST_CATEGO;
+            P.Descricao:='Imprimir DAMDFE apos confirmado autorização de USO';
+            p.Save ;
+        end;
+        imp_confirm.Value :=p.ReadBoo() ;
+
+//    imp_mpreview: TPair<string,Boolean>;
+        imp_mpreview.Key :='mdfe.imp_mpreview';
+        p :=params.IndexOf(imp_mpreview.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(imp_mpreview.Key, ftBoolean) ;
+            p.xValor:='1';
+            p.Catego:=CST_CATEGO;
+            P.Descricao:='Mostra previsualização do DAMDFE antes da impressão';
+            p.Save ;
+        end;
+        imp_mpreview.Value :=p.ReadBoo() ;
+
+//    imp_msetup: TPair<string,Boolean>;
+        imp_msetup.Key :='mdfe.imp_msetup';
+        p :=params.IndexOf(imp_msetup.Key) ;
+        if p = nil then
+        begin
+            p :=TCParametro.NewParametro(imp_msetup.Key, ftBoolean) ;
+            p.xValor:='0';
+            p.Catego:=CST_CATEGO;
+            P.Descricao:='Mostra página de setup, antes da impressão do DAMDFE';
+            p.Save ;
+        end;
+        imp_msetup.Value :=p.ReadBoo() ;
 
         // ********
         // arquivos

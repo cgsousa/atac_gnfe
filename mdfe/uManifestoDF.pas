@@ -1199,25 +1199,29 @@ begin
                     //
                     for N in M.nfeList.getDataList do
                     begin
+                        //
+                        // desvincula NFE do Manifesto
                         if N.State =msDelete then
-                        //N.del
+                            N.cmdDelete
+                        //
+                        // vincula NFE ao Manifesto
                         else begin
-                        C2.Param('@codmun').Value :=codseq ;
-                        C2.Param('@chvnfe').Value :=N.chvNFE;
-                        C2.Param('@vlrntf').Value :=N.vlrNtf;
-                        C2.Param('@volpsob').Value :=N.volPsoB;
-                        C2.Param('@codntf').Value :=N.codNtf ;
-                        try
-                            //
-                            // registra as nfe´s vinculadas ao manifesto
-                            C2.Execute ;
-                        except
-                            if C.Connection.InTransaction then
-                            begin
-                                C.Connection.RollbackTrans;
+                            C2.Param('@codmun').Value :=codseq ;
+                            C2.Param('@chvnfe').Value :=N.chvNFE;
+                            C2.Param('@vlrntf').Value :=N.vlrNtf;
+                            C2.Param('@volpsob').Value :=N.volPsoB;
+                            C2.Param('@codntf').Value :=N.codNtf ;
+                            try
+                                //
+                                // registra as nfe´s vinculadas ao manifesto
+                                C2.Execute ;
+                            except
+                                if C.Connection.InTransaction then
+                                begin
+                                    C.Connection.RollbackTrans;
+                                end;
+                                raise;
                             end;
-                            raise;
-                        end;
                         end;
                     end;
                 end;
@@ -2217,13 +2221,14 @@ var
 begin
     C :=TADOCommand.NewADOCommand();
     try
-{        C.AddCmd('declare @codmun int; set @codmun =%d;',[self.]);
-declare @codntf int; set @codntf =1;
-delete from manifestodf02nfe
-where md2_codmun =@codmun
-and   md2_codntf =@codntf}
+        C.AddCmd('declare @codmun int; set @codmun =%d;',[self.m_idmun]);
+        C.AddCmd('declare @codntf int; set @codntf =%d;',[self.m_codntf]);
+        C.AddCmd('delete from manifestodf02nfe         ');
+        C.AddCmd('where md2_codmun =@codmun            ');
+        C.AddCmd('and   md2_codntf =@codntf            ');
+        C.Execute ;
     finally
-
+        C.Free ;
     end;
 end;
 

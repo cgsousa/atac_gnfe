@@ -509,7 +509,7 @@ begin
                     I :=M.nfeList.indexOf(N.m_chvnfe) ;
                     if I = nil then
                         M.nfeList.addNew(
-                          TCManifestodf02nfe.New( N.m_chvnfe, '', False,
+                          TCManifestodf02nfe.New( 0, N.m_chvnfe, '', False,
                                                   N.m_icmstot.vNF,
                                                   N.m_transp.Vol.Items[0].pesoB,
                                                   N.m_codseq

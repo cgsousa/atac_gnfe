@@ -500,8 +500,6 @@ end;
 procedure Tfrm_ManifestoList.btn_SendClick(Sender: TObject);
 var
   rep: IBaseACBrMDFe;
-  M: Manifesto ;
-//  F: TManifestoFilter;
 begin
     if CMsgDlg.Confirm('Deseja autorizar o USO do manifesto?')then
     begin
@@ -517,19 +515,8 @@ begin
 //                m_Ctrl.Model.cmdFind(F)  ;
 //                ret :=rep.OnlySendMDFE(m_Ctrl.Model) ;
 //                setStatus('');
-                if rep.OnlySend(m_Ctrl.Model) then
-                begin
-                    M :=rep.mdfe.Manifestos.Items[0] ;
-                    m_Ctrl.Model.setRet(
-                        M.MDFe.procMDFe.cStat ,
-                        M.MDFe.procMDFe.xMotivo,
-                        M.MDFe.procMDFe.verAplic,
-                        rep.mdfe.WebServices.Retorno.Recibo,
-                        M.MDFe.procMDFe.nProt,
-                        M.MDFe.procMDFe.digVal ,
-                        M.MDFe.procMDFe.dhRecbto);
+                if rep.recepLote(m_Ctrl.Model) then
                     CMsgDlg.Info('%d-%s',[m_Ctrl.Model.Status,m_Ctrl.Model.motivo])
-                end
                 else
                     CMsgDlg.Warning(rep.ErrMsg);
             end;

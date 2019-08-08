@@ -202,7 +202,6 @@ object frm_Manifesto: Tfrm_Manifesto
         OnGetText = vst_Grid1GetText
         OnPaintText = vst_Grid1PaintText
         OnHeaderClick = vst_Grid1HeaderClick
-        ExplicitTop = -2
         Columns = <
           item
             CheckBox = True
@@ -316,8 +315,6 @@ object frm_Manifesto: Tfrm_Manifesto
         StatusBar.Color = 14606046
         StatusBar.ColorTo = 11119017
         StatusBar.GradientDirection = gdVertical
-        ExplicitLeft = -6
-        ExplicitTop = -2
         DesignSize = (
           239
           522)
@@ -367,8 +364,8 @@ object frm_Manifesto: Tfrm_Manifesto
           end
         end
         object btn_Find: TJvImgBtn
-          Left = 134
-          Top = 481
+          Left = 132
+          Top = 479
           Width = 100
           Height = 30
           Anchors = [akRight, akBottom]
@@ -460,7 +457,6 @@ object frm_Manifesto: Tfrm_Manifesto
         Align = alTop
         Caption = ' Identifica'#231#227'o  '
         TabOrder = 0
-        ExplicitTop = -6
         object cbx_mdfTpEmit: TAdvComboBox
           Left = 139
           Top = 17
@@ -647,7 +643,6 @@ object frm_Manifesto: Tfrm_Manifesto
           Highlighted = True
           TabColor = clInactiveCaption
           TabColorTo = clNone
-          ExplicitTop = 27
           object vst_GridMun: TVirtualStringTree
             Left = 0
             Top = 0
@@ -687,7 +682,6 @@ object frm_Manifesto: Tfrm_Manifesto
             OnChange = vst_GridMunChange
             OnGetText = vst_GridMunGetText
             OnPaintText = vst_GridMunPaintText
-            ExplicitTop = 2
             Columns = <
               item
                 Color = clWindow
@@ -890,7 +884,6 @@ object frm_Manifesto: Tfrm_Manifesto
               TreeOptions.PaintOptions = [toHotTrack, toShowButtons, toShowDropmark, toShowHorzGridLines, toShowTreeLines, toShowVertGridLines, toUseBlendedImages]
               TreeOptions.SelectionOptions = [toDisableDrawSelection, toExtendedFocus, toFullRowSelect, toMiddleClickSelect, toRightClickSelect, toCenterScrollIntoView]
               OnGetText = vst_GridCdtCadGetText
-              ExplicitLeft = 1
               Columns = <
                 item
                   Color = clWindow
@@ -1049,7 +1042,6 @@ object frm_Manifesto: Tfrm_Manifesto
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitTop = 551
     DesignSize = (
       794
       40)
