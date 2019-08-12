@@ -571,6 +571,13 @@ type
     m_ufcons: string;
   end;
 
+//  TCaixa = record
+//    numerto: Integer ;
+//    dhabre: TDateTime;
+//    dhfech: TDateTime;
+//  end;
+  TArrayCaixa = array of Integer ;
+
   //
   // lote de notas fiscais
   TCNotFis00Lote = class
@@ -599,6 +606,7 @@ type
     class function CLoad(const afilter: TNotFis00Filter): TDataSet ; //TADOQuery ;
     class function CLoadXML(const afilter: TNotFis00Filter): TADOQuery ;
     class function CLoadSPNotFis00Busca(const afilter: TNotFis00Filter): TDataSet ;
+    class function CLoadCaixas: TArrayCaixa ;
   end;
 
   TInutNumeroFilter = record
@@ -3659,6 +3667,28 @@ begin
     // cast
     Result :=TDataSet(Q);
 
+end;
+
+class function TCNotFis00Lote.CLoadCaixas: TArrayCaixa;
+var
+  Q: TADOQuery ;
+begin
+    Q :=TADOQuery.NewADOQuery() ;
+    try
+        Q.AddCmd('select nf0_nserie from notfis00');
+        Q.AddCmd('where nf0_codmod in (55,65)    ');
+        Q.AddCmd('group by nf0_nserie            ');
+        Q.AddCmd('order by nf0_nserie            ');
+        Q.Open ;
+        while not Q.Eof do
+        begin
+            SetLength(Result, 1);
+            Result[0] :=Q.Field('nf0_nserie').AsInteger ;
+            Q.Next ;
+        end;
+    finally
+        Q.Free ;
+    end;
 end;
 
 class function TCNotFis00Lote.CLoadSPNotFis00Busca(

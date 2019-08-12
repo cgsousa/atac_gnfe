@@ -189,12 +189,15 @@ begin
     try
         C.AddCmd('declare @codntf int     ; set @codntf =%d;',[self.m_CodNF]);
         C.AddCmd('declare @codorg smallint     ; set @codorg =%d;',[m_codorg]);
-        C.AddCmd('declare @cce_tipamb smallint     ; set @cce_tipamb =%d;',[Ord(m_tipamb)]);
+        if m_AmbPro then
+        C.AddCmd('declare @cce_tipamb smallint     ; set @cce_tipamb =0;')
+        else
+        C.AddCmd('declare @cce_tipamb smallint     ; set @cce_tipamb =1;');
         C.AddCmd('declare @cce_cnpj varchar(14)    ; set @cce_cnpj   =%s;',[C.FStr(m_cnpj)]);
         C.AddCmd('declare @cce_chvnfe varchar(44)  ; set @cce_chvnfe =%s;',[C.FStr(m_chvnfe)]);
-        C.AddCmd('declare @cce_corige varchar(1000); set @cce_corige =%s;',[C.FStr(m_xcorrecao)]);
-        C.AddCmd('declare @cce_verapp varchar(20)  ; set @cce_verapp =%s;',[C.FStr(m_verapp)]);
-        C.AddCmd('declare @cce_codorgaut smallint  ; set @cce_codorgaut =%d;',[m_codorgaut]);
+        C.AddCmd('declare @cce_corige varchar(1000); set @cce_corige =%s;',[C.FStr(m_TextCCe)]);
+        //C.AddCmd('declare @cce_verapp varchar(20)  ; set @cce_verapp =%s;',[C.FStr(m_verapp)]);
+        //C.AddCmd('declare @cce_codorgaut smallint  ; set @cce_codorgaut =%d;',[m_codorgaut]);
         C.AddCmd('declare @cce_codstt smallint     ; set @cce_codstt =%d;',[m_codstt]);
         C.AddCmd('declare @cce_motivo varchar(250) ; set @cce_motivo =%s;',[C.FStr(m_motivo)]);
 
@@ -223,8 +226,8 @@ begin
         C.AddCmd('                      cce_cnpj    ,');
         C.AddCmd('                      cce_chvnfe  ,');
         C.AddCmd('                      cce_xcorrecao,');
-        C.AddCmd('                      cce_verapp  ,');
-        C.AddCmd('                      cce_codorgaut,');
+//        C.AddCmd('                      cce_verapp  ,');
+//        C.AddCmd('                      cce_codorgaut,');
         C.AddCmd('                      cce_codstt  ,');
         C.AddCmd('                      cce_motivo  ,');
         C.AddCmd('                      cce_iddest  ,');
@@ -237,8 +240,8 @@ begin
         C.AddCmd('                      @cce_cnpj    ,');
         C.AddCmd('                      @cce_chvnfe  ,');
         C.AddCmd('                      @cce_corige  ,');
-        C.AddCmd('                      @cce_verapp  ,');
-        C.AddCmd('                      @cce_codorgaut,');
+//        C.AddCmd('                      @cce_verapp  ,');
+//        C.AddCmd('                      @cce_codorgaut,');
         C.AddCmd('                      @cce_codstt  ,');
         C.AddCmd('                      @cce_motivo  ,');
         C.AddCmd('                      @cce_iddest  ,');

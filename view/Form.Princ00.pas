@@ -408,17 +408,17 @@ procedure Tfrm_Princ00.act_ExportExecute(Sender: TObject);
 var
   I: Ifrm_ExportXML ;
 begin
-    if edt_NSerie.IntValue > 0 then
-    begin
+//    if edt_NSerie.IntValue > 0 then
+//    begin
         I :=Tfrm_ExportXML.New ;
         I.Execute( edt_NSerie.IntValue,
-                                m_Filter.datini, m_Filter.datfin) ;
-    end
-    else begin
-        CMsgDlg.Warning('O número de serie deve ser informado!');
-        pnl_Filter.Visible :=True ;
-        edt_NSerie.SetFocus ;
-    end;
+                                m_Filter.datini, m_Filter.datfin, True) ;
+//    end
+//    else begin
+//        CMsgDlg.Warning('O número de serie deve ser informado!');
+//        pnl_Filter.Visible :=True ;
+//        edt_NSerie.SetFocus ;
+//    end;
 end;
 
 procedure Tfrm_Princ00.act_ListDetalhExecute(Sender: TObject);

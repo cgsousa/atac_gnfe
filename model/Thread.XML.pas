@@ -23,10 +23,23 @@ Símbolo : Significado
 interface
 
 uses SysUtils ,
-  uclass, unotfis00;
+  uclass, uini, unotfis00;
 
 
 type
+  TAppConfig = Object
+  private
+    m_Cfg: IMemIniFile;
+    procedure DoSave ;
+  public
+    m_DHmin: TDateTime ;
+    m_DHmax: TDateTime ;
+    m_Numero: Word ;
+    m_IncDias: Word ;
+    constructor Create() ;
+  end;
+
+
   TCSvcXML = class(TCThreadProcess)
   private
     { Private declarations }
@@ -43,7 +56,7 @@ type
 
 implementation
 
-uses Windows, ActiveX,
+uses Windows, ActiveX, DateUtils,
   uadodb ;
 
 
@@ -96,6 +109,42 @@ begin
     except
 
     end;
+end;
+
+
+{ TAppConfig }
+
+constructor TAppConfig.Create;
+begin
+    m_Cfg :=TCMemIniFile.New('') ;
+    if not FileExists(m_Cfg.FileName)then
+    begin
+        m_DHmin :=StartOfTheYear(Date)  ;
+        m_DHmax :=StartOfAMonth(Date) -90;
+        if m_DHmin > m_DHmax then
+        begin
+            m_DHmin :=m_DHmax;
+        end;
+        m_Numero :=0;
+        m_IncDias:=5;
+        DoSave ;
+    end
+    else begin
+        m_DHmin :=m_Cfg.ValDat('dt_ini')  ;
+        m_DHmax :=m_Cfg.ValDat('dt_fin')  ;
+        m_Numero :=m_Cfg.ValInt('num_caixa');
+        m_IncDias:=m_Cfg.ValInt('inc_dias');
+    end;
+end;
+
+procedure TAppConfig.DoSave;
+begin
+    m_Cfg.Section :='GERAL' ;
+    m_Cfg.WDat('dt_min', m_DHmin );
+    m_Cfg.WDat('dt_max', m_DHmax );
+    m_Cfg.WInt('num_caixa', m_Numero);
+    m_Cfg.WInt('inc_dias', m_IncDias);
+    m_Cfg.Update ;
 end;
 
 end.

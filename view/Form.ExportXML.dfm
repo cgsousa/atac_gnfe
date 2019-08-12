@@ -4,7 +4,7 @@ object frm_ExportXML: Tfrm_ExportXML
   BorderStyle = bsDialog
   BorderWidth = 3
   Caption = '.:Exporta XML da NF-e:.'
-  ClientHeight = 226
+  ClientHeight = 209
   ClientWidth = 628
   Color = clWindow
   Ctl3D = False
@@ -22,7 +22,7 @@ object frm_ExportXML: Tfrm_ExportXML
   TextHeight = 14
   object AdvOfficeStatusBar1: TAdvOfficeStatusBar
     Left = 0
-    Top = 205
+    Top = 188
     Width = 628
     Height = 21
     AnchorHint = False
@@ -109,7 +109,7 @@ object frm_ExportXML: Tfrm_ExportXML
   end
   object pnl_Footer: TJvFooter
     Left = 0
-    Top = 165
+    Top = 148
     Width = 628
     Height = 40
     Align = alBottom
@@ -120,6 +120,7 @@ object frm_ExportXML: Tfrm_ExportXML
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
+    ExplicitTop = 142
     DesignSize = (
       628
       40)
@@ -129,7 +130,7 @@ object frm_ExportXML: Tfrm_ExportXML
       Width = 100
       Height = 30
       Anchors = [akRight, akBottom]
-      Caption = 'Confirmar'
+      Caption = 'Executar'
       TabOrder = 1
       OnClick = btn_StartClick
       ButtonIndex = 0
@@ -178,7 +179,7 @@ object frm_ExportXML: Tfrm_ExportXML
     Left = 0
     Top = 20
     Width = 628
-    Height = 65
+    Height = 50
     Align = alTop
     Caption = ' Informa'#231#245'es do Caixa '
     Font.Charset = DEFAULT_CHARSET
@@ -188,110 +189,28 @@ object frm_ExportXML: Tfrm_ExportXML
     Font.Style = []
     ParentFont = False
     TabOrder = 2
-    object edt_Numero: TAdvEdit
-      Left = 136
-      Top = 30
-      Width = 50
-      Height = 20
-      TabStop = False
-      EditAlign = eaCenter
-      EmptyTextStyle = []
-      LabelCaption = 'N'#250'mero:'
-      LabelPosition = lpTopLeft
-      LabelMargin = 3
-      LabelFont.Charset = DEFAULT_CHARSET
-      LabelFont.Color = clNavy
-      LabelFont.Height = -11
-      LabelFont.Name = 'Tahoma'
-      LabelFont.Style = []
-      Lookup.Font.Charset = DEFAULT_CHARSET
-      Lookup.Font.Color = clWindowText
-      Lookup.Font.Height = -11
-      Lookup.Font.Name = 'Arial'
-      Lookup.Font.Style = []
-      Lookup.Separator = ';'
-      Color = clGradientInactiveCaption
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -12
-      Font.Name = 'Tahoma'
-      Font.Style = [fsBold]
-      ParentFont = False
-      ReadOnly = True
-      TabOrder = 0
-      Text = '000'
-      Visible = True
-      Version = '3.3.2.0'
-    end
-    object edt_DtaIni: TAdvEdit
-      Left = 200
-      Top = 30
-      Width = 150
-      Height = 20
-      TabStop = False
-      EditAlign = eaCenter
-      EmptyTextStyle = []
-      LabelCaption = 'Data/Hora Abertura:'
-      LabelPosition = lpTopLeft
-      LabelMargin = 3
-      LabelFont.Charset = DEFAULT_CHARSET
-      LabelFont.Color = clNavy
-      LabelFont.Height = -11
-      LabelFont.Name = 'Tahoma'
-      LabelFont.Style = []
-      Lookup.Font.Charset = DEFAULT_CHARSET
-      Lookup.Font.Color = clWindowText
-      Lookup.Font.Height = -11
-      Lookup.Font.Name = 'Arial'
-      Lookup.Font.Style = []
-      Lookup.Separator = ';'
-      Color = clGradientInactiveCaption
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -12
-      Font.Name = 'Tahoma'
-      Font.Style = [fsBold]
-      ParentFont = False
-      ReadOnly = True
-      TabOrder = 1
-      Text = '00/00/0000 00:00'
-      Visible = True
-      Version = '3.3.2.0'
-    end
-    object edt_DtaFin: TAdvEdit
-      Left = 368
-      Top = 30
-      Width = 150
-      Height = 20
-      TabStop = False
-      EditAlign = eaCenter
-      EmptyTextStyle = []
-      LabelCaption = 'Data/Hora Fechamento'
-      LabelPosition = lpTopLeft
-      LabelMargin = 3
-      LabelFont.Charset = DEFAULT_CHARSET
-      LabelFont.Color = clNavy
-      LabelFont.Height = -11
-      LabelFont.Name = 'Tahoma'
-      LabelFont.Style = []
-      Lookup.Font.Charset = DEFAULT_CHARSET
-      Lookup.Font.Color = clWindowText
-      Lookup.Font.Height = -11
-      Lookup.Font.Name = 'Arial'
-      Lookup.Font.Style = []
-      Lookup.Separator = ';'
-      Color = clGradientInactiveCaption
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -12
-      Font.Name = 'Tahoma'
-      Font.Style = [fsBold]
-      ParentFont = False
-      ReadOnly = True
-      TabOrder = 2
-      Text = '00/00/0000 00:00'
-      Visible = True
-      Version = '3.3.2.0'
+    object lbl_Info: TGradientLabel
+      Left = 2
+      Top = 23
+      Width = 624
+      Height = 25
+      Align = alBottom
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'lbl_Info'
+      Color = clGradientActiveCaption
+      ParentColor = False
+      ColorTo = clGradientInactiveCaption
+      EllipsType = etNone
+      GradientType = gtFullHorizontal
+      GradientDirection = gdLeftToRight
+      Indent = 0
+      Orientation = goHorizontal
+      TransparentText = False
+      VAlignment = vaCenter
+      Version = '1.2.0.0'
+      ExplicitLeft = 3
+      ExplicitTop = 19
     end
   end
   object edt_Local: TAdvDirectoryEdit
@@ -337,7 +256,7 @@ object frm_ExportXML: Tfrm_ExportXML
   end
   object pnl_ResultProcess: TAdvPanel
     Left = 0
-    Top = 85
+    Top = 70
     Width = 628
     Height = 76
     Align = alTop

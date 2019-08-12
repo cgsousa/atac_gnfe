@@ -23,6 +23,22 @@
 *}
 unit Form.ExportXML;
 
+{*
+******************************************************************************
+|* PROPÓSITO: Registro de Alterações
+******************************************************************************
+
+Símbolo : Significado
+
+[+]     : Novo recurso
+[*]     : Recurso modificado/melhorado
+[-]     : Correção de Bug (assim esperamos)
+
+09.08.2019
+[*] Processamento de todos os caixas na Thread <TCRunProc>
+
+*}
+
 interface
 
 uses
@@ -35,21 +51,23 @@ uses
   //
   JvExStdCtrls, JvButton, JvCtrls, JvFooter, JvExtComponent, JvExExtCtrls,
   //
-  uACBrNFE, unotfis00, uclass;
+  uACBrNFE, unotfis00, uclass, RTFLabel, GradientLabel;
 
 type
   TCRunProc = class(TCThreadProcess)
   private
-    m_Lote: TCNotFis00Lote ;
+    m_Lote: TCNotFis00Lote;
     m_Rep: IBaseACBrNFE ;
     m_Local: string ;
     m_Clear: Boolean ;
     m_totSucess, m_totError: Integer;
   protected
     procedure Execute; override;
+    procedure RunProc; override;
   public
     constructor Create(aLote: TCNotFis00Lote; aRep: IBaseACBrNFE;
       const aLocal: string; const aClear: Boolean);
+//    constructor Create(aFilter:
   end;
 
 
@@ -69,10 +87,8 @@ type
     btn_ViewLOG: TJvFooterBtn;
     gbx_InfoCX: TAdvGroupBox;
     edt_Local: TAdvDirectoryEdit;
-    edt_Numero: TAdvEdit;
-    edt_DtaIni: TAdvEdit;
-    edt_DtaFin: TAdvEdit;
     pnl_ResultProcess: TAdvPanel;
+    lbl_Info: TGradientLabel;
     procedure btn_StartClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -93,6 +109,7 @@ type
     procedure DoStop ;
     procedure OnINI(Sender: TObject);
     procedure OnFIN(Sender: TObject);
+    procedure OnUpdate(const aStr: string) ;
   private
     { StatusBar }
     m_StatusBar: TCStatusBarWidget;
@@ -125,7 +142,7 @@ uses DB, DateUtils ,
 constructor TCRunProc.Create(aLote: TCNotFis00Lote; aRep: IBaseACBrNFE;
   const aLocal: string; const aClear: Boolean);
 begin
-    m_Lote :=aLote ;
+    m_Lote :=aLote;
     m_Rep :=aRep ;
     m_Local :=aLocal;
     m_Clear :=aClear;
@@ -134,11 +151,9 @@ end;
 
 procedure TCRunProc.Execute;
 var
-  NF: TCNotFis00;
-  N: NotaFiscal ;
-var
-  P: Integer;
-  root,F: string ;
+  F: TNotFis00Filter;
+  C: TArrayCaixa ;
+  I: Integer ;
 begin
     //
     // inicio
@@ -146,16 +161,59 @@ begin
     CallOnBeforeExecute;
 
     //
-    // inicializa totalizadores
-    m_totSucess :=0;
-    m_totError :=0;
+    // set root path
+    if Pos('proc', m_Local) = 0 then
+    begin
+        m_Local :=PathWithDelim(m_Local) +'proc';
+    end;
 
     //
-    // set root
-    if Pos('proc', m_Local) = 0 then
-        root :=PathWithDelim(m_Local) +'proc'
-    else
-        root :=m_Local;
+    // chk se tem caixa para processar
+    if m_Lote.Filter.nserie > 0 then
+        RunProc
+    //
+    // processa todos no periodo
+    else begin
+        //
+        // ler filtro p/ modificar
+        F :=m_Lote.Filter ;
+        C :=TCNotFis00Lote.CLoadCaixas ;
+        for I :=Low(C) to High(C) do
+        begin
+            F.nserie :=C[I] ;
+            CallOnStrProc(
+              Format('Processando Caixa: %.3d   ',[F.nserie])+
+              FormatDateTime('"Data/Hora Inicio: "DD/MM/YYYY hh:nn', F.codini)+
+              FormatDateTime('"   Data/Hora Fim: "DD/MM/YYYY hh:nn', F.datfin)+
+              ',    Aguarde...'
+            );
+            if m_Lote.Load(F) then
+            begin
+                RunProc ;
+            end;
+            //
+            // chk se abortou pelo usuário
+            if Self.Terminated then Break ;
+        end;
+    end;
+
+    //
+    // termina Thread
+    Self.Terminate ;
+end;
+
+procedure TCRunProc.RunProc;
+var
+  NF: TCNotFis00;
+  N: NotaFiscal ;
+var
+  P: Integer;
+  dir,F: string ;
+begin
+    //
+    // inicializa totalizadores
+    m_totSucess:=0;
+    m_totError :=0;
 
     for NF in m_Lote.Items do
     begin
@@ -193,14 +251,14 @@ begin
                         // format local com dados do emit
                         if Pos(NF.m_emit.CNPJCPF, m_Local) =0 then
                         begin
-                            m_Local :=m_Rep.FormatPath( root,'',
-                                                        NF.m_emit.CNPJCPF,
-                                                        NF.m_dtemis);
+                            dir :=m_Rep.FormatPath(m_Local,'',
+                                                  NF.m_emit.CNPJCPF,
+                                                  NF.m_dtemis);
                         end;
 
                         //
                         // salva
-                        if N.GravarXML(F, m_Local) then
+                        if N.GravarXML(F, dir) then
                         begin
                             //
                             // remove XML do BD para liberar espaços!
@@ -231,9 +289,6 @@ begin
         // chk se abortou pelo usuário
         if Self.Terminated then Break ;
     end;
-    //
-    // termina Thread
-    Self.Terminate ;
 end;
 
 { Tfrm_ExportXML }
@@ -285,19 +340,29 @@ begin
     F.save :=FindCmdLineSwitch('sql', ['-', '\', '/'], true) ;
 
     //
-    // load notas fiscais
-    if m_Lote.Load(F) then
+    // todos os caixas
+    if(F.nserie =0)then
     begin
+        m_Lote.Filter :=F;
         //
         // inicia tarefa
         DoStart ;
     end
     else begin
-        if not m_ClearXML then
-            CMsgDlg.Warning(
-            Format(
-            'Nenhuma NF encontrada para o CX[No:%.2d, DH.Aber:%s DH.Fech:%s]',
-            [m_NumSer,U.fDtTm(m_DHAber),U.fDtTm(m_DHFech)])) ;
+          //
+         // load notas fiscais do caixa
+         if m_Lote.Load(F) then
+         begin
+              //
+              // inicia tarefa
+              DoStart ;
+         end
+         else
+            if not m_ClearXML then
+                CMsgDlg.Warning(
+                Format(
+                'Nenhuma NF encontrada para o CX[No:%.2d, DH.Aber:%s DH.Fech:%s]',
+                [m_NumSer,U.fDtTm(m_DHAber),U.fDtTm(m_DHFech)])) ;
     end;
 end;
 
@@ -315,6 +380,7 @@ begin
     m_Run.OnBeforeExecute :=OnINI;
     m_Run.OnTerminate :=OnFIN;
     m_Run.OnIntProc :=setStatusBar;
+    m_Run.OnStrProc :=OnUpdate;
     //
     // começa a tarefa
     m_Run.Start  ;
@@ -337,10 +403,7 @@ begin
     else
         m_DHFech :=aDHFech;
     m_ClearXML :=aClear ;
-    if m_ClearXML then
-        btn_Start.Click
-    else
-        Result :=ShowModal =mrOk ;
+    Result :=ShowModal =mrOk ;
 end;
 
 procedure Tfrm_ExportXML.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -389,11 +452,17 @@ begin
         edt_Local.Enabled :=False ;
     end;
 
-    edt_Numero.Text :=Format('%.3d',[Self.m_NumSer]);
-    edt_DtaIni.Text :=FormatDateTime('DD/MM/YYYY hh:nn', Self.m_DHAber) ;
-    edt_DtaFin.Text :=FormatDateTime('DD/MM/YYYY hh:nn', Self.m_DHFech) ;
+    lbl_Info.Caption :=Format('Número: %.3d   ',[Self.m_NumSer])+
+      FormatDateTime('"Data/Hora Inicio: "DD/MM/YYYY hh:nn', Self.m_DHAber) +'   '+
+      FormatDateTime('"Data/Hora Fim: "DD/MM/YYYY hh:nn', Self.m_DHFech) ;
     pnl_ResultProcess.Text :='';
     setStatusBar();
+    //
+    //
+    if m_ClearXML then
+    begin
+        btn_Start.Click ;
+    end ;
 end;
 
 class function Tfrm_ExportXML.New(): Ifrm_ExportXML;
@@ -409,6 +478,7 @@ begin
     run :=TCRunProc(Sender) ;
     //btn_Start.Enabled :=True ;
     btn_Stop.Enabled :=False ;
+    btn_Close.Enabled :=True ;
     edt_Local.Enabled :=True ;
 
     //
@@ -428,8 +498,15 @@ procedure Tfrm_ExportXML.OnINI(Sender: TObject);
 begin
     btn_Start.Enabled :=False ;
     btn_Stop.Enabled :=True ;
+    btn_Close.Enabled :=False ;
     edt_Local.Enabled :=False ;
     setStatusBar();
+end;
+
+procedure Tfrm_ExportXML.OnUpdate(const aStr: string);
+begin
+    lbl_Info.Caption :=aStr ;
+
 end;
 
 procedure Tfrm_ExportXML.setStatusBar(const aPos: Int64);
