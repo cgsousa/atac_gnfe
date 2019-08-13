@@ -46,12 +46,12 @@ uses
   Dialogs, ExtCtrls, StdCtrls,
   FormBase,
   //
-  AdvPanel, AdvGlowButton, AdvOfficeStatusBar, uStatusBar, AdvEdit, AdvEdBtn,
-  AdvDirectoryEdit, AdvGroupBox,
+  AdvEdit, AdvEdBtn, AdvDirectoryEdit,
   //
   JvExStdCtrls, JvButton, JvCtrls, JvFooter, JvExtComponent, JvExExtCtrls,
+  JvRichEdit,
   //
-  uACBrNFE, unotfis00, uclass, RTFLabel, GradientLabel;
+  uACBrNFE, unotfis00, uclass;
 
 type
   TCRunProc = class(TCThreadProcess)
@@ -60,7 +60,6 @@ type
     m_Rep: IBaseACBrNFE ;
     m_Local: string ;
     m_Clear: Boolean ;
-    m_totSucess, m_totError: Integer;
   protected
     procedure Execute; override;
     procedure RunProc; override;
@@ -79,16 +78,13 @@ type
   end;
 
   Tfrm_ExportXML = class(TBaseForm, Ifrm_ExportXML)
-    AdvOfficeStatusBar1: TAdvOfficeStatusBar;
     pnl_Footer: TJvFooter;
     btn_Close: TJvFooterBtn;
     btn_Start: TJvFooterBtn;
     btn_Stop: TJvFooterBtn;
     btn_ViewLOG: TJvFooterBtn;
-    gbx_InfoCX: TAdvGroupBox;
     edt_Local: TAdvDirectoryEdit;
-    pnl_ResultProcess: TAdvPanel;
-    lbl_Info: TGradientLabel;
+    txt_LOG: TJvRichEdit;
     procedure btn_StartClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -110,13 +106,8 @@ type
     procedure OnINI(Sender: TObject);
     procedure OnFIN(Sender: TObject);
     procedure OnUpdate(const aStr: string) ;
-  private
-    { StatusBar }
-    m_StatusBar: TCStatusBarWidget;
-    m_panelNF: TAdvOfficeStatusPanel ;
-    m_panelVTotal: TAdvOfficeStatusPanel ;
-    m_panelProgress: TAdvOfficeStatusPanel ;
-    procedure setStatusBar(const aPos: Int64 =0) ;
+    procedure OnLOG(const aStr: string) ;
+
   public
     { Public declarations }
     class function New(): Ifrm_ExportXML;
@@ -168,25 +159,25 @@ begin
     end;
 
     //
-    // chk se tem caixa para processar
-    if m_Lote.Filter.nserie > 0 then
+    // ler filtro p/ modificar
+    F :=m_Lote.Filter ;
+
+    //
+    // se informou unico caixa
+    if F.nserie > 0 then
         RunProc
     //
     // processa todos no periodo
     else begin
-        //
-        // ler filtro p/ modificar
-        F :=m_Lote.Filter ;
         C :=TCNotFis00Lote.CLoadCaixas ;
         for I :=Low(C) to High(C) do
         begin
             F.nserie :=C[I] ;
-            CallOnStrProc(
-              Format('Processando Caixa: %.3d   ',[F.nserie])+
-              FormatDateTime('"Data/Hora Inicio: "DD/MM/YYYY hh:nn', F.codini)+
-              FormatDateTime('"   Data/Hora Fim: "DD/MM/YYYY hh:nn', F.datfin)+
-              ',    Aguarde...'
-            );
+
+            CallOnStrProc(Format('Caixa Número: %.3d   ',[F.nserie]));
+            CallOnStrProc(#9+FormatDateTime('"Data/Hora Inicio: "DD/MM/YYYY hh:nn', F.datini));
+            CallOnStrProc(#9+FormatDateTime('"Data/Hora Fim: "DD/MM/YYYY hh:nn', F.datfin));
+
             if m_Lote.Load(F) then
             begin
                 RunProc ;
@@ -207,27 +198,25 @@ var
   NF: TCNotFis00;
   N: NotaFiscal ;
 var
-  P: Integer;
+  tot_suc, tot_err: Integer;
   dir,F: string ;
 begin
+
     //
     // inicializa totalizadores
-    m_totSucess:=0;
-    m_totError :=0;
+    tot_suc:=0;
+    tot_err:=0;
 
     for NF in m_Lote.Items do
     begin
-        //
-        // calc. o pos e sincroniza com a view
-        P :=CalcPerc(NF.ItemIndex+1, m_Lote.Items.Count) ;
-        CallOnIntProc(P);
         //
         // chk notas processadas e/ou canceladas
         if NF.CStatProcess or NF.CstatCancel then
         begin
             if NF.m_chvnfe <> '' then
             begin
-//                CallOnStrProc('Carregando NFe[%s]',[NF.m_chvnfe]);
+                //
+                // carga XML
                 if NF.LoadXML() then
                 begin
                     N :=m_Rep.AddNotaFiscal(nil, True) ;
@@ -241,7 +230,6 @@ begin
                         N.NFe.procNFe.digVal  :=NF.m_digval ;
                         N.NFe.procNFe.cStat   :=NF.m_codstt ;
                         N.NFe.procNFe.xMotivo :=NF.m_motivo ;
-//                        CallOnStrProc('Exportando NFe:%s'#13#10'Aguarde...',[NF.m_chvnfe]);
                         N.GerarXML ;
 
                         //
@@ -254,6 +242,8 @@ begin
                             dir :=m_Rep.FormatPath(m_Local,'',
                                                   NF.m_emit.CNPJCPF,
                                                   NF.m_dtemis);
+                            CallOnStrProc(Format(#9'Gravando em %s',[dir]));
+                            CallOnStrProc(#9'Aguarde...');
                         end;
 
                         //
@@ -268,27 +258,33 @@ begin
                                 NF.m_xml :='' ;
                                 NF.setXML ;
                             end;
+                            Inc(tot_suc) ;
                         end
-                        else
-                            Inc(m_totError) ;
+                        else begin
+                            CallOnStrProc(#9'Erro|Ao gravar XML');
+                            Inc(tot_err) ;
+                        end;
                     end;
-                    Inc(m_totSucess) ;
                 end
                 else begin
-//                    CallOnStrProc('XML não encontrado!: NFe[%s]',[NF.m_chvnfe]);
-                    Inc(m_totError) ;
+                    CallOnStrProc(Format(#9'Erro|XML não encontrado![Pedido de Venda:%d]',[NF.m_codped]));
+                    Inc(tot_err) ;
                 end;
             end
             else begin
-//                CallOnStrProc('NFe[Mod:%d,Série:%.3d,Número:%d]'#13#10'Error',[
-//                                NF.m_codmod,NF.m_nserie,NF.m_numdoc]);
-                Inc(m_totError) ;
+                CallOnStrProc(Format(#9'Erro|Chave não encontrada![Pedido de Venda:%d]',[NF.m_codped]));
+                Inc(tot_err) ;
             end;
         end;
+
         //
         // chk se abortou pelo usuário
         if Self.Terminated then Break ;
     end;
+    //
+    // format totalizadores
+    CallOnStrProc(Format(#9'Total: %d',[tot_suc]));
+    CallOnStrProc(Format(#9'Total com erros: %d',[tot_err]));
 end;
 
 { Tfrm_ExportXML }
@@ -343,6 +339,8 @@ begin
     // todos os caixas
     if(F.nserie =0)then
     begin
+        txt_LOG.Clear;
+
         m_Lote.Filter :=F;
         //
         // inicia tarefa
@@ -353,16 +351,13 @@ begin
          // load notas fiscais do caixa
          if m_Lote.Load(F) then
          begin
+              OnLOG(Format(#9'Total de Notas Fiscais: %d',[m_Lote.Items.Count]));
               //
               // inicia tarefa
               DoStart ;
          end
          else
-            if not m_ClearXML then
-                CMsgDlg.Warning(
-                Format(
-                'Nenhuma NF encontrada para o CX[No:%.2d, DH.Aber:%s DH.Fech:%s]',
-                [m_NumSer,U.fDtTm(m_DHAber),U.fDtTm(m_DHFech)])) ;
+            OnLOG(#9'Erro: Nenhuma NF encontrada!') ;
     end;
 end;
 
@@ -379,8 +374,7 @@ begin
     m_Run :=TCRunProc.Create(m_Lote, m_Rep, edt_Local.Text, m_ClearXML);
     m_Run.OnBeforeExecute :=OnINI;
     m_Run.OnTerminate :=OnFIN;
-    m_Run.OnIntProc :=setStatusBar;
-    m_Run.OnStrProc :=OnUpdate;
+    m_Run.OnStrProc :=OnLOG;
     //
     // começa a tarefa
     m_Run.Start  ;
@@ -426,41 +420,30 @@ begin
     //
     //
     edt_Local.Text :=PathWithDelim(m_Rep.param.arq_SaveXML_RootPath.Value) +'proc';
-
-    //
-    // status bar
-    m_StatusBar :=TCStatusBarWidget.Create(AdvOfficeStatusBar1, False);
-    m_panelNF:=m_StatusBar.AddPanel(psHTML, '', 80, taCenter) ;
-    m_panelVTotal:=m_StatusBar.AddPanel(psHTML, '', 140, taRightJustify) ;
-    m_panelProgress:=m_StatusBar.AddPanel(psProgress, '', 250) ;
-
 end;
 
 procedure Tfrm_ExportXML.FormDestroy(Sender: TObject);
 begin
     m_Lote.Free ;
-    m_StatusBar.Free;
 
 end;
 
 procedure Tfrm_ExportXML.FormShow(Sender: TObject);
 begin
     //
-    // trava o edt local
+    // reg. no LOG
+    txt_LOG.Clear ;
+    if Self.m_NumSer > 0 then
+    begin
+        OnLOG(Format('Caixa Número: %.3d',[Self.m_NumSer]));
+        OnLOG(#9+FormatDateTime('"Data/Hora Inicio: "DD/MM/YYYY hh:nn', Self.m_DHAber));
+        OnLOG(#9+FormatDateTime('"Data/Hora Fim: "DD/MM/YYYY hh:nn', Self.m_DHFech)) ;
+    end;
+    //
+    //
     if m_ClearXML then
     begin
         edt_Local.Enabled :=False ;
-    end;
-
-    lbl_Info.Caption :=Format('Número: %.3d   ',[Self.m_NumSer])+
-      FormatDateTime('"Data/Hora Inicio: "DD/MM/YYYY hh:nn', Self.m_DHAber) +'   '+
-      FormatDateTime('"Data/Hora Fim: "DD/MM/YYYY hh:nn', Self.m_DHFech) ;
-    pnl_ResultProcess.Text :='';
-    setStatusBar();
-    //
-    //
-    if m_ClearXML then
-    begin
         btn_Start.Click ;
     end ;
 end;
@@ -481,16 +464,9 @@ begin
     btn_Close.Enabled :=True ;
     edt_Local.Enabled :=True ;
 
-    //
-    // format result
-    pnl_ResultProcess.Text :=Format(
-        '<p>Total: <font color="#004080"><b>%d</b></font></p>  '+
-        '<p>Total com erros:<font color="#ff0000"><b>%d</b></font></p>',
-        [run.m_totSucess,run.m_totError]);
-
-    pnl_ResultProcess.StatusBar.Text :=Format('Destino: <b>%s</b>',[run.m_Local]);
-
-    if not m_ClearXML then
+    if m_ClearXML then
+        ModalResult :=mrOk
+    else
         CMsgDlg.Info('Tarefa terminada');
 end;
 
@@ -500,33 +476,27 @@ begin
     btn_Stop.Enabled :=True ;
     btn_Close.Enabled :=False ;
     edt_Local.Enabled :=False ;
-    setStatusBar();
+end;
+
+procedure Tfrm_ExportXML.OnLOG(const aStr: string);
+begin
+    if Pos('Erro', aStr) > 0 then
+    begin
+        txt_Log.AddFormatText(aStr, [fsItalic], '', clRed) ;
+        txt_Log.AddFormatText(#13#10) ;
+    end
+    else
+        txt_Log.Lines.Add(aStr);
+    txt_Log.SelLength := 0;
+    txt_Log.SelStart:=txt_Log.GetTextLen;
+    txt_Log.Perform( EM_SCROLLCARET, 0, 0 );
+    ActiveControl :=txt_LOG ;
 end;
 
 procedure Tfrm_ExportXML.OnUpdate(const aStr: string);
 begin
-    lbl_Info.Caption :=aStr ;
+    //lbl_Info.Caption :=aStr ;
 
-end;
-
-procedure Tfrm_ExportXML.setStatusBar(const aPos: Int64);
-begin
-    if aPos > 0 then
-    begin
-        m_panelProgress.Progress.Position :=aPos ;
-    end
-    else begin
-        if m_Lote.Items.Count > 0 then
-        begin
-            m_panelNF.Text :=Format('NFs<b>%d</b>',[m_Lote.Items.Count]);
-            m_panelVTotal.Text :=Format('Total:<b>%10.2m</b>',[m_Lote.vTotalNF]);
-        end
-        else begin
-            m_panelNF.Text :='Nenhum';
-            m_panelVTotal.Text :='';
-            m_panelProgress.Progress.Position :=0;
-        end;
-    end;
 end;
 
 end.

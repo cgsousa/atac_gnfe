@@ -4,7 +4,7 @@ object frm_ExportXML: Tfrm_ExportXML
   BorderStyle = bsDialog
   BorderWidth = 3
   Caption = '.:Exporta XML da NF-e:.'
-  ClientHeight = 209
+  ClientHeight = 446
   ClientWidth = 628
   Color = clWindow
   Ctl3D = False
@@ -20,96 +20,9 @@ object frm_ExportXML: Tfrm_ExportXML
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 14
-  object AdvOfficeStatusBar1: TAdvOfficeStatusBar
-    Left = 0
-    Top = 188
-    Width = 628
-    Height = 21
-    AnchorHint = False
-    Panels = <
-      item
-        Alignment = taCenter
-        AppearanceStyle = psLight
-        DateFormat = 'dd/MM/yyyy'
-        Progress.BackGround = clNone
-        Progress.Indication = piPercentage
-        Progress.Min = 0
-        Progress.Max = 100
-        Progress.Position = 0
-        Progress.Level0Color = clLime
-        Progress.Level0ColorTo = 14811105
-        Progress.Level1Color = clYellow
-        Progress.Level1ColorTo = 13303807
-        Progress.Level2Color = 5483007
-        Progress.Level2ColorTo = 11064319
-        Progress.Level3Color = clRed
-        Progress.Level3ColorTo = 13290239
-        Progress.Level1Perc = 70
-        Progress.Level2Perc = 90
-        Progress.BorderColor = clBlack
-        Progress.ShowBorder = False
-        Progress.Stacked = False
-        Text = 'Nenhum'
-        TimeFormat = 'hh:mm:ss'
-        Width = 75
-      end
-      item
-        AppearanceStyle = psLight
-        DateFormat = 'dd/MM/yyyy'
-        Progress.BackGround = clNone
-        Progress.Indication = piPercentage
-        Progress.Min = 0
-        Progress.Max = 100
-        Progress.Position = 0
-        Progress.Level0Color = clLime
-        Progress.Level0ColorTo = 14811105
-        Progress.Level1Color = clYellow
-        Progress.Level1ColorTo = 13303807
-        Progress.Level2Color = 5483007
-        Progress.Level2ColorTo = 11064319
-        Progress.Level3Color = clRed
-        Progress.Level3ColorTo = 13290239
-        Progress.Level1Perc = 70
-        Progress.Level2Perc = 90
-        Progress.BorderColor = clBlack
-        Progress.ShowBorder = False
-        Progress.Stacked = False
-        Text = 'Total: R$99,999,999.99'
-        TimeFormat = 'hh:mm:ss'
-        Width = 140
-      end
-      item
-        AppearanceStyle = psLight
-        DateFormat = 'dd/MM/yyyy'
-        Progress.BackGround = clNone
-        Progress.Indication = piPercentage
-        Progress.Min = 0
-        Progress.Max = 100
-        Progress.Position = 50
-        Progress.Level0Color = clLime
-        Progress.Level0ColorTo = 14811105
-        Progress.Level1Color = clYellow
-        Progress.Level1ColorTo = 13303807
-        Progress.Level2Color = 5483007
-        Progress.Level2ColorTo = 11064319
-        Progress.Level3Color = clRed
-        Progress.Level3ColorTo = 13290239
-        Progress.Level1Perc = 70
-        Progress.Level2Perc = 90
-        Progress.BorderColor = clBlack
-        Progress.ShowBorder = False
-        Progress.Stacked = True
-        Style = psProgress
-        TimeFormat = 'hh:mm:ss'
-        Width = 250
-      end>
-    ShowSplitter = True
-    SimplePanel = False
-    Version = '1.5.2.2'
-  end
   object pnl_Footer: TJvFooter
     Left = 0
-    Top = 148
+    Top = 406
     Width = 628
     Height = 40
     Align = alBottom
@@ -120,7 +33,7 @@ object frm_ExportXML: Tfrm_ExportXML
     Font.Name = 'Trebuchet MS'
     Font.Style = []
     ParentFont = False
-    ExplicitTop = 142
+    ExplicitTop = 229
     DesignSize = (
       628
       40)
@@ -175,44 +88,6 @@ object frm_ExportXML: Tfrm_ExportXML
       SpaceInterval = 6
     end
   end
-  object gbx_InfoCX: TAdvGroupBox
-    Left = 0
-    Top = 20
-    Width = 628
-    Height = 50
-    Align = alTop
-    Caption = ' Informa'#231#245'es do Caixa '
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -12
-    Font.Name = 'Tahoma'
-    Font.Style = []
-    ParentFont = False
-    TabOrder = 2
-    object lbl_Info: TGradientLabel
-      Left = 2
-      Top = 23
-      Width = 624
-      Height = 25
-      Align = alBottom
-      Alignment = taCenter
-      AutoSize = False
-      Caption = 'lbl_Info'
-      Color = clGradientActiveCaption
-      ParentColor = False
-      ColorTo = clGradientInactiveCaption
-      EllipsType = etNone
-      GradientType = gtFullHorizontal
-      GradientDirection = gdLeftToRight
-      Indent = 0
-      Orientation = goHorizontal
-      TransparentText = False
-      VAlignment = vaCenter
-      Version = '1.2.0.0'
-      ExplicitLeft = 3
-      ExplicitTop = 19
-    end
-  end
   object edt_Local: TAdvDirectoryEdit
     Left = 82
     Top = 0
@@ -236,7 +111,7 @@ object frm_ExportXML: Tfrm_ExportXML
     Align = alTop
     Color = clWindow
     ReadOnly = False
-    TabOrder = 3
+    TabOrder = 1
     Visible = True
     Version = '1.3.5.0'
     ButtonStyle = bsButton
@@ -254,59 +129,29 @@ object frm_ExportXML: Tfrm_ExportXML
     ExplicitLeft = 164
     ExplicitWidth = 465
   end
-  object pnl_ResultProcess: TAdvPanel
+  object txt_LOG: TJvRichEdit
     Left = 0
-    Top = 70
+    Top = 20
     Width = 628
-    Height = 76
-    Align = alTop
-    BevelOuter = bvNone
-    BorderStyle = bsSingle
-    Color = clWhite
-    Font.Charset = DEFAULT_CHARSET
+    Height = 386
+    Align = alClient
+    BorderWidth = 3
+    Color = clGradientInactiveCaption
+    Flat = True
+    Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
-    Font.Height = -11
-    Font.Name = 'Tahoma'
+    Font.Height = -12
+    Font.Name = 'Trebuchet MS'
     Font.Style = []
+    Lines.Strings = (
+      'Caixa N'#250'mero 01:'
+      '  Data/Hora inicio: 00/00/0000 00:00'
+      '  Data/Hora fim: 00/00/0000 00:00')
+    ParentFlat = False
     ParentFont = False
-    TabOrder = 4
-    UseDockManager = True
-    Version = '2.3.0.0'
-    BorderColor = clGray
-    BorderWidth = 1
-    Caption.Color = clGradientActiveCaption
-    Caption.ColorTo = clGradientInactiveCaption
-    Caption.Font.Charset = DEFAULT_CHARSET
-    Caption.Font.Color = clHighlightText
-    Caption.Font.Height = -11
-    Caption.Font.Name = 'Tahoma'
-    Caption.Font.Style = []
-    Caption.Indent = 2
-    Caption.Text = '<P align="center">RESULTADO</P>'
-    Caption.Visible = True
-    CollapsColor = clBtnFace
-    CollapsDelay = 0
-    ColorTo = 14938354
-    Padding.Left = 5
-    Padding.Top = 5
-    Padding.Right = 5
-    Padding.Bottom = 5
-    ShadowColor = clBlack
-    ShadowOffset = 0
-    StatusBar.BorderColor = clSilver
-    StatusBar.BorderStyle = bsSingle
-    StatusBar.Font.Charset = DEFAULT_CHARSET
-    StatusBar.Font.Color = clBlack
-    StatusBar.Font.Height = -11
-    StatusBar.Font.Name = 'Tahoma'
-    StatusBar.Font.Style = []
-    StatusBar.Color = 14938354
-    StatusBar.ColorTo = clWhite
-    StatusBar.Height = 21
-    StatusBar.Visible = True
-    Text = 
-      '<p>Total: <font color="#004080"><b>35</b></font></p>  <p>Total c' +
-      'om erros:<font color="#ff0000"><b>0</b></font></p>'
-    FullHeight = 200
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 2
+    ExplicitTop = 19
   end
 end

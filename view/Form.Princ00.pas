@@ -412,7 +412,7 @@ begin
 //    begin
         I :=Tfrm_ExportXML.New ;
         I.Execute( edt_NSerie.IntValue,
-                                m_Filter.datini, m_Filter.datfin, True) ;
+                                m_Filter.datini, m_Filter.datfin) ;
 //    end
 //    else begin
 //        CMsgDlg.Warning('O número de serie deve ser informado!');
